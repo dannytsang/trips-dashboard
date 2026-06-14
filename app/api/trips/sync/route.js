@@ -1,5 +1,11 @@
 import { timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
+import { ProjectionValidationError } from '@/lib/trips-projection';
+import {
+  getMissingBlobStorageEnvironment,
+  TripsProjectionStorageError,
+  writeLatestTripsProjection,
+} from '@/lib/trips-storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,22 +53,64 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Machine authentication required' }, { status: 401 });
   }
 
+  const missingStorage = getMissingBlobStorageEnvironment();
+
+  if (missingStorage.length > 0) {
+    return NextResponse.json(
+      {
+        error: 'Trips projection storage is not configured',
+        accepted: false,
+      },
+      { status: 503 },
+    );
+  }
+
   let payload;
   try {
     payload = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid JSON payload', accepted: false }, { status: 400 });
   }
 
-  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-    return NextResponse.json({ error: 'Sync payload must be an object' }, { status: 400 });
-  }
+  try {
+    const result = await writeLatestTripsProjection(payload);
 
-  return NextResponse.json(
-    {
-      error: 'Private trips projection store is not implemented yet',
-      accepted: false,
-    },
-    { status: 501 },
-  );
+    return NextResponse.json({
+      accepted: true,
+      generatedAt: result.projection.generatedAt,
+      receivedAt: result.projection.receivedAt,
+      storage: result.storage,
+    });
+  } catch (error) {
+    if (error instanceof ProjectionValidationError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          details: error.details,
+          accepted: false,
+        },
+        { status: 400 },
+      );
+    }
+
+    if (error instanceof TripsProjectionStorageError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          accepted: false,
+          lastKnownGoodPreserved: true,
+        },
+        { status: error.code === 'storage_not_configured' ? 503 : 502 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error: 'Failed to sync trips projection',
+        accepted: false,
+        lastKnownGoodPreserved: true,
+      },
+      { status: 502 },
+    );
+  }
 }

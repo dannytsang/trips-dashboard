@@ -1,6 +1,11 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions, getMissingAuthEnvironment } from '@/lib/auth';
+import {
+  getMissingBlobStorageEnvironment,
+  readLatestTripsProjection,
+  TripsProjectionStorageError,
+} from '@/lib/trips-storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,9 +25,46 @@ export async function GET() {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   }
 
-  return NextResponse.json({
-    trips: [],
-    generatedAt: null,
-    message: 'Private trips projection store is not wired yet.',
-  });
+  const missingStorage = getMissingBlobStorageEnvironment();
+
+  if (missingStorage.length > 0) {
+    return NextResponse.json(
+      {
+        error: 'Trips projection storage is not configured',
+        storage: { configured: false },
+      },
+      { status: 503 },
+    );
+  }
+
+  try {
+    const { projection, storage, stale, message } = await readLatestTripsProjection();
+
+    return NextResponse.json(
+      {
+        ...projection,
+        storage,
+        stale,
+        message,
+      },
+      {
+        headers: {
+          'Cache-Control': 'private, no-store',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      },
+    );
+  } catch (error) {
+    const message = error instanceof TripsProjectionStorageError
+      ? error.message
+      : 'Failed to read trips projection';
+
+    return NextResponse.json(
+      {
+        error: message,
+        storage: { configured: true },
+      },
+      { status: 502 },
+    );
+  }
 }

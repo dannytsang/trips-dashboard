@@ -27,6 +27,8 @@ Set these in Vercel production/preview environments; never commit their values:
 - `NEXTAUTH_URL=https://tsang-travel.vercel.app`
 - `NEXTAUTH_SECRET`
 - `TRIPS_DASHBOARD_SYNC_SECRET` once the sync endpoint is used by Hermes/travel-planner
+- Vercel Blob storage for the latest projection, using either Vercel-managed Blob OIDC/store binding or `BLOB_READ_WRITE_TOKEN`
+- Optional `TRIPS_DASHBOARD_BLOB_PATH` override; defaults to `trips-dashboard/latest.json`
 
 ## Privacy rule
 

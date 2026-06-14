@@ -8,6 +8,8 @@ const homePage = readFileSync('app/page.jsx', 'utf8');
 const globalCss = readFileSync('app/globals.css', 'utf8');
 const syncRoute = readFileSync('app/api/trips/sync/route.js', 'utf8');
 const tripsRoute = readFileSync('app/api/trips/route.js', 'utf8');
+const storage = readFileSync('lib/trips-storage.js', 'utf8');
+const projection = readFileSync('lib/trips-projection.js', 'utf8');
 
 assert.match(middleware, /matcher:\s*\['\/'\]/, 'middleware must protect the dashboard root');
 assert.match(auth, /NEXTAUTH_URL/, 'auth config must require NEXTAUTH_URL for production callback/origin correctness');
@@ -22,5 +24,13 @@ assert.match(syncRoute, /timingSafeEqual/, 'sync endpoint must use constant-time
 assert.match(syncRoute, /Machine authentication required/, 'sync endpoint must reject missing or bad bearer token');
 assert.match(tripsRoute, /getServerSession/, 'browser-facing trips API must require server session');
 assert.match(tripsRoute, /Authentication required/, 'browser-facing trips API must return explicit auth failure without relying only on middleware');
+assert.match(tripsRoute, /readLatestTripsProjection/, 'browser-facing trips API must read projection through server-side storage helper');
+assert.match(storage, /@vercel\/blob/, 'storage helper must use Vercel Blob SDK server-side');
+assert.match(storage, /access:\s*'private'/, 'storage helper must use private Blob access');
+assert.match(storage, /TRIPS_DASHBOARD_BLOB_PATH|trips-dashboard\/latest\.json/, 'storage helper must use a stable dashboard projection path');
+assert.match(storage, /ifMatch/, 'storage helper must use Blob ETag concurrency guard when replacing existing projection');
+assert.doesNotMatch(storage, /issueSignedToken|presignUrl|getDownloadUrl/, 'storage helper must not expose signed/direct Blob URLs to clients');
+assert.match(projection, /FORBIDDEN_KEY_PATTERNS/, 'projection validation must include private-data key guards');
+assert.match(projection, /FORBIDDEN_VALUE_PATTERNS/, 'projection validation must include private-data value guards');
 
 console.log('OIDC source checks passed.');
