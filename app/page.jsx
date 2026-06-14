@@ -1,5 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
+import { DashboardSessionSurface } from '@/components/dashboard-session-surface';
 import { authOptions, getMissingAuthEnvironment } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -15,23 +16,9 @@ export default async function HomePage() {
   const userName = session.user?.name || session.user?.email || 'authorised traveller';
 
   return (
-    <main>
-      <section aria-labelledby="dashboard-title">
-        <p className="eyebrow">Travel intelligence</p>
-        <h1 id="dashboard-title">🧭 Tsang Travel</h1>
-        {missingAuth.length > 0 ? (
-          <>
-            <p>
-              The dashboard is protected, but required OIDC runtime configuration is incomplete. No trip data is available until the server configuration is corrected.
-            </p>
-            <div className="status status-warning">Authentication configuration incomplete</div>
-          </>
-        ) : (
-          <p>
-            Welcome, {userName}. The authenticated dashboard boundary is active. Live trip summaries will appear here once the private projection store is wired in.
-          </p>
-        )}
-      </section>
-    </main>
+    <DashboardSessionSurface
+      userName={userName}
+      authConfigurationIncomplete={missingAuth.length > 0}
+    />
   );
 }

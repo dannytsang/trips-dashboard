@@ -137,3 +137,37 @@ p {
   color: var(--text-secondary);
   font-size: 0.86rem;
 }
+
+.session-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.secondary-action {
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-secondary), white 8%);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 800;
+  padding: 0.7rem 0.95rem;
+  white-space: nowrap;
+}
+
+.secondary-action:hover {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+@media (max-width: 560px) {
+  .session-header {
+    flex-direction: column;
+  }
+
+  .secondary-action {
+    width: 100%;
+  }
+}
