@@ -1,0 +1,9 @@
+{
+  "name": "trips-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build-static.mjs",
+    "vercel:ignore-build": "bash scripts/vercel-ignore-build.sh"
+  }
+}

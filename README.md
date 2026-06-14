@@ -19,6 +19,6 @@ Trip data must not be stored in this public git repository, committed generated 
 
 ## Deployment guardrails
 
-This repository includes a minimal static shell in `public/index.html` so Vercel has a valid deployment target before the real dashboard app is implemented.
+This repository includes a minimal static shell in `public/index.html` and a dependency-free `npm run build` that copies it to `dist/`, giving Vercel a valid deployment target before the real dashboard app is implemented.
 
 `vercel.json` also configures `scripts/vercel-ignore-build.sh` as the ignored-build command. Markdown/spec-only commits are skipped by Vercel, while source/config/static-site changes still build and deploy.
