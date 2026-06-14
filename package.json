@@ -3,7 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "node scripts/build-static.mjs",
+    "build": "next build",
+    "dev": "next dev",
+    "start": "next start",
     "vercel:ignore-build": "bash scripts/vercel-ignore-build.sh"
+  },
+  "dependencies": {
+    "next": "15.5.19",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
   }
 }
