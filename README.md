@@ -2,7 +2,7 @@
 
 A private, read-only Vercel dashboard for Danny's travel-planner trip summaries.
 
-- Production: https://trips-dashboard-theta.vercel.app
+- Production: https://tsang-travel.vercel.app
 - Source repo: https://github.com/dannytsang/trips-dashboard
 - Runtime trip source: Hermes `travel-planner` state, not committed dashboard data
 
