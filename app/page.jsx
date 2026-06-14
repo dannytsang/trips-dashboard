@@ -1,13 +1,33 @@
-export default function HomePage() {
+import { getServerSession } from 'next-auth';
+import { authOptions, getMissingAuthEnvironment } from '@/lib/auth';
+
+export const dynamic = 'force-dynamic';
+
+export default async function HomePage() {
+  const missingAuth = getMissingAuthEnvironment();
+  const session = await getServerSession(authOptions);
+  const userName = session?.user?.name || session?.user?.email || 'authorised traveller';
+
   return (
     <main>
       <section aria-labelledby="dashboard-title">
         <p className="eyebrow">Travel intelligence</p>
         <h1 id="dashboard-title">🧭 Tsang Travel</h1>
-        <p>
-          This is the deployment shell for the private Tsang Travel dashboard. Live trip data is intentionally absent until the authenticated runtime store, ingestion endpoint, and OIDC boundary are implemented.
-        </p>
-        <div className="status">No private trip data is bundled in this build</div>
+        {missingAuth.length > 0 ? (
+          <>
+            <p>
+              The dashboard is protected, but required OIDC runtime configuration is incomplete. No trip data is available until the server configuration is corrected.
+            </p>
+            <div className="status status-warning">Authentication configuration incomplete</div>
+          </>
+        ) : (
+          <>
+            <p>
+              Welcome, {userName}. The authenticated dashboard boundary is active. Live trip summaries will appear here once the private projection store is wired in.
+            </p>
+            <div className="status">No private trip data is bundled in this build</div>
+          </>
+        )}
       </section>
     </main>
   );

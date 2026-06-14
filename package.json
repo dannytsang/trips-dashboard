@@ -6,11 +6,19 @@
     "build": "next build",
     "dev": "next dev",
     "start": "next start",
+    "test": "node scripts/check-oidc-source.mjs",
+    "scan:static-private-data": "node scripts/scan-static-private-data.cjs",
+    "verify": "npm test && npm run build && npm run scan:static-private-data",
     "vercel:ignore-build": "bash scripts/vercel-ignore-build.sh"
   },
   "dependencies": {
     "next": "15.5.19",
+    "next-auth": "^4.24.14",
     "react": "19.1.0",
     "react-dom": "19.1.0"
+  },
+  "overrides": {
+    "postcss": "8.5.10",
+    "uuid": "11.1.1"
   }
 }

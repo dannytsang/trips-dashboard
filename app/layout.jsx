@@ -1,9 +1,9 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'Trips Dashboard',
+  title: 'Tsang Travel',
   description:
-    'Private travel dashboard shell. Real trip data will be served only after authenticated storage and OIDC are implemented.',
+    'Private travel dashboard. Real trip data is served only through authenticated runtime storage and OIDC-protected routes.',
 };
 
 export default function RootLayout({ children }) {
