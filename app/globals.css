@@ -92,6 +92,10 @@ p {
 }
 
 .auth-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  box-sizing: border-box;
   min-height: 100vh;
   display: grid;
   place-items: center;
@@ -100,10 +104,14 @@ p {
     radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 34%),
     var(--bg-primary);
   isolation: isolate;
+  overflow: auto;
 }
 
 .auth-card {
+  position: relative;
+  z-index: 1;
   width: min(100%, 460px);
+  background: var(--bg-secondary);
 }
 
 .primary-action {

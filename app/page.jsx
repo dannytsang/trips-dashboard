@@ -27,12 +27,9 @@ export default async function HomePage() {
             <div className="status status-warning">Authentication configuration incomplete</div>
           </>
         ) : (
-          <>
-            <p>
-              Welcome, {userName}. The authenticated dashboard boundary is active. Live trip summaries will appear here once the private projection store is wired in.
-            </p>
-            <div className="status">No private trip data is bundled in this build</div>
-          </>
+          <p>
+            Welcome, {userName}. The authenticated dashboard boundary is active. Live trip summaries will appear here once the private projection store is wired in.
+          </p>
         )}
       </section>
     </main>
