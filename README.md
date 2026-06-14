@@ -16,3 +16,9 @@ A private, read-only Vercel dashboard for Danny's travel-planner trip summaries.
 ## Privacy rule
 
 Trip data must not be stored in this public git repository, committed generated TypeScript/JSON, or exposed through public static assets. Dashboard data must be stored only in authenticated/private runtime services and served to authenticated users.
+
+## Deployment guardrails
+
+This repository includes a minimal static shell in `public/index.html` so Vercel has a valid deployment target before the real dashboard app is implemented.
+
+`vercel.json` also configures `scripts/vercel-ignore-build.sh` as the ignored-build command. Markdown/spec-only commits are skipped by Vercel, while source/config/static-site changes still build and deploy.
