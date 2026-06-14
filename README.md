@@ -8,10 +8,14 @@ A private, read-only Vercel dashboard for Danny's travel-planner trip summaries.
 
 ## Specs
 
+The governing dashboard specs live in the travel-planner skill hierarchy, matching the meals-dashboard pattern:
+
 | Spec | Status | Purpose |
 |---|---|---|
-| [`docs/specs/001-upcoming-trips-summary-dashboard.md`](docs/specs/001-upcoming-trips-summary-dashboard.md) | Draft | Initial summary dashboard listing upcoming trips and defining the private data contract/sync boundaries. |
-| [`docs/specs/002-oidc-auth.md`](docs/specs/002-oidc-auth.md) | Draft | Future OIDC/AuthentiK protection model, mirroring the meals-dashboard approach. |
+| `/home/hermes/workspace/Hermes-Skills/productivity/travel-planner/.specify/specs/008-dashboard-summary/spec.md` | Draft | Upcoming trips summary projection, privacy, sync, and visual contract. |
+| `/home/hermes/workspace/Hermes-Skills/productivity/travel-planner/.specify/specs/009-dashboard-oidc-authentication/spec.md` | Draft | OIDC/AuthentiK and private data/API protection contract. |
+
+This repository owns the web implementation, Vercel deployment, and any repo-local implementation notes. The travel-planner skill owns the source-of-truth dashboard behaviour specs.
 
 ## Privacy rule
 
