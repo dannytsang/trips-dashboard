@@ -96,6 +96,10 @@ p {
   display: grid;
   place-items: center;
   padding: 2rem;
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 34%),
+    var(--bg-primary);
+  isolation: isolate;
 }
 
 .auth-card {
