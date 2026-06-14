@@ -14,9 +14,6 @@ export function AuthSignInPage() {
         <button className="primary-action" type="button" onClick={() => signIn('authentik', { callbackUrl: '/' })}>
           Continue with Authentik
         </button>
-        <p className="auth-note">
-          No live trip data or secret values are loaded on this sign-in page.
-        </p>
       </section>
     </main>
   );
