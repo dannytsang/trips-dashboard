@@ -3,7 +3,55 @@
 import { useState } from 'react';
 import { signOut } from 'next-auth/react';
 
-export function DashboardSessionSurface({ userName, authConfigurationIncomplete = false }) {
+function formatDateRange(start, end) {
+  if (!start) return 'Date pending';
+  const startDate = new Date(start);
+  const endDate = end ? new Date(end) : null;
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+  if (!endDate || Number.isNaN(endDate.getTime())) {
+    return formatter.format(startDate);
+  }
+  return `${formatter.format(startDate)} → ${formatter.format(endDate)}`;
+}
+
+function statusLabel(trip) {
+  if (trip.monitoring?.active) return 'Active';
+  return trip.status || 'Unknown';
+}
+
+function readinessLabel(trip) {
+  return trip.planning?.readiness || 'needs_info';
+}
+
+function monitoringLabel(trip) {
+  if (trip.monitoring?.summary) return trip.monitoring.summary;
+  if (trip.monitoring?.active) return 'Monitoring active';
+  if (trip.monitoring?.enabled) return 'Monitoring configured';
+  return 'Monitoring not enabled';
+}
+
+function nextActionLabel(trip) {
+  return trip.planning?.nextAction || 'No action required';
+}
+
+function metricValue(projection, predicate) {
+  return projection?.trips?.filter(predicate).length || 0;
+}
+
+export function DashboardSessionSurface({
+  userName,
+  authConfigurationIncomplete = false,
+  storageConfigurationIncomplete = false,
+  projection = null,
+  projectionStorage = null,
+  projectionStale = false,
+  projectionMessage = null,
+  projectionError = null,
+}) {
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   function handleSignOut() {
@@ -23,29 +71,125 @@ export function DashboardSessionSurface({ userName, authConfigurationIncomplete 
     );
   }
 
+  const trips = projection?.trips || [];
+  const generatedAt = projection?.generatedAt || null;
+  const activeTrips = metricValue(projection, trip => trip.monitoring?.active || trip.status === 'active');
+  const monitorableTrips = metricValue(projection, trip => trip.monitoring?.enabled);
+  const blockers = metricValue(projection, trip => trip.planning?.nextAction);
+
   return (
-    <main>
-      <section aria-labelledby="dashboard-title">
+    <main className="dashboard-shell">
+      <section aria-labelledby="dashboard-title" className="dashboard-panel">
         <div className="session-header">
           <div>
             <p className="eyebrow">Travel intelligence</p>
             <h1 id="dashboard-title">🧭 Tsang Travel</h1>
+            <p className="dashboard-subtitle">Upcoming and active trips from the private travel-planner projection.</p>
           </div>
-          <button className="secondary-action" type="button" onClick={handleSignOut}>
-            Sign out
-          </button>
+          <div className="session-actions">
+            <span className="session-user">Welcome, {userName}</span>
+            <button className="secondary-action" type="button" onClick={handleSignOut}>
+              Sign out
+            </button>
+          </div>
         </div>
+
         {authConfigurationIncomplete ? (
-          <>
-            <p>
-              The dashboard is protected, but required OIDC runtime configuration is incomplete. No trip data is available until the server configuration is corrected.
-            </p>
-            <div className="status status-warning">Authentication configuration incomplete</div>
-          </>
+          <div className="notice notice-warning">
+            <strong>Authentication configuration incomplete.</strong>
+            <span>No trip data is available until the server OIDC configuration is corrected.</span>
+          </div>
+        ) : storageConfigurationIncomplete ? (
+          <div className="notice notice-warning">
+            <strong>Projection storage is not configured.</strong>
+            <span>The dashboard is protected, but private Blob storage is unavailable.</span>
+          </div>
+        ) : projectionError ? (
+          <div className="notice notice-danger">
+            <strong>Projection unavailable.</strong>
+            <span>{projectionError}</span>
+          </div>
         ) : (
-          <p>
-            Welcome, {userName}. The authenticated dashboard boundary is active. Live trip summaries are loaded only through the protected private projection API.
-          </p>
+          <>
+            <div className="metric-grid" aria-label="Travel summary metrics">
+              <article className="metric-card">
+                <span className="metric-label">Trips shown</span>
+                <strong>{trips.length}</strong>
+              </article>
+              <article className="metric-card">
+                <span className="metric-label">Active</span>
+                <strong>{activeTrips}</strong>
+              </article>
+              <article className="metric-card">
+                <span className="metric-label">Monitoring</span>
+                <strong>{monitorableTrips}</strong>
+              </article>
+              <article className="metric-card">
+                <span className="metric-label">Actions</span>
+                <strong>{blockers}</strong>
+              </article>
+            </div>
+
+            <div className={`projection-status ${projectionStale ? 'status-warning' : 'status-ok'}`}>
+              <span>{projectionStale ? 'Projection stale' : 'Projection current'}</span>
+              {generatedAt ? <span>Generated {new Date(generatedAt).toLocaleString('en-GB')}</span> : <span>Not generated yet</span>}
+              {projectionStorage?.pathname ? <span>Private manifest: {projectionStorage.pathname}</span> : null}
+              {projectionMessage ? <span>{projectionMessage}</span> : null}
+            </div>
+
+            {trips.length === 0 ? (
+              <div className="empty-state">
+                <h2>No upcoming trips</h2>
+                <p>The private projection is reachable, but it does not currently contain upcoming or active trips.</p>
+              </div>
+            ) : (
+              <div className="trip-list" aria-label="Upcoming trips">
+                {trips.map(trip => (
+                  <article className="trip-card" key={trip.id}>
+                    <div className="trip-card-header">
+                      <div>
+                        <p className="trip-date">{formatDateRange(trip.start, trip.end)}</p>
+                        <h2>{trip.title}</h2>
+                      </div>
+                      <span className="status-pill">{statusLabel(trip)}</span>
+                    </div>
+                    <dl className="trip-details">
+                      <div>
+                        <dt>Destination</dt>
+                        <dd>{trip.destinationLabel}</dd>
+                      </div>
+                      <div>
+                        <dt>Travellers</dt>
+                        <dd>{trip.travellers?.length ? trip.travellers.join(', ') : 'To confirm'}</dd>
+                      </div>
+                      <div>
+                        <dt>Planning</dt>
+                        <dd>{readinessLabel(trip)}</dd>
+                      </div>
+                      <div>
+                        <dt>Monitoring</dt>
+                        <dd>{monitoringLabel(trip)}</dd>
+                      </div>
+                    </dl>
+                    {trip.legs?.length ? (
+                      <ul className="leg-list" aria-label={`${trip.title} legs`}>
+                        {trip.legs.slice(0, 3).map((leg, index) => (
+                          <li key={`${trip.id}-leg-${index}`}>
+                            <span>{leg.label}</span>
+                            <small>{leg.mode}</small>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    <div className="next-action">
+                      <span>Next action</span>
+                      <strong>{nextActionLabel(trip)}</strong>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </section>
     </main>

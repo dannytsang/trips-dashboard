@@ -19,7 +19,8 @@ function assertNoProtectedDashboardDom(text, context, { allowAuthSignOutCopy = f
   if (!allowAuthSignOutCopy) {
     assert.equal(text.includes('Sign out'), false, `${context} must not render authenticated logout control`);
   }
-  assert.equal(text.includes('trips-dashboard/latest.json'), false, `${context} must not expose Blob storage path`);
+  assert.equal(text.includes('trips-dashboard/current.json'), false, `${context} must not expose Blob manifest path`);
+  assert.equal(text.includes('trips-dashboard/trips/'), false, `${context} must not expose Blob trip object path`);
 }
 
 async function main() {

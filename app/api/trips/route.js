@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { authOptions, getMissingAuthEnvironment } from '@/lib/auth';
 import {
   getMissingBlobStorageEnvironment,
-  readLatestTripsProjection,
+  readTripsDashboardProjection,
   TripsProjectionStorageError,
 } from '@/lib/trips-storage';
 
@@ -38,7 +38,7 @@ export async function GET() {
   }
 
   try {
-    const { projection, storage, stale, message } = await readLatestTripsProjection();
+    const { projection, storage, stale, message } = await readTripsDashboardProjection();
 
     return NextResponse.json(
       {

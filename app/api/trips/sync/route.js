@@ -4,7 +4,7 @@ import { ProjectionValidationError } from '@/lib/trips-projection';
 import {
   getMissingBlobStorageEnvironment,
   TripsProjectionStorageError,
-  writeLatestTripsProjection,
+  writeTripsDashboardProjection,
 } from '@/lib/trips-storage';
 
 export const dynamic = 'force-dynamic';
@@ -73,7 +73,7 @@ export async function POST(request) {
   }
 
   try {
-    const result = await writeLatestTripsProjection(payload);
+    const result = await writeTripsDashboardProjection(payload);
 
     return NextResponse.json({
       accepted: true,
