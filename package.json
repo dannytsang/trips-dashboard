@@ -8,6 +8,7 @@
     "start": "next start",
     "test": "node scripts/check-oidc-source.mjs && node scripts/check-blob-storage.mjs",
     "scan:static-private-data": "node scripts/scan-static-private-data.cjs",
+    "smoke:production-oidc": "node scripts/smoke-production-oidc.cjs",
     "verify": "npm test && npm run build && npm run scan:static-private-data",
     "vercel:ignore-build": "bash scripts/vercel-ignore-build.sh"
   },
