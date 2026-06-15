@@ -301,6 +301,33 @@ p {
   padding: 1rem;
 }
 
+.metric-filter-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--bg-elevated), transparent 6%);
+}
+
+.metric-filter-card:hover,
+.metric-filter-card:focus-visible {
+  border-color: var(--accent-cyan);
+  transform: translateY(-1px);
+}
+
+.metric-card-active {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-cyan), transparent 50%);
+}
+
+.metric-show-all strong {
+  font-size: 1.35rem;
+}
+
 .metric-card strong {
   display: block;
   margin-top: 0.35rem;

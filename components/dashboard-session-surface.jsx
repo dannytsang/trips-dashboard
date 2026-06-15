@@ -12,6 +12,21 @@ import {
 } from '@/lib/display-labels.mjs';
 
 const THEME_STORAGE_KEY = 'tsang-travel-theme';
+const FILTER_QUERY_KEY = 'filter';
+const TRIP_FILTERS = {
+  active: {
+    label: 'Active',
+    predicate: trip => trip.monitoring?.active === true,
+  },
+  monitoring: {
+    label: 'Monitoring',
+    predicate: trip => trip.monitoring?.enabled === true,
+  },
+  actions: {
+    label: 'Actions',
+    predicate: trip => trip.planning?.nextAction != null,
+  },
+};
 
 function getInitialTheme() {
   if (typeof window === 'undefined') return 'dark';
@@ -58,6 +73,27 @@ function metricValue(projection, predicate) {
   return projection?.trips?.filter(predicate).length || 0;
 }
 
+function normaliseFilter(value) {
+  return value && Object.hasOwn(TRIP_FILTERS, value) ? value : null;
+}
+
+function readFilterFromLocation() {
+  if (typeof window === 'undefined') return null;
+  const params = new URLSearchParams(window.location.search);
+  return normaliseFilter(params.get(FILTER_QUERY_KEY));
+}
+
+function writeFilterToUrl(filter) {
+  if (typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  if (filter) {
+    url.searchParams.set(FILTER_QUERY_KEY, filter);
+  } else {
+    url.searchParams.delete(FILTER_QUERY_KEY);
+  }
+  window.history.pushState({}, '', url);
+}
+
 export function DashboardSessionSurface({
   userName,
   authConfigurationIncomplete = false,
@@ -70,6 +106,7 @@ export function DashboardSessionSurface({
 }) {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [theme, setTheme] = useState('dark');
+  const [activeFilter, setActiveFilter] = useState(null);
 
   useEffect(() => {
     const initialTheme = getInitialTheme();
@@ -80,6 +117,17 @@ export function DashboardSessionSurface({
     document.documentElement.dataset.theme = theme;
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
+
+  useEffect(() => {
+    setActiveFilter(readFilterFromLocation());
+
+    function handlePopState() {
+      setActiveFilter(readFilterFromLocation());
+    }
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const nextTheme = theme === 'dark' ? 'light' : 'dark';
   const themeToggleLabel = useMemo(
@@ -96,6 +144,12 @@ export function DashboardSessionSurface({
     void signOut({ callbackUrl: '/auth/signin?signedOut=1' });
   }
 
+  function handleFilterToggle(filter) {
+    const nextFilter = activeFilter === filter ? null : filter;
+    setActiveFilter(nextFilter);
+    writeFilterToUrl(nextFilter);
+  }
+
   if (isSigningOut) {
     return (
       <main className="auth-shell" data-auth-state="signing-out">
@@ -110,9 +164,11 @@ export function DashboardSessionSurface({
 
   const trips = projection?.trips || [];
   const generatedAt = projection?.generatedAt || null;
-  const activeTrips = metricValue(projection, trip => trip.monitoring?.active || trip.status === 'active');
-  const monitorableTrips = metricValue(projection, trip => trip.monitoring?.enabled);
-  const blockers = metricValue(projection, trip => trip.planning?.nextAction);
+  const activeTrips = metricValue(projection, trip => trip.monitoring?.active === true);
+  const monitorableTrips = metricValue(projection, trip => trip.monitoring?.enabled === true);
+  const blockers = metricValue(projection, trip => trip.planning?.nextAction != null);
+  const filteredTrips = activeFilter ? trips.filter(TRIP_FILTERS[activeFilter].predicate) : trips;
+  const activeFilterLabel = activeFilter ? TRIP_FILTERS[activeFilter].label : null;
 
   return (
     <main className="dashboard-shell" data-theme={theme}>
@@ -161,18 +217,43 @@ export function DashboardSessionSurface({
                 <span className="metric-label">🧳 Trips shown</span>
                 <strong>{trips.length}</strong>
               </article>
-              <article className="metric-card">
+              <button
+                type="button"
+                className={`metric-card metric-filter-card ${activeFilter === 'active' ? 'metric-card-active' : ''}`}
+                aria-pressed={activeFilter === 'active'}
+                onClick={() => handleFilterToggle('active')}
+              >
                 <span className="metric-label">🚦 Active</span>
                 <strong>{activeTrips}</strong>
-              </article>
-              <article className="metric-card">
+              </button>
+              <button
+                type="button"
+                className={`metric-card metric-filter-card ${activeFilter === 'monitoring' ? 'metric-card-active' : ''}`}
+                aria-pressed={activeFilter === 'monitoring'}
+                onClick={() => handleFilterToggle('monitoring')}
+              >
                 <span className="metric-label">📡 Monitoring</span>
                 <strong>{monitorableTrips}</strong>
-              </article>
-              <article className="metric-card">
+              </button>
+              <button
+                type="button"
+                className={`metric-card metric-filter-card ${activeFilter === 'actions' ? 'metric-card-active' : ''}`}
+                aria-pressed={activeFilter === 'actions'}
+                onClick={() => handleFilterToggle('actions')}
+              >
                 <span className="metric-label">✅ Actions</span>
                 <strong>{blockers}</strong>
-              </article>
+              </button>
+              {activeFilter ? (
+                <button
+                  type="button"
+                  className="metric-card metric-filter-card metric-show-all"
+                  onClick={() => handleFilterToggle(activeFilter)}
+                >
+                  <span className="metric-label">🧾 Filter active</span>
+                  <strong>Show all</strong>
+                </button>
+              ) : null}
             </div>
 
             <div className={`projection-status ${projectionStale ? 'status-warning' : 'status-ok'}`}>
@@ -187,9 +268,14 @@ export function DashboardSessionSurface({
                 <h2>🛫 No upcoming trips</h2>
                 <p>The private projection is reachable, but it does not currently contain upcoming or active trips.</p>
               </div>
+            ) : filteredTrips.length === 0 ? (
+              <div className="empty-state" aria-live="polite">
+                <h2>🔎 No trips match the {activeFilterLabel} filter</h2>
+                <p>Try the visible Show all control or click the {activeFilterLabel} card again to return to the chronological trip list.</p>
+              </div>
             ) : (
-              <div className="trip-list" aria-label="Upcoming trips">
-                {trips.map(trip => (
+              <div className="trip-list" aria-label={activeFilterLabel ? `${activeFilterLabel} trips` : 'Upcoming trips'}>
+                {filteredTrips.map(trip => (
                   <article className="trip-card" key={trip.id}>
                     <div className="trip-card-header">
                       <div>
