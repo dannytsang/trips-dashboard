@@ -9,7 +9,7 @@ export function AuthSignInPage() {
         <p className="eyebrow">Tsang Travel</p>
         <h1 id="signin-heading">Sign in for travel intelligence</h1>
         <p>
-          Private trip summaries, itinerary context, and future travel monitoring views are protected by Authentik.
+          A private travel intelligence dashboard that summarises upcoming trips, itinerary context, and live monitoring views sourced from the travel planner.
         </p>
         <button className="primary-action" type="button" onClick={() => signIn('authentik', { callbackUrl: '/' })}>
           Continue with Authentik

@@ -32,7 +32,7 @@ async function main() {
   const signin = await request('/auth/signin', { redirect: 'follow' });
   assert.equal(signin.response.status, 200, '/auth/signin must render');
   assert.match(signin.text, /Sign in for travel intelligence/, 'sign-in page must show trips sign-in copy');
-  assert.match(signin.text, /Private trip summaries, itinerary context, and future travel monitoring views are protected by Authentik\./, 'sign-in page must show the approved description');
+  assert.match(signin.text, /A private travel intelligence dashboard that summarises upcoming trips, itinerary context, and live monitoring views sourced from the travel planner\./, 'sign-in page must show the approved description');
   assert.doesNotMatch(signin.text, /No live trip data or secret values are loaded/, 'sign-in page must not show the removed no-live-data note');
   assertNoProtectedDashboardDom(signin.text, 'sign-in page');
 

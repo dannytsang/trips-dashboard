@@ -19,7 +19,7 @@ assert.doesNotMatch(homePage, /No private trip data is bundled in this build/, '
 assert.match(signInPage, /Sign in for travel intelligence/, 'sign-in page must use trips copy');
 assert.doesNotMatch(signInPage, /No private trip data is bundled in this build/, 'sign-in page must not include authenticated dashboard status copy');
 assert.match(globalCss, /\.auth-shell\s*\{[\s\S]*position:\s*fixed[\s\S]*z-index:\s*2147483647[\s\S]*background:/, 'sign-in shell must be a fixed opaque overlay');
-assert.match(signInPage, /Private trip summaries, itinerary context, and future travel monitoring views are protected by Authentik\./, 'sign-in page must use the approved description');
+assert.match(signInPage, /A private travel intelligence dashboard that summarises upcoming trips, itinerary context, and live monitoring views sourced from the travel planner\./, 'sign-in page must use the approved description');
 assert.doesNotMatch(signInPage, /No live trip data or secret values are loaded/, 'sign-in page must not include the removed no-live-data note');
 assert.match(dashboardSurface, /signOut\(\{ callbackUrl: '\/auth\/signin\?signedOut=1' \}\)/, 'authenticated dashboard must sign out through NextAuth and return to sign-in');
 assert.match(dashboardSurface, /setIsSigningOut\(true\)/, 'authenticated dashboard must hide protected content immediately during sign-out');

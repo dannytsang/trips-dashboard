@@ -137,9 +137,7 @@ p {
   display: grid;
   place-items: center;
   padding: 2rem;
-  background:
-    radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 34%),
-    var(--bg-primary);
+  background: var(--bg-primary);
   isolation: isolate;
   overflow: auto;
 }
@@ -149,6 +147,7 @@ p {
   z-index: 1;
   width: min(100%, 460px);
   background: var(--bg-secondary);
+  opacity: 1;
 }
 
 .primary-action {
