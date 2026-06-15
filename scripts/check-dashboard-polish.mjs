@@ -25,7 +25,7 @@ assert.equal(formatLegModeEmoji('train'), '🚆');
 assert.equal(formatLegModeEmoji('booked_train'), '🚆');
 assert.equal(formatLegModeEmoji('cruise'), '🚢');
 assert.equal(formatLegModeEmoji('ferry'), '⛴️');
-assert.equal(formatLegModeEmoji('driving_ev'), '🔌');
+assert.equal(formatLegModeEmoji('driving_ev'), '🚗');
 assert.equal(formatLegModeEmoji('driving'), '🚗');
 assert.equal(formatLegModeEmoji('car_plus_airport_parking'), '🚗');
 assert.equal(formatLegModeEmoji('prebooked_taxi_or_private_airport_transfer'), '🚕');
