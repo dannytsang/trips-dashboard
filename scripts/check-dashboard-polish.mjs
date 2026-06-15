@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
+  formatLegModeEmoji,
   formatLegModeLabel,
   formatNextActionLabel,
   formatReadinessLabel,
@@ -19,6 +20,20 @@ assert.equal(formatStatusLabel('finalised_core_details'), 'Finalised core detail
 assert.equal(formatStatusLabel('planned', { active: true }), 'Active');
 assert.equal(formatReadinessLabel('needs_info'), 'Needs info');
 assert.equal(formatLegModeLabel('driving_ev'), 'Driving EV');
+assert.equal(formatLegModeEmoji('flight'), '✈️');
+assert.equal(formatLegModeEmoji('train'), '🚆');
+assert.equal(formatLegModeEmoji('booked_train'), '🚆');
+assert.equal(formatLegModeEmoji('cruise'), '🚢');
+assert.equal(formatLegModeEmoji('ferry'), '⛴️');
+assert.equal(formatLegModeEmoji('driving_ev'), '🔌');
+assert.equal(formatLegModeEmoji('driving'), '🚗');
+assert.equal(formatLegModeEmoji('car_plus_airport_parking'), '🚗');
+assert.equal(formatLegModeEmoji('prebooked_taxi_or_private_airport_transfer'), '🚕');
+assert.equal(formatLegModeEmoji('bus'), '🚌');
+assert.equal(formatLegModeEmoji('walk'), '🚶');
+assert.equal(formatLegModeEmoji('bike_hire'), '🚴');
+assert.equal(formatLegModeEmoji('overnight_stay'), '🛏️');
+assert.equal(formatLegModeEmoji('mystery_mode'), '🛣️');
 assert.equal(formatNextActionLabel('confirm_train_eta'), 'Confirm train ETA');
 
 assert.match(dashboardSurface, /THEME_STORAGE_KEY\s*=\s*'tsang-travel-theme'/, 'theme preference must use a stable localStorage key');
@@ -33,13 +48,16 @@ assert.doesNotMatch(dashboardSurface, /handleThemeToggle[\s\S]{0,200}readTripsDa
 
 assert.match(dashboardSurface, /formatStatusLabel/, 'status values must pass through the display-label mapper');
 assert.match(dashboardSurface, /formatReadinessLabel/, 'planning readiness values must pass through the display-label mapper');
+assert.match(dashboardSurface, /formatLegModeEmoji/, 'leg emoji must be derived from the leg-mode emoji helper');
 assert.match(dashboardSurface, /formatLegModeLabel/, 'leg modes must pass through the display-label mapper');
 assert.match(dashboardSurface, /formatNextActionLabel/, 'next actions must pass through the display-label mapper');
+assert.match(dashboardSurface, /\{formatLegModeEmoji\(leg\.mode\)\} \{leg\.label\}/, 'leg rows must render the transport-mode emoji helper adjacent to the leg label');
+assert.doesNotMatch(dashboardSurface, /<span>🛣️ \{leg\.label\}<\/span>/, 'leg rows must not hard-code the road emoji next to every leg label');
 assert.doesNotMatch(dashboardSurface, />\{trip\.status \|\| 'Unknown'\}</, 'raw trip status must not render directly');
 assert.doesNotMatch(dashboardSurface, />\{trip\.planning\?\.readiness/, 'raw planning readiness must not render directly');
 assert.doesNotMatch(dashboardSurface, />\{leg\.mode\}</, 'raw leg mode must not render directly');
 
-for (const emoji of ['✈️', '🧭', '👤', '🔐', '🧳', '🚦', '📡', '✅', '🕒', '📍', '👥', '🧩', '🛣️', '➡️']) {
+for (const emoji of ['✈️', '🧭', '👤', '🔐', '🧳', '🚦', '📡', '✅', '🕒', '📍', '👥', '🧩', '➡️']) {
   assert.match(dashboardSurface, new RegExp(emoji), `dashboard surface must include emoji accent ${emoji}`);
 }
 

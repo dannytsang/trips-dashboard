@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { signOut } from 'next-auth/react';
 import {
+  formatLegModeEmoji,
   formatLegModeLabel,
   formatNextActionLabel,
   formatReadinessLabel,
@@ -219,7 +220,7 @@ export function DashboardSessionSurface({
                       <ul className="leg-list" aria-label={`${trip.title} legs`}>
                         {trip.legs.slice(0, 3).map((leg, index) => (
                           <li key={`${trip.id}-leg-${index}`}>
-                            <span>🛣️ {leg.label}</span>
+                            <span>{formatLegModeEmoji(leg.mode)} {leg.label}</span>
                             <small>{formatLegModeLabel(leg.mode)}</small>
                           </li>
                         ))}
