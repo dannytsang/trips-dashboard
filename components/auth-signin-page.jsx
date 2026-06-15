@@ -25,11 +25,7 @@ export function AuthSignInPage() {
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
 
-  const nextTheme = theme === 'dark' ? 'light' : 'dark';
-  const themeToggleLabel = useMemo(
-    () => `Switch to ${nextTheme} mode`,
-    [nextTheme],
-  );
+  const themeToggleLabel = useMemo(() => 'Toggle theme', []);
 
   function handleThemeToggle() {
     setTheme((current) => (current === 'dark' ? 'light' : 'dark'));
@@ -38,21 +34,25 @@ export function AuthSignInPage() {
   return (
     <main className="auth-shell" data-theme={theme}>
       <section className="auth-card" aria-labelledby="signin-heading">
-        <p className="eyebrow">Tsang Travel</p>
-        <h1 id="signin-heading">Sign in for travel intelligence</h1>
+        <div className="auth-card-header">
+          <div className="auth-card-title">
+            <p className="eyebrow">Tsang Travel</p>
+            <h1 id="signin-heading">Sign in for travel intelligence</h1>
+          </div>
+          <button
+            type="button"
+            aria-label={themeToggleLabel}
+            className="secondary-action theme-toggle"
+            onClick={handleThemeToggle}
+          >
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
+        </div>
         <p>
           A private travel intelligence dashboard that summarises upcoming trips, itinerary context, and live monitoring views sourced from the travel planner.
         </p>
         <button className="primary-action" type="button" onClick={() => signIn('authentik', { callbackUrl: '/' })}>
           Continue with Authentik
-        </button>
-        <button
-          aria-label={themeToggleLabel}
-          className="secondary-action theme-toggle"
-          type="button"
-          onClick={handleThemeToggle}
-        >
-          {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
         </button>
       </section>
     </main>

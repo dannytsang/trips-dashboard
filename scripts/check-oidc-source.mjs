@@ -24,9 +24,11 @@ assert.doesNotMatch(signInPage, /No live trip data or secret values are loaded/,
 assert.match(signInPage, /THEME_STORAGE_KEY\s*=\s*'tsang-travel-theme'/, 'sign-in page must use the shared tsang-travel-theme storage key');
 assert.match(signInPage, /window\.localStorage\.getItem\(THEME_STORAGE_KEY\)/, 'sign-in page must initialise the theme from localStorage');
 assert.match(signInPage, /window\.localStorage\.setItem\(THEME_STORAGE_KEY, theme\)/, 'sign-in page must persist the theme to localStorage');
-assert.match(signInPage, /aria-label=\{themeToggleLabel\}/, 'sign-in page theme toggle must have an accessible label');
-assert.match(signInPage, /☀️ Light/, 'sign-in page theme toggle must expose a light-mode action');
-assert.match(signInPage, /🌙 Dark/, 'sign-in page theme toggle must expose a dark-mode action');
+assert.match(signInPage, /className="auth-card-header"/, 'sign-in page must place the theme toggle in a top flex row above the description');
+assert.match(signInPage, /className="auth-card-title"/, 'sign-in page must group the eyebrow and heading in a left-aligned title block');
+assert.match(signInPage, /themeToggleLabel\s*=\s*useMemo\(\(\)\s*=>\s*'Toggle theme',\s*\[\]\)/, 'sign-in page theme toggle must use a stable Toggle theme label');
+assert.match(signInPage, /aria-label=\{themeToggleLabel\}/, 'sign-in page theme toggle must bind the accessible label');
+assert.match(signInPage, /theme === 'dark' \? '☀️' : '🌙'/, 'sign-in page theme toggle must be icon-only and switch between the sun and moon icons');
 assert.match(signInPage, /className="secondary-action theme-toggle"/, 'sign-in page theme toggle must be a secondary action so the sign-in button stays primary');
 assert.match(signInPage, /handleThemeToggle/, 'sign-in page must wire the theme toggle click handler');
 assert.match(dashboardSurface, /signOut\(\{ callbackUrl: '\/auth\/signin\?signedOut=1' \}\)/, 'authenticated dashboard must sign out through NextAuth and return to sign-in');

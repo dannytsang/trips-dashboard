@@ -34,7 +34,7 @@ async function main() {
   assert.match(signin.text, /Sign in for travel intelligence/, 'sign-in page must show trips sign-in copy');
   assert.match(signin.text, /A private travel intelligence dashboard that summarises upcoming trips, itinerary context, and live monitoring views sourced from the travel planner\./, 'sign-in page must show the approved description');
   assert.doesNotMatch(signin.text, /No live trip data or secret values are loaded/, 'sign-in page must not show the removed no-live-data note');
-  assert.match(signin.text, /☀️ Light|🌙 Dark/, 'sign-in page must expose the light/dark theme toggle');
+  assert.match(signin.text, /<button[^>]*class="secondary-action theme-toggle"[^>]*>(☀️|🌙)<\/button>/, 'sign-in page theme toggle must be an icon-only secondary-action button at the top of the card');
   assertNoProtectedDashboardDom(signin.text, 'sign-in page');
 
   const trips = await request('/api/trips');
