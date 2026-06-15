@@ -2,6 +2,7 @@
   color-scheme: dark light;
   --bg-primary: #0f172a;
   --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
   --bg-elevated: #111827;
   --border-color: #334155;
   --text-primary: #f8fafc;
@@ -12,12 +13,16 @@
   --accent-emerald: #10b981;
   --accent-amber: #f59e0b;
   --accent-rose: #fb7185;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
 }
 
 @media (prefers-color-scheme: light) {
   :root {
     --bg-primary: #f8fafc;
     --bg-secondary: #ffffff;
+    --bg-tertiary: #e2e8f0;
     --bg-elevated: #f1f5f9;
     --border-color: #cbd5e1;
     --text-primary: #0f172a;
@@ -28,6 +33,9 @@
     --accent-emerald: #059669;
     --accent-amber: #b45309;
     --accent-rose: #be123c;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -36,16 +44,20 @@
   color-scheme: dark;
   --bg-primary: #0f172a;
   --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
   --bg-elevated: #111827;
   --border-color: #334155;
   --text-primary: #f8fafc;
   --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
+  --text-muted: #64748b;
   --accent-blue: #3b82f6;
   --accent-cyan: #06b6d4;
   --accent-emerald: #10b981;
   --accent-amber: #f59e0b;
   --accent-rose: #fb7185;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
 }
 
 :root[data-theme="light"],
@@ -53,6 +65,7 @@
   color-scheme: light;
   --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;
+  --bg-tertiary: #e2e8f0;
   --bg-elevated: #f1f5f9;
   --border-color: #cbd5e1;
   --text-primary: #0f172a;
@@ -63,6 +76,9 @@
   --accent-emerald: #059669;
   --accent-amber: #b45309;
   --accent-rose: #be123c;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
 * {
