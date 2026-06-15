@@ -231,6 +231,8 @@ p {
 
 .theme-toggle {
   min-width: 6.4rem;
+  margin-top: 0.6rem;
+  width: 100%;
 }
 
 .metric-grid {

@@ -21,6 +21,14 @@ assert.doesNotMatch(signInPage, /No private trip data is bundled in this build/,
 assert.match(globalCss, /\.auth-shell\s*\{[\s\S]*position:\s*fixed[\s\S]*z-index:\s*2147483647[\s\S]*background:/, 'sign-in shell must be a fixed opaque overlay');
 assert.match(signInPage, /A private travel intelligence dashboard that summarises upcoming trips, itinerary context, and live monitoring views sourced from the travel planner\./, 'sign-in page must use the approved description');
 assert.doesNotMatch(signInPage, /No live trip data or secret values are loaded/, 'sign-in page must not include the removed no-live-data note');
+assert.match(signInPage, /THEME_STORAGE_KEY\s*=\s*'tsang-travel-theme'/, 'sign-in page must use the shared tsang-travel-theme storage key');
+assert.match(signInPage, /window\.localStorage\.getItem\(THEME_STORAGE_KEY\)/, 'sign-in page must initialise the theme from localStorage');
+assert.match(signInPage, /window\.localStorage\.setItem\(THEME_STORAGE_KEY, theme\)/, 'sign-in page must persist the theme to localStorage');
+assert.match(signInPage, /aria-label=\{themeToggleLabel\}/, 'sign-in page theme toggle must have an accessible label');
+assert.match(signInPage, /☀️ Light/, 'sign-in page theme toggle must expose a light-mode action');
+assert.match(signInPage, /🌙 Dark/, 'sign-in page theme toggle must expose a dark-mode action');
+assert.match(signInPage, /className="secondary-action theme-toggle"/, 'sign-in page theme toggle must be a secondary action so the sign-in button stays primary');
+assert.match(signInPage, /handleThemeToggle/, 'sign-in page must wire the theme toggle click handler');
 assert.match(dashboardSurface, /signOut\(\{ callbackUrl: '\/auth\/signin\?signedOut=1' \}\)/, 'authenticated dashboard must sign out through NextAuth and return to sign-in');
 assert.match(dashboardSurface, /setIsSigningOut\(true\)/, 'authenticated dashboard must hide protected content immediately during sign-out');
 assert.match(dashboardSurface, /data-auth-state="signing-out"/, 'sign-out transition must render an explicit non-dashboard auth state');
