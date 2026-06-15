@@ -31,6 +31,8 @@ assert.match(signInPage, /aria-label=\{themeToggleLabel\}/, 'sign-in page theme 
 assert.match(signInPage, /theme === 'dark' \? '☀️' : '🌙'/, 'sign-in page theme toggle must be icon-only and switch between the sun and moon icons');
 assert.match(signInPage, /className="secondary-action theme-toggle"/, 'sign-in page theme toggle must be a secondary action so the sign-in button stays primary');
 assert.match(signInPage, /handleThemeToggle/, 'sign-in page must wire the theme toggle click handler');
+assert.doesNotMatch(globalCss, /\.auth-card-title h1\s*\{[^}]*margin:\s*0\s*[;}]/, 'h1 inside .auth-card-title must keep its inline 0.35rem top margin so the toggle anchors to the eyebrow line in the meals-dashboard pattern');
+assert.doesNotMatch(globalCss, /\.auth-card-title \.eyebrow\s*\{[^}]*margin:\s*0\s+0\s+\d+(?:\.\d+)?(?:rem|px)\s*[;}]/, 'eyebrow inside .auth-card-title must not have a non-zero bottom margin that compresses the heading against the toggle row');
 assert.match(dashboardSurface, /signOut\(\{ callbackUrl: '\/auth\/signin\?signedOut=1' \}\)/, 'authenticated dashboard must sign out through NextAuth and return to sign-in');
 assert.match(dashboardSurface, /setIsSigningOut\(true\)/, 'authenticated dashboard must hide protected content immediately during sign-out');
 assert.match(dashboardSurface, /data-auth-state="signing-out"/, 'sign-out transition must render an explicit non-dashboard auth state');
