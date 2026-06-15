@@ -274,9 +274,9 @@ p {
   min-width: 0;
   width: auto;
   margin-top: 0;
-  padding: 0.45rem 0.75rem;
-  font-size: 1rem;
-  line-height: 1;
+  padding: 0.7rem 0.95rem;
+  font-size: 0.9rem;
+  line-height: 1.2;
   border: 1px solid var(--border-color);
   background: color-mix(in srgb, var(--bg-secondary), var(--bg-primary) 50%);
 }

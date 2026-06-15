@@ -27,8 +27,8 @@ assert.match(dashboardSurface, /prefers-color-scheme: light/, 'theme toggle must
 assert.match(dashboardSurface, /window\.localStorage\.setItem\(THEME_STORAGE_KEY, theme\)/, 'theme toggle must persist locally');
 assert.match(dashboardSurface, /data-theme=\{theme\}/, 'dashboard shell must expose the active theme for CSS');
 assert.match(dashboardSurface, /aria-label=\{themeToggleLabel\}/, 'theme toggle must have an accessible label');
-assert.match(dashboardSurface, /☀️ Light/, 'theme toggle must expose a light-mode action');
-assert.match(dashboardSurface, /🌙 Dark/, 'theme toggle must expose a dark-mode action');
+assert.match(dashboardSurface, /theme === 'dark' \? '☀️' : '🌙'/, 'theme toggle must be icon-only and switch between the sun and moon icons');
+assert.doesNotMatch(dashboardSurface, /☀️ Light|🌙 Dark/, 'theme toggle must not duplicate the icon as visible text — the icon alone is the affordance');
 assert.doesNotMatch(dashboardSurface, /handleThemeToggle[\s\S]{0,200}readTripsDashboardProjection|handleThemeToggle[\s\S]{0,200}fetch\(/, 'theme switching must not fetch or resync projection data');
 
 assert.match(dashboardSurface, /formatStatusLabel/, 'status values must pass through the display-label mapper');

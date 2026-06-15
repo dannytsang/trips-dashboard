@@ -130,7 +130,7 @@ export function DashboardSessionSurface({
               type="button"
               onClick={handleThemeToggle}
             >
-              {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+              {theme === 'dark' ? '☀️' : '🌙'}
             </button>
             <button className="secondary-action" type="button" onClick={handleSignOut}>
               🔐 Sign out
