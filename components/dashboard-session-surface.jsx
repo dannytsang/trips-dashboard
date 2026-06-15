@@ -177,7 +177,7 @@ export function DashboardSessionSurface({
           <div>
             <p className="eyebrow">✈️ Travel intelligence</p>
             <h1 id="dashboard-title">🧭 Tsang Travel</h1>
-            <p className="dashboard-subtitle">Upcoming and active trips from the private travel-planner projection.</p>
+            <p className="dashboard-subtitle">Upcoming and active trips from the private travel-planner brief.</p>
           </div>
           <div className="session-actions">
             <span className="session-user">👤 Welcome, {userName}</span>
