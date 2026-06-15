@@ -257,7 +257,7 @@ export function DashboardSessionSurface({
             </div>
 
             <div className={`projection-status ${projectionStale ? 'status-warning' : 'status-ok'}`}>
-              <span>{projectionStale ? '⚠️ Projection stale' : '✅ Projection current'}</span>
+              <span>{projectionStale ? '⚠️ Brief stale' : '✅ Brief current'}</span>
               {generatedAt ? <span>🕒 Generated {new Date(generatedAt).toLocaleString('en-GB')}</span> : <span>🕒 Not generated yet</span>}
               {projectionStorage?.pathname ? <span>🔒 Private manifest: {projectionStorage.pathname}</span> : null}
               {projectionMessage ? <span>ℹ️ {projectionMessage}</span> : null}
@@ -266,7 +266,7 @@ export function DashboardSessionSurface({
             {trips.length === 0 ? (
               <div className="empty-state">
                 <h2>🛫 No upcoming trips</h2>
-                <p>The private projection is reachable, but it does not currently contain upcoming or active trips.</p>
+                <p>The private brief is reachable, but it does not currently contain upcoming or active trips.</p>
               </div>
             ) : filteredTrips.length === 0 ? (
               <div className="empty-state" aria-live="polite">
