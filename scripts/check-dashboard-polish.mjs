@@ -80,6 +80,15 @@ assert.match(globalCss, /:root\[data-theme="dark"\]/, 'explicit dark theme varia
 assert.match(globalCss, /:root\[data-theme="light"\]/, 'explicit light theme variables must be available');
 assert.match(globalCss, /\.theme-toggle/, 'theme toggle must have visible styling');
 
+// Favicon: the root layout must declare an SVG icon (modern browsers) plus a
+// PNG fallback (older browsers) and a 180x180 apple-touch-icon for iOS home
+// screens. The SVG is the compass design; removing the SVG link means modern
+// browsers fall back to a 32x32 PNG and lose crispness on hi-dpi displays.
+const rootLayout = readFileSync('app/layout.jsx', 'utf8');
+assert.match(rootLayout, /icon:\s*\[[\s\S]*?url:\s*'\/icon\.svg'[\s\S]*?type:\s*'image\/svg\+xml'/, 'root layout must declare the SVG favicon (modern browsers)');
+assert.match(rootLayout, /url:\s*'\/icon\.png'/, 'root layout must declare a PNG favicon (older browsers)');
+assert.match(rootLayout, /apple:\s*\[[\s\S]*?180x180/, 'root layout must declare a 180x180 apple-touch-icon for iOS home screens');
+
 // SC-020 — trip-card hover effect: link wrapper radius must match visible card radius.
 // The box-shadow on .trip-card-link must follow the visible card's border-radius so
 // the shadow does not visibly cut into the rounded corners. We parse both rules and
