@@ -1018,6 +1018,145 @@ p {
   color: var(--text-secondary);
 }
 
+/* v2 expansion — callouts, leg detail block, accommodation (spec 010) */
+.detail-callout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 0.85rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+.detail-callout-arrow {
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.detail-callout-label {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+.detail-callout-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.transport-decision-mode {
+  margin: 0 0 0.4rem 0;
+  font-size: 0.9rem;
+}
+.transport-decision-confidence {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-left: 0.25rem;
+}
+.transport-decision-basis {
+  list-style: none;
+  padding: 0;
+  margin: 0.3rem 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.transport-decision-basis li {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+.transport-decision-basis strong {
+  color: var(--text-primary);
+  text-transform: capitalize;
+  margin-right: 0.2rem;
+}
+
+.leg-detail-block {
+  width: 100%;
+  margin: 0.4rem 0 0.2rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.leg-detail-fields {
+  display: grid;
+  grid-template-columns: minmax(7rem, max-content) 1fr;
+  gap: 0.25rem 0.6rem;
+  margin: 0;
+  font-size: 0.78rem;
+}
+.leg-detail-field {
+  display: contents;
+}
+.leg-detail-field dt {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.66rem;
+  align-self: start;
+  padding-top: 0.15rem;
+}
+.leg-detail-field dd {
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.4;
+  word-break: break-word;
+}
+.leg-detail-sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.45rem;
+  font-size: 0.72rem;
+}
+.leg-detail-sources-label {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.65rem;
+}
+.leg-detail-source-pill {
+  display: inline-block;
+  padding: 0.08rem 0.45rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.accommodation-detail-list {
+  display: grid;
+  grid-template-columns: minmax(7rem, max-content) 1fr;
+  gap: 0.3rem 0.6rem;
+  margin: 0;
+  font-size: 0.82rem;
+}
+.accommodation-detail-list dt {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.66rem;
+  align-self: start;
+  padding-top: 0.15rem;
+}
+.accommodation-detail-list dd {
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.4;
+  word-break: break-word;
+}
+.accommodation-booking-block {
+  margin-top: 0.6rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   .detail-panel {

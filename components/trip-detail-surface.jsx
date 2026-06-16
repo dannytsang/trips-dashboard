@@ -57,6 +57,17 @@ function monitoringBadgeClass(trip) {
   return 'badge-neutral';
 }
 
+const ACCOMMODATION_STATUS_LABELS = {
+  available_paid_addon: 'Available (paid addon)',
+  not_purchased: 'Not purchased',
+  not_applicable: 'Not applicable',
+};
+
+function accommodationStatusLabel(value) {
+  if (!value) return null;
+  return ACCOMMODATION_STATUS_LABELS[value] || value;
+}
+
 function readinessBadgeClass(readiness) {
   const lower = (readiness || '').toLowerCase();
   if (lower === 'finalised') return 'badge-active';
@@ -116,6 +127,7 @@ function LegRow({ leg, index }) {
       <div className="leg-detail-content">
         <span className="leg-detail-label">{label}</span>
         <span className="leg-detail-sub">{formatLegModeLabel(mode)}</span>
+        <LegDetailBlock leg={leg} />
         {cju ? <ContactJourneyUpdateBlock cju={cju} /> : null}
         {notif ? <NotificationBlock notif={notif} /> : null}
         {review ? <PlanningReviewBlock review={review} /> : null}
@@ -136,6 +148,213 @@ function LegRow({ leg, index }) {
       ) : null}
     </li>
   );
+}
+
+function LegDetailBlock({ leg }) {
+  const fields = [];
+  if (leg.origin?.label) {
+    fields.push({ key: 'from', label: 'From', value: leg.origin.label });
+  }
+  if (leg.destination?.label) {
+    fields.push({ key: 'to', label: 'To', value: leg.destination.label });
+  }
+  if (leg.target_arrival) {
+    fields.push({ key: 'target_arrival', label: 'Target arrival', value: leg.target_arrival });
+  }
+  if (leg.planned_departure) {
+    fields.push({ key: 'planned_departure', label: 'Planned departure', value: leg.planned_departure });
+  }
+  if (leg.estimated_drive) {
+    fields.push({ key: 'estimated_drive', label: 'Estimated drive', value: leg.estimated_drive });
+  }
+  if (leg.buffer) {
+    fields.push({ key: 'buffer', label: 'Buffer', value: leg.buffer });
+  }
+  if (leg.departure_preference) {
+    fields.push({ key: 'departure_preference', label: 'Departure preference', value: leg.departure_preference });
+  }
+  if (leg.timing_basis) {
+    fields.push({ key: 'timing_basis', label: 'Why this leg', value: leg.timing_basis });
+  }
+  if (leg.transport_status) {
+    fields.push({ key: 'transport_status', label: 'Status', value: leg.transport_status.replace(/_/g, ' ') });
+  }
+  const sources = Array.isArray(leg.monitoring_sources) ? leg.monitoring_sources.filter(Boolean) : [];
+
+  if (fields.length === 0 && sources.length === 0) return null;
+
+  return (
+    <div className="leg-detail-block">
+      {fields.length > 0 ? (
+        <dl className="leg-detail-fields">
+          {fields.map((f) => (
+            <div key={f.key} className="leg-detail-field">
+              <dt>{f.label}</dt>
+              <dd>{f.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      {sources.length > 0 ? (
+        <div className="leg-detail-sources">
+          <span className="leg-detail-sources-label">Monitoring:</span>
+          {sources.map((s, i) => (
+            <span key={`${s}-${i}`} className="leg-detail-source-pill">{s}</span>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function NextActionCallout({ nextAction }) {
+  if (!nextAction) return null;
+  return (
+    <div className="detail-callout detail-callout-next-action">
+      <span className="detail-callout-arrow">→</span>
+      <span className="detail-callout-label">Next action</span>
+      <span className="detail-callout-body">{nextAction}</span>
+    </div>
+  );
+}
+
+function TransportDecisionCallout({ decision }) {
+  if (!decision || !decision.selectedMode) return null;
+  const basis = decision.bestOptionBasis || {};
+  const basisKeys = Object.keys(basis).filter((k) => basis[k]);
+  return (
+    <DetailSection title="Transport decision" emoji="🚦">
+      <p className="transport-decision-mode">
+        Selected: <strong>{String(decision.selectedMode).replace(/_/g, ' ')}</strong>
+        {decision.recommendationConfidence ? (
+          <span className="transport-decision-confidence"> ({decision.recommendationConfidence})</span>
+        ) : null}
+      </p>
+      {basisKeys.length > 0 ? (
+        <ul className="transport-decision-basis">
+          {basisKeys.map((k) => (
+            <li key={k}>
+              <strong>{k.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase())}:</strong>{' '}
+              {basis[k]}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </DetailSection>
+  );
+}
+
+function AccommodationSection({ accommodation }) {
+  if (!accommodation) return null;
+  const b = accommodation.booking || {};
+  const earlyLabel = accommodationStatusLabel(accommodation.early_check_in_status);
+  const lateLabel = accommodationStatusLabel(accommodation.late_checkout_status);
+  return (
+    <DetailSection title="Accommodation" emoji="🏨">
+      <dl className="accommodation-detail-list">
+        {accommodation.provider ? (
+          <>
+            <dt>Provider</dt>
+            <dd>{accommodation.provider}</dd>
+          </>
+        ) : null}
+        {accommodation.address ? (
+          <>
+            <dt>Address</dt>
+            <dd>{accommodation.address}</dd>
+          </>
+        ) : null}
+        {accommodation.check_in ? (
+          <>
+            <dt>Check-in</dt>
+            <dd>{formatDateTime(accommodation.check_in)}</dd>
+          </>
+        ) : null}
+        {accommodation.checkout ? (
+          <>
+            <dt>Checkout</dt>
+            <dd>{formatDateTime(accommodation.checkout)}</dd>
+          </>
+        ) : null}
+        {earlyLabel ? (
+          <>
+            <dt>Early check-in</dt>
+            <dd>{earlyLabel}</dd>
+          </>
+        ) : null}
+        {lateLabel ? (
+          <>
+            <dt>Late checkout</dt>
+            <dd>{lateLabel}</dd>
+          </>
+        ) : null}
+        {accommodation.reception ? (
+          <>
+            <dt>Reception</dt>
+            <dd>{accommodation.reception}</dd>
+          </>
+        ) : null}
+        {accommodation.parking ? (
+          <>
+            <dt>Parking</dt>
+            <dd>{accommodation.parking}</dd>
+          </>
+        ) : null}
+        {accommodation.nearby_transport ? (
+          <>
+            <dt>Nearby transport</dt>
+            <dd>{accommodation.nearby_transport}</dd>
+          </>
+        ) : null}
+      </dl>
+      {b && (b.nights || b.reservation_number || b.calendar_event_span || b.actual_stay_window) ? (
+        <div className="rationale-block accommodation-booking-block">
+          <h3 className="rationale-heading">Booking</h3>
+          <dl className="accommodation-detail-list">
+            {b.reservation_number ? (
+              <>
+                <dt>Reservation</dt>
+                <dd>{b.reservation_number}</dd>
+              </>
+            ) : null}
+            {b.nights ? (
+              <>
+                <dt>Nights</dt>
+                <dd>{b.nights}</dd>
+              </>
+            ) : null}
+            {b.calendar_event_span ? (
+              <>
+                <dt>Calendar span</dt>
+                <dd>{b.calendar_event_span}</dd>
+              </>
+            ) : null}
+            {b.actual_stay_window ? (
+              <>
+                <dt>Stay window</dt>
+                <dd>{b.actual_stay_window}</dd>
+              </>
+            ) : null}
+          </dl>
+        </div>
+      ) : null}
+    </DetailSection>
+  );
+}
+
+function formatDateTime(iso) {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleString('en-GB', {
+      weekday: 'short',
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch (err) {
+    return iso;
+  }
 }
 
 function ContactJourneyUpdateBlock({ cju }) {
@@ -412,6 +631,9 @@ export function TripDetailSurface({
   const hasNotesSection = hasNotes;
   const hasMonitoringSection = trip.monitoring?.enabled || trip.monitoring?.active || hasMonitoringChecks;
   const hasMap = hasLegs && trip.legs.filter(l => l.origin || l.destination).length >= 2;
+  const hasTransportDecision = trip.planning?.transportDecision && trip.planning.transportDecision.selectedMode;
+  const hasNextAction = typeof trip.planning?.nextAction === 'string' && trip.planning.nextAction.trim().length > 0;
+  const hasAccommodation = Boolean(trip.accommodation);
 
   return (
     <main className="dashboard-shell" data-theme={theme}>
@@ -445,6 +667,9 @@ export function TripDetailSurface({
           </button>
         </div>
 
+        {/* Next action callout (FR-018) */}
+        {hasNextAction ? <NextActionCallout nextAction={trip.planning.nextAction} /> : null}
+
         {/* Travellers */}
         <DetailSection title="Travellers" emoji="👥">
           <ul className="traveller-list">
@@ -454,6 +679,9 @@ export function TripDetailSurface({
             }
           </ul>
         </DetailSection>
+
+        {/* Transport decision callout (FR-017) — above Legs */}
+        {hasTransportDecision ? <TransportDecisionCallout decision={trip.planning.transportDecision} /> : null}
 
         {/* Legs */}
         {hasLegs ? (
@@ -582,6 +810,9 @@ export function TripDetailSurface({
             ) : null}
           </SectionCollapsible>
         ) : null}
+
+        {/* Accommodation (FR-013) — between Monitoring detail and Notes */}
+        {hasAccommodation ? <AccommodationSection accommodation={trip.accommodation} /> : null}
 
         {/* Notes */}
         {hasNotesSection ? (
