@@ -44,12 +44,12 @@ assert.match(dashboardSurface, /data-theme=\{theme\}/, 'dashboard shell must exp
 assert.match(dashboardSurface, /aria-label=\{themeToggleLabel\}/, 'theme toggle must have an accessible label');
 assert.match(dashboardSurface, /theme === 'dark' \? '☀️' : '🌙'/, 'theme toggle must be icon-only and switch between the sun and moon icons');
 assert.doesNotMatch(dashboardSurface, /☀️ Light|🌙 Dark/, 'theme toggle must not duplicate the icon as visible text — the icon alone is the affordance');
-assert.doesNotMatch(dashboardSurface, /handleThemeToggle[\s\S]{0,200}readTripsDashboardBrief|handleThemeToggle[\s\S]{0,200}fetch\(/, 'theme switching must not fetch or resync brief data');
+assert.doesNotMatch(dashboardSurface, /handleThemeToggle[\s\S]{0,200}readTripsDashboardPortfolio|handleThemeToggle[\s\S]{0,200}fetch\(/, 'theme switching must not fetch or resync portfolio data');
 assert.match(dashboardSurface, /FILTER_QUERY_KEY\s*=\s*'filter'/, 'filter state must use a stable query-string key');
 assert.match(dashboardSurface, /window\.history\.pushState\(\{\}, '', url\)/, 'filter changes must use the browser History API rather than a server navigation');
 assert.match(dashboardSurface, /window\.addEventListener\('popstate', handlePopState\)/, 'back\/forward navigation must restore the previous filter');
 assert.match(dashboardSurface, /URLSearchParams\(window\.location\.search\)/, 'initial render must read the filter from the URL query string');
-assert.doesNotMatch(dashboardSurface, /handleFilterToggle[\s\S]{0,260}readTripsDashboardBrief|handleFilterToggle[\s\S]{0,260}fetch\(/, 'filter changes must not fetch or resync brief data');
+assert.doesNotMatch(dashboardSurface, /handleFilterToggle[\s\S]{0,260}readTripsDashboardPortfolio|handleFilterToggle[\s\S]{0,260}fetch\(/, 'filter changes must not fetch or resync portfolio data');
 
 assert.match(dashboardSurface, /formatStatusLabel/, 'status values must pass through the display-label mapper');
 assert.match(dashboardSurface, /formatReadinessLabel/, 'planning readiness values must pass through the display-label mapper');

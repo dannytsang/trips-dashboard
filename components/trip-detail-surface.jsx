@@ -40,7 +40,7 @@ function statusLabel(trip) {
 }
 
 function readinessLabel(trip) {
-  // planning.readiness may already be a short display label (brief builder sets it)
+  // planning.readiness may already be a short display label (portfolio builder sets it)
   return trip.planning?.readiness || 'Needs info';
 }
 
@@ -365,7 +365,7 @@ export function TripDetailSurface({
       <main className="dashboard-shell" data-theme={theme}>
         <section className="detail-not-found">
           <h1>🔍 Trip not found</h1>
-          <p>No trip with ID <code>{tripId}</code> was found in the private brief.</p>
+          <p>No trip with ID <code>{tripId}</code> was found in the private portfolio.</p>
           <Link href="/" className="back-link">← Back to summary</Link>
         </section>
       </main>

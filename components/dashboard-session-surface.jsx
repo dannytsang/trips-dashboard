@@ -70,8 +70,8 @@ function nextActionLabel(trip) {
   return formatNextActionLabel(trip.planning?.nextAction);
 }
 
-function metricValue(brief, predicate) {
-  return brief?.trips?.filter(predicate).length || 0;
+function metricValue(portfolio, predicate) {
+  return portfolio?.trips?.filter(predicate).length || 0;
 }
 
 function normaliseFilter(value) {
@@ -99,11 +99,11 @@ export function DashboardSessionSurface({
   userName,
   authConfigurationIncomplete = false,
   storageConfigurationIncomplete = false,
-  brief = null,
-  briefStorage = null,
-  briefStale = false,
-  briefMessage = null,
-  briefError = null,
+  portfolio = null,
+  portfolioStorage = null,
+  portfolioStale = false,
+  portfolioMessage = null,
+  portfolioError = null,
 }) {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [theme, setTheme] = useState('dark');
@@ -163,11 +163,11 @@ export function DashboardSessionSurface({
     );
   }
 
-  const trips = brief?.trips || [];
-  const generatedAt = brief?.generatedAt || null;
-  const activeTrips = metricValue(brief, trip => trip.monitoring?.active === true);
-  const monitorableTrips = metricValue(brief, trip => trip.monitoring?.enabled === true);
-  const blockers = metricValue(brief, trip => trip.planning?.nextAction != null);
+  const trips = portfolio?.trips || [];
+  const generatedAt = portfolio?.generatedAt || null;
+  const activeTrips = metricValue(portfolio, trip => trip.monitoring?.active === true);
+  const monitorableTrips = metricValue(portfolio, trip => trip.monitoring?.enabled === true);
+  const blockers = metricValue(portfolio, trip => trip.planning?.nextAction != null);
   const filteredTrips = activeFilter ? trips.filter(TRIP_FILTERS[activeFilter].predicate) : trips;
   const activeFilterLabel = activeFilter ? TRIP_FILTERS[activeFilter].label : null;
 
@@ -178,7 +178,7 @@ export function DashboardSessionSurface({
           <div>
             <p className="eyebrow">✈️ Travel intelligence</p>
             <h1 id="dashboard-title">🧭 Tsang Travel</h1>
-            <p className="dashboard-subtitle">Upcoming and active trips from the private travel-planner brief.</p>
+            <p className="dashboard-subtitle">Upcoming and active trips from the private travel-planner portfolio.</p>
           </div>
           <div className="session-actions">
             <span className="session-user">👤 Welcome, {userName}</span>
@@ -203,13 +203,13 @@ export function DashboardSessionSurface({
           </div>
         ) : storageConfigurationIncomplete ? (
           <div className="notice notice-warning">
-            <strong>⚠️ Brief storage is not configured.</strong>
+            <strong>⚠️ Portfolio storage is not configured.</strong>
             <span>The dashboard is protected, but private Blob storage is unavailable.</span>
           </div>
-        ) : briefError ? (
+        ) : portfolioError ? (
           <div className="notice notice-danger">
-            <strong>🚨 Brief unavailable.</strong>
-            <span>{briefError}</span>
+            <strong>🚨 Portfolio unavailable.</strong>
+            <span>{portfolioError}</span>
           </div>
         ) : (
           <>
@@ -257,17 +257,17 @@ export function DashboardSessionSurface({
               ) : null}
             </div>
 
-            <div className={`brief-status ${briefStale ? 'status-warning' : 'status-ok'}`}>
-              <span>{briefStale ? '⚠️ Brief stale' : '✅ Brief current'}</span>
+            <div className={`portfolio-status ${portfolioStale ? 'status-warning' : 'status-ok'}`}>
+              <span>{portfolioStale ? '⚠️ Portfolio stale' : '✅ Portfolio current'}</span>
               {generatedAt ? <span>🕒 Generated {new Date(generatedAt).toLocaleString('en-GB')}</span> : <span>🕒 Not generated yet</span>}
-              {briefStorage?.pathname ? <span>🔒 Private manifest: {briefStorage.pathname}</span> : null}
-              {briefMessage ? <span>ℹ️ {briefMessage}</span> : null}
+              {portfolioStorage?.pathname ? <span>🔒 Private manifest: {portfolioStorage.pathname}</span> : null}
+              {portfolioMessage ? <span>ℹ️ {portfolioMessage}</span> : null}
             </div>
 
             {trips.length === 0 ? (
               <div className="empty-state">
                 <h2>🛫 No upcoming trips</h2>
-                <p>The private brief is reachable, but it does not currently contain upcoming or active trips.</p>
+                <p>The private portfolio is reachable, but it does not currently contain upcoming or active trips.</p>
               </div>
             ) : filteredTrips.length === 0 ? (
               <div className="empty-state" aria-live="polite">

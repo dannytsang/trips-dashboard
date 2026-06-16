@@ -1,10 +1,10 @@
 import { timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
-import { BriefValidationError } from '@/lib/trips-brief';
+import { PortfolioValidationError } from '@/lib/trips-portfolio';
 import {
   getMissingBlobStorageEnvironment,
-  TripsBriefStorageError,
-  writeTripsDashboardBrief,
+  TripsPortfolioStorageError,
+  writeTripsDashboardPortfolio,
 } from '@/lib/trips-storage';
 
 export const dynamic = 'force-dynamic';
@@ -58,7 +58,7 @@ export async function POST(request) {
   if (missingStorage.length > 0) {
     return NextResponse.json(
       {
-        error: 'Trips brief storage is not configured',
+        error: 'Trips portfolio storage is not configured',
         accepted: false,
       },
       { status: 503 },
@@ -73,16 +73,16 @@ export async function POST(request) {
   }
 
   try {
-    const result = await writeTripsDashboardBrief(payload);
+    const result = await writeTripsDashboardPortfolio(payload);
 
     return NextResponse.json({
       accepted: true,
-      generatedAt: result.brief.generatedAt,
-      receivedAt: result.brief.receivedAt,
+      generatedAt: result.portfolio.generatedAt,
+      receivedAt: result.portfolio.receivedAt,
       storage: result.storage,
     });
   } catch (error) {
-    if (error instanceof BriefValidationError) {
+    if (error instanceof PortfolioValidationError) {
       return NextResponse.json(
         {
           error: error.message,
@@ -93,7 +93,7 @@ export async function POST(request) {
       );
     }
 
-    if (error instanceof TripsBriefStorageError) {
+    if (error instanceof TripsPortfolioStorageError) {
       return NextResponse.json(
         {
           error: error.message,
@@ -106,7 +106,7 @@ export async function POST(request) {
 
     return NextResponse.json(
       {
-        error: 'Failed to sync trips brief',
+        error: 'Failed to sync trips portfolio',
         accepted: false,
         lastKnownGoodPreserved: true,
       },

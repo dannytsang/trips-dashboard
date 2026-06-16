@@ -4,8 +4,8 @@ import { DashboardSessionSurface } from '@/components/dashboard-session-surface'
 import { authOptions, getMissingAuthEnvironment } from '@/lib/auth';
 import {
   getMissingBlobStorageEnvironment,
-  readTripsDashboardBrief,
-  TripsBriefStorageError,
+  readTripsDashboardPortfolio,
+  TripsPortfolioStorageError,
 } from '@/lib/trips-storage';
 
 export const dynamic = 'force-dynamic';
@@ -20,23 +20,23 @@ export default async function HomePage() {
   const missingAuth = getMissingAuthEnvironment();
   const missingStorage = getMissingBlobStorageEnvironment();
   const userName = session.user?.name || session.user?.email || 'authorised traveller';
-  let brief = null;
+  let portfolio = null;
   let storage = missingStorage.length > 0 ? { configured: false } : null;
-  let briefStale = false;
-  let briefMessage = null;
-  let briefError = null;
+  let portfolioStale = false;
+  let portfolioMessage = null;
+  let portfolioError = null;
 
   if (missingAuth.length === 0 && missingStorage.length === 0) {
     try {
-      const result = await readTripsDashboardBrief();
-      brief = result.brief;
+      const result = await readTripsDashboardPortfolio();
+      portfolio = result.portfolio;
       storage = result.storage;
-      briefStale = result.stale;
-      briefMessage = result.message;
+      portfolioStale = result.stale;
+      portfolioMessage = result.message;
     } catch (error) {
-      briefError = error instanceof TripsBriefStorageError
+      portfolioError = error instanceof TripsPortfolioStorageError
         ? error.message
-        : 'Failed to read trips brief';
+        : 'Failed to read trips portfolio';
       storage = { configured: true };
     }
   }
@@ -46,11 +46,11 @@ export default async function HomePage() {
       userName={userName}
       authConfigurationIncomplete={missingAuth.length > 0}
       storageConfigurationIncomplete={missingStorage.length > 0}
-      brief={brief}
-      briefStorage={storage}
-      briefStale={briefStale}
-      briefMessage={briefMessage}
-      briefError={briefError}
+      portfolio={portfolio}
+      portfolioStorage={storage}
+      portfolioStale={portfolioStale}
+      portfolioMessage={portfolioMessage}
+      portfolioError={portfolioError}
     />
   );
 }
