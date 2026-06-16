@@ -8,6 +8,7 @@ import {
   formatStatusLabel,
   toDisplayLabel,
 } from '@/lib/display-labels.mjs';
+import { TripMap } from '@/components/trip-map';
 
 const THEME_STORAGE_KEY = 'tsang-travel-theme';
 
@@ -468,19 +469,7 @@ export function TripDetailSurface({
         {/* Map */}
         <SectionCollapsible title="Map" emoji="🗺️" defaultOpen={hasMap}>
           {hasMap ? (
-            <div className="map-placeholder">
-              <p className="map-note">🗺️ Map with numbered leg waypoints — Google Maps Static API integration pending</p>
-              <ul className="waypoint-list">
-                {trip.legs
-                  .filter(l => l.origin?.label || l.destination?.label)
-                  .map((leg, i) => (
-                    <li key={i}>
-                      <strong>{i + 1}.</strong>{' '}
-                      {leg.origin?.label || '?'} → {leg.destination?.label || '?'}
-                    </li>
-                  ))}
-              </ul>
-            </div>
+            <TripMap legs={trip.legs} />
           ) : (
             <p className="text-muted">Not enough location data for a map.</p>
           )}
