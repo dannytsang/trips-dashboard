@@ -49,7 +49,7 @@ assert.match(dashboardSurface, /FILTER_QUERY_KEY\s*=\s*'filter'/, 'filter state 
 assert.match(dashboardSurface, /window\.history\.pushState\(\{\}, '', url\)/, 'filter changes must use the browser History API rather than a server navigation');
 assert.match(dashboardSurface, /window\.addEventListener\('popstate', handlePopState\)/, 'back\/forward navigation must restore the previous filter');
 assert.match(dashboardSurface, /URLSearchParams\(window\.location\.search\)/, 'initial render must read the filter from the URL query string');
-assert.doesNotMatch(dashboardSurface, /handleFilterToggle[\s\S]{0,260}readTripsDashboardProjection|handleFilterToggle[\s\S]{0,260}fetch\(/, 'filter changes must not fetch or resync brief data');
+assert.doesNotMatch(dashboardSurface, /handleFilterToggle[\s\S]{0,260}readTripsDashboardBrief|handleFilterToggle[\s\S]{0,260}fetch\(/, 'filter changes must not fetch or resync brief data');
 
 assert.match(dashboardSurface, /formatStatusLabel/, 'status values must pass through the display-label mapper');
 assert.match(dashboardSurface, /formatReadinessLabel/, 'planning readiness values must pass through the display-label mapper');
@@ -79,5 +79,43 @@ for (const emoji of ['✈️', '🧭', '👤', '🔐', '🧳', '🚦', '📡', '
 assert.match(globalCss, /:root\[data-theme="dark"\]/, 'explicit dark theme variables must be available');
 assert.match(globalCss, /:root\[data-theme="light"\]/, 'explicit light theme variables must be available');
 assert.match(globalCss, /\.theme-toggle/, 'theme toggle must have visible styling');
+
+// SC-020 — trip-card hover effect: link wrapper radius must match visible card radius.
+// The box-shadow on .trip-card-link must follow the visible card's border-radius so
+// the shadow does not visibly cut into the rounded corners. We parse both rules and
+// assert the radii are equal; we also assert the hover state carries both a
+// transform and a box-shadow and uses the CSS transition defined on .trip-card-link.
+// .trip-card's border-radius is declared in a shared selector (e.g. ".metric-card,\n.trip-card,\n...")
+// so we scan every CSS rule and collect the border-radius of any rule whose selector
+// list mentions .trip-card.
+function extractBorderRadius(cssSource, selectorToken) {
+  const rules = cssSource.match(/[^{}]+\{[^}]*\}/g) ?? [];
+  for (const rule of rules) {
+    const openBrace = rule.indexOf('{');
+    if (openBrace === -1) continue;
+    const selectorList = rule.slice(0, openBrace);
+    const body = rule.slice(openBrace + 1, -1);
+    if (!selectorList.split(',').some((sel) => sel.trim() === selectorToken)) continue;
+    const match = body.match(/border-radius:\s*([^;}\s]+)/);
+    if (match) return match[1].trim();
+  }
+  return null;
+}
+const tripCardLinkRadius = extractBorderRadius(globalCss, '.trip-card-link');
+const tripCardRadius = extractBorderRadius(globalCss, '.trip-card');
+assert.ok(tripCardLinkRadius, '.trip-card-link rule must declare a border-radius');
+assert.ok(tripCardRadius, '.trip-card rule must declare a border-radius');
+assert.equal(
+  tripCardLinkRadius,
+  tripCardRadius,
+  `trip-card-link border-radius (${tripCardLinkRadius}) must match trip-card border-radius (${tripCardRadius}) so the hover box-shadow follows the card corners`
+);
+const tripCardLinkHover = globalCss.match(/\.trip-card-link:hover\s*\{([\s\S]*?)\}/);
+assert.ok(tripCardLinkHover, '.trip-card-link:hover rule must exist');
+assert.match(tripCardLinkHover[1], /transform:/, '.trip-card-link:hover must include a transform so the card lifts');
+assert.match(tripCardLinkHover[1], /box-shadow:/, '.trip-card-link:hover must include a box-shadow so the card gains a soft shadow');
+const tripCardLinkBase = globalCss.match(/\.trip-card-link\s*\{([\s\S]*?)\}/);
+assert.ok(tripCardLinkBase, '.trip-card-link base rule must exist');
+assert.match(tripCardLinkBase[1], /transition:[\s\S]*?box-shadow/, '.trip-card-link must declare a CSS transition that includes box-shadow so the hover effect animates without JS');
 
 console.log('Dashboard polish checks passed.');
