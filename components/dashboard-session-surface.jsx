@@ -108,6 +108,7 @@ export function DashboardSessionSurface({
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [theme, setTheme] = useState('dark');
   const [activeFilter, setActiveFilter] = useState(null);
+  const [expandedTripLegs, setExpandedTripLegs] = useState({});
 
   useEffect(() => {
     const initialTheme = getInitialTheme();
@@ -149,6 +150,13 @@ export function DashboardSessionSurface({
     const nextFilter = activeFilter === filter ? null : filter;
     setActiveFilter(nextFilter);
     writeFilterToUrl(nextFilter);
+  }
+
+  function handleLegExpansionToggle(tripId) {
+    setExpandedTripLegs(prev => ({
+      ...prev,
+      [tripId]: !prev[tripId],
+    }));
   }
 
   if (isSigningOut) {
@@ -275,51 +283,70 @@ export function DashboardSessionSurface({
               </div>
             ) : (
               <div className="trip-list" aria-label={activeFilterLabel ? `${activeFilterLabel} trips` : 'Upcoming trips'}>
-                {filteredTrips.map(trip => (
-                  <Link href={`/trips/${trip.id}`} prefetch={false} key={trip.id} className="trip-card-link">
-                  <article className="trip-card">
-                    <div className="trip-card-header">
-                      <div>
-                        <p className="trip-date">🗓️ {formatDateRange(trip.start, trip.end)}</p>
-                        <h2>{trip.title}</h2>
+                {filteredTrips.map(trip => {
+                  const legCount = trip.legs?.length || 0;
+                  const isLegListExpanded = Boolean(expandedTripLegs[trip.id]);
+                  const visibleLegs = isLegListExpanded ? trip.legs : trip.legs?.slice(0, 3);
+                  const hiddenLegCount = Math.max(0, legCount - 3);
+
+                  return (
+                    <article className="trip-card" key={trip.id}>
+                      <div className="trip-card-header">
+                        <Link href={`/trips/${trip.id}`} prefetch={false} className="trip-card-title-link">
+                          <p className="trip-date">🗓️ {formatDateRange(trip.start, trip.end)}</p>
+                          <h2>{trip.title}</h2>
+                          <span className="trip-card-view-details">View trip details →</span>
+                        </Link>
+                        <span className="status-pill">{statusLabel(trip)}</span>
                       </div>
-                      <span className="status-pill">{statusLabel(trip)}</span>
-                    </div>
-                    <dl className="trip-details">
-                      <div>
-                        <dt>📍 Destination</dt>
-                        <dd>{trip.destinationLabel}</dd>
+                      <dl className="trip-details">
+                        <div>
+                          <dt>📍 Destination</dt>
+                          <dd>{trip.destinationLabel}</dd>
+                        </div>
+                        <div>
+                          <dt>👥 Travellers</dt>
+                          <dd>{trip.travellers?.length ? trip.travellers.join(', ') : 'To confirm'}</dd>
+                        </div>
+                        <div>
+                          <dt>🧩 Planning</dt>
+                          <dd>{readinessLabel(trip)}</dd>
+                        </div>
+                        <div>
+                          <dt>📡 Monitoring</dt>
+                          <dd>{monitoringLabel(trip)}</dd>
+                        </div>
+                      </dl>
+                      {legCount ? (
+                        <div className="trip-card-leg-summary">
+                          <ul className="leg-list" aria-label={`${trip.title} legs`}>
+                            {visibleLegs.map((leg, index) => (
+                              <li key={`${trip.id}-leg-${index}`}>
+                                <span>{formatLegModeEmoji(leg.mode)} {leg.label}</span>
+                                <small>{formatLegModeLabel(leg.mode)}</small>
+                              </li>
+                            ))}
+                          </ul>
+                          {hiddenLegCount > 0 ? (
+                            <button
+                              type="button"
+                              className="leg-list-toggle"
+                              aria-expanded={isLegListExpanded}
+                              aria-label={`${isLegListExpanded ? 'Show fewer legs for' : 'Show all legs for'} ${trip.title}`}
+                              onClick={() => handleLegExpansionToggle(trip.id)}
+                            >
+                              {isLegListExpanded ? 'Show fewer legs' : `Show ${hiddenLegCount} more leg${hiddenLegCount === 1 ? '' : 's'}`}
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : null}
+                      <div className="next-action">
+                        <span>➡️ Next action</span>
+                        <strong>{nextActionLabel(trip)}</strong>
                       </div>
-                      <div>
-                        <dt>👥 Travellers</dt>
-                        <dd>{trip.travellers?.length ? trip.travellers.join(', ') : 'To confirm'}</dd>
-                      </div>
-                      <div>
-                        <dt>🧩 Planning</dt>
-                        <dd>{readinessLabel(trip)}</dd>
-                      </div>
-                      <div>
-                        <dt>📡 Monitoring</dt>
-                        <dd>{monitoringLabel(trip)}</dd>
-                      </div>
-                    </dl>
-                    {trip.legs?.length ? (
-                      <ul className="leg-list" aria-label={`${trip.title} legs`}>
-                        {trip.legs.slice(0, 3).map((leg, index) => (
-                          <li key={`${trip.id}-leg-${index}`}>
-                            <span>{formatLegModeEmoji(leg.mode)} {leg.label}</span>
-                            <small>{formatLegModeLabel(leg.mode)}</small>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                    <div className="next-action">
-                      <span>➡️ Next action</span>
-                      <strong>{nextActionLabel(trip)}</strong>
-                    </div>
-                  </article>
-                  </Link>
-                ))}
+                    </article>
+                  );
+                })}
               </div>
             )}
           </>

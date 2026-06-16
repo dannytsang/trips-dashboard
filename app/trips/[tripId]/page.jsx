@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth';
 import {
   getMissingBlobStorageEnvironment,
   readTripById,
-  TripsProjectionStorageError,
+  TripsPortfolioStorageError,
 } from '@/lib/trips-storage';
 
 export const dynamic = 'force-dynamic';
@@ -35,7 +35,7 @@ export default async function TripDetailPage({ params }) {
       }
     } catch (err) {
       errorMessage =
-        err instanceof TripsProjectionStorageError
+        err instanceof TripsPortfolioStorageError
           ? err.message
           : 'Failed to load trip data';
     }

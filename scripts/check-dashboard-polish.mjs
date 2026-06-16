@@ -65,7 +65,13 @@ assert.match(dashboardSurface, /activeFilter \? \(/, 'Show all control must only
 assert.match(dashboardSurface, /<strong>Show all<\/strong>/, 'a visible Show all control must exist while filtered');
 assert.match(dashboardSurface, /filteredTrips\.length === 0/, 'the dashboard must handle filters that match zero trips');
 assert.match(dashboardSurface, /No trips match the \{activeFilterLabel\} filter/, 'filtered empty state must explain which filter is active');
-assert.match(dashboardSurface, /\{filteredTrips\.map\(trip => \(/, 'only the trip list, not the metric totals, must narrow under an active filter');
+assert.match(dashboardSurface, /\{filteredTrips\.map\(trip => \{/, 'only the trip list, not the metric totals, must narrow under an active filter');
+assert.match(dashboardSurface, /expandedTripLegs/, 'summary trip cards must track per-trip leg-list expansion state');
+assert.match(dashboardSurface, /visibleLegs\s*=\s*isLegListExpanded \? trip\.legs : trip\.legs\?\.slice\(0, 3\)/, 'summary trip cards must preview three legs before expansion');
+assert.match(dashboardSurface, /className="leg-list-toggle"/, 'summary trip cards with more than three legs must render an explicit expand/collapse control');
+assert.match(dashboardSurface, /aria-expanded=\{isLegListExpanded\}/, 'leg-list expand/collapse control must expose aria-expanded');
+assert.match(dashboardSurface, /className="trip-card-title-link"/, 'trip-card detail navigation must be a title link so the card can also contain an expand button');
+assert.doesNotMatch(dashboardSurface, /<Link[^>]*className="trip-card-link"[\s\S]*?<button[\s\S]*?className="leg-list-toggle"/, 'trip-card expand button must not be nested inside the card detail link');
 assert.match(dashboardSurface, /\{formatLegModeEmoji\(leg\.mode\)\} \{leg\.label\}/, 'leg rows must render the transport-mode emoji helper adjacent to the leg label');
 assert.doesNotMatch(dashboardSurface, /<span>🛣️ \{leg\.label\}<\/span>/, 'leg rows must not hard-code the road emoji next to every leg label');
 assert.doesNotMatch(dashboardSurface, />\{trip\.status \|\| 'Unknown'\}</, 'raw trip status must not render directly');
@@ -89,11 +95,9 @@ assert.match(rootLayout, /icon:\s*\[[\s\S]*?url:\s*'\/icon\.svg'[\s\S]*?type:\s*
 assert.match(rootLayout, /url:\s*'\/icon\.png'/, 'root layout must declare a PNG favicon (older browsers)');
 assert.match(rootLayout, /apple:\s*\[[\s\S]*?180x180/, 'root layout must declare a 180x180 apple-touch-icon for iOS home screens');
 
-// SC-020 — trip-card hover effect: link wrapper radius must match visible card radius.
-// The box-shadow on .trip-card-link must follow the visible card's border-radius so
-// the shadow does not visibly cut into the rounded corners. We parse both rules and
-// assert the radii are equal; we also assert the hover state carries both a
-// transform and a box-shadow and uses the CSS transition defined on .trip-card-link.
+// SC-020 — trip-card hover effect: the visible card itself carries the lift/shadow
+// because the card now contains both a title link and an expand/collapse button.
+// Keeping the effect on .trip-card avoids illegal nested interactive elements.
 // .trip-card's border-radius is declared in a shared selector (e.g. ".metric-card,\n.trip-card,\n...")
 // so we scan every CSS rule and collect the border-radius of any rule whose selector
 // list mentions .trip-card.
@@ -110,22 +114,17 @@ function extractBorderRadius(cssSource, selectorToken) {
   }
   return null;
 }
-const tripCardLinkRadius = extractBorderRadius(globalCss, '.trip-card-link');
 const tripCardRadius = extractBorderRadius(globalCss, '.trip-card');
-assert.ok(tripCardLinkRadius, '.trip-card-link rule must declare a border-radius');
 assert.ok(tripCardRadius, '.trip-card rule must declare a border-radius');
-assert.equal(
-  tripCardLinkRadius,
-  tripCardRadius,
-  `trip-card-link border-radius (${tripCardLinkRadius}) must match trip-card border-radius (${tripCardRadius}) so the hover box-shadow follows the card corners`
-);
-const tripCardLinkHover = globalCss.match(/\.trip-card-link:hover\s*\{([\s\S]*?)\}/);
-assert.ok(tripCardLinkHover, '.trip-card-link:hover rule must exist');
-assert.match(tripCardLinkHover[1], /transform:/, '.trip-card-link:hover must include a transform so the card lifts');
-assert.match(tripCardLinkHover[1], /box-shadow:/, '.trip-card-link:hover must include a box-shadow so the card gains a soft shadow');
-const tripCardLinkBase = globalCss.match(/\.trip-card-link\s*\{([\s\S]*?)\}/);
-assert.ok(tripCardLinkBase, '.trip-card-link base rule must exist');
-assert.match(tripCardLinkBase[1], /transition:[\s\S]*?box-shadow/, '.trip-card-link must declare a CSS transition that includes box-shadow so the hover effect animates without JS');
+const tripCardHover = globalCss.match(/\.trip-card:hover\s*\{([\s\S]*?)\}/);
+assert.ok(tripCardHover, '.trip-card:hover rule must exist');
+assert.match(tripCardHover[1], /transform:/, '.trip-card:hover must include a transform so the card lifts');
+assert.match(tripCardHover[1], /box-shadow:/, '.trip-card:hover must include a box-shadow so the card gains a soft shadow');
+const tripCardBase = globalCss.match(/\.trip-card\s*\{([\s\S]*?)\}/);
+assert.ok(tripCardBase, '.trip-card base rule must exist');
+assert.match(tripCardBase[1], /transition:[\s\S]*?box-shadow/, '.trip-card must declare a CSS transition that includes box-shadow so the hover effect animates without JS');
+assert.match(globalCss, /\.trip-card-title-link\s*\{/, '.trip-card-title-link must style the detail navigation link after the whole-card link wrapper is removed');
+assert.match(globalCss, /\.leg-list-toggle\s*\{/, '.leg-list-toggle must style the leg-list expand/collapse control');
 
 // SC-021 — trip-list default card sizing: cards must size to their own content
 // (align-items: start) by default so a shorter card does not gain trailing
