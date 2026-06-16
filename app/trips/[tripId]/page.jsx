@@ -1,5 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
+import { TripDetailSurface } from '@/components/trip-detail-surface';
 import { authOptions } from '@/lib/auth';
 import {
   getMissingBlobStorageEnvironment,
@@ -65,11 +66,14 @@ export default async function TripDetailPage({ params }) {
   }
 
   return (
-    <main style={{ maxWidth: 720, margin: '0 auto', padding: '1.5rem 1rem 3rem' }}>
-      <p>Trip: {trip?.title || tripId}</p>
-      <pre style={{ fontSize: '0.75rem', overflow: 'auto' }}>
-        {JSON.stringify(trip, null, 2)}
-      </pre>
-    </main>
+    <TripDetailSurface
+      trip={trip}
+      tripId={tripId}
+      authConfigurationIncomplete={false}
+      storageConfigurationIncomplete={false}
+      storageOk={true}
+      notFound={false}
+      errorMessage={null}
+    />
   );
 }
