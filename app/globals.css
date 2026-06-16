@@ -715,6 +715,43 @@ p {
   margin-left: 0.25rem;
 }
 
+.leg-cju {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  align-items: center;
+}
+.leg-cju-pill {
+  background: var(--surface-2);
+  color: var(--text-primary);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  font-weight: 500;
+}
+.leg-cju-pill[data-source="destination_default"] {
+  border-color: var(--accent, #0a7);
+  color: var(--accent, #0a7);
+}
+.leg-cju-pill[data-source="contacts_fallback"] {
+  border-color: #d49a07;
+  color: #d49a07;
+}
+.leg-cju-pill[data-source="lookup_failed"] {
+  border-color: #c0392b;
+  color: #c0392b;
+}
+.leg-cju-pill[data-source="none"] {
+  color: var(--text-muted);
+  border-color: var(--text-muted);
+}
+.leg-cju-detail {
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+}
+
 /* Map placeholder */
 .map-placeholder {
   text-align: center;

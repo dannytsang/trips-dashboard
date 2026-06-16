@@ -104,6 +104,7 @@ function DetailSection({ title, emoji, children }) {
 function LegRow({ leg, index }) {
   const label = leg.label || 'Unknown leg';
   const mode = leg.mode || 'unknown';
+  const cju = leg.contactJourneyUpdate;
 
   return (
     <li className="leg-detail-row">
@@ -112,6 +113,7 @@ function LegRow({ leg, index }) {
       <div className="leg-detail-content">
         <span className="leg-detail-label">{label}</span>
         <span className="leg-detail-sub">{formatLegModeLabel(mode)}</span>
+        {cju ? <ContactJourneyUpdateBlock cju={cju} /> : null}
       </div>
       {leg.flight ? (
         <div className="leg-detail-flight">
@@ -128,6 +130,47 @@ function LegRow({ leg, index }) {
         </div>
       ) : null}
     </li>
+  );
+}
+
+function ContactJourneyUpdateBlock({ cju }) {
+  const routing = cju?.routing;
+  const recipient = cju?.recipient;
+  const keep = cju?.keepInformed;
+  const source = routing?.source;
+  const destRoute = routing?.destinationRoute;
+  const rType = recipient?.type;
+  const rName = recipient?.displayName;
+  const keepStatus = keep?.status;
+  const keepScope = keep?.approvalScope;
+  const keepTriggers = Array.isArray(keep?.triggers) ? keep.triggers : [];
+
+  const hasAny = source || rType || rName || keepStatus || destRoute;
+  if (!hasAny) return null;
+
+  const sourceLabel = ({
+    override: 'Override',
+    destination_default: 'Destination route',
+    contacts_fallback: 'Contacts fallback',
+    none: 'No recipient',
+    lookup_failed: 'Lookup failed',
+  })[source] || source;
+
+  return (
+    <div className="leg-cju">
+      <span className="leg-cju-pill" data-source={source || 'unknown'}>
+        📨 {sourceLabel}{rName ? `: ${rName}` : rType && rType !== 'none' ? ` (${rType.replace('whatsapp_', 'WhatsApp ')})` : ''}
+      </span>
+      {destRoute?.status === 'matched' && destRoute.routeName ? (
+        <span className="leg-cju-detail">Route: {destRoute.routeName} ({destRoute.matchScope})</span>
+      ) : null}
+      {keepStatus && keepStatus !== 'not_asked' ? (
+        <span className="leg-cju-detail">
+          Decision: {keepStatus}{keepScope ? ` — ${keepScope}` : ''}
+          {keepTriggers.length ? ` [${keepTriggers.join(', ')}]` : ''}
+        </span>
+      ) : null}
+    </div>
   );
 }
 
