@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { signOut } from 'next-auth/react';
+import Link from 'next/link';
 import {
   formatLegModeEmoji,
   formatLegModeLabel,
@@ -276,7 +277,8 @@ export function DashboardSessionSurface({
             ) : (
               <div className="trip-list" aria-label={activeFilterLabel ? `${activeFilterLabel} trips` : 'Upcoming trips'}>
                 {filteredTrips.map(trip => (
-                  <article className="trip-card" key={trip.id}>
+                  <Link href={`/trips/${trip.id}`} prefetch={false} key={trip.id} className="trip-card-link">
+                  <article className="trip-card">
                     <div className="trip-card-header">
                       <div>
                         <p className="trip-date">🗓️ {formatDateRange(trip.start, trip.end)}</p>
@@ -317,6 +319,7 @@ export function DashboardSessionSurface({
                       <strong>{nextActionLabel(trip)}</strong>
                     </div>
                   </article>
+                  </Link>
                 ))}
               </div>
             )}
