@@ -683,7 +683,7 @@ export function TripDetailSurface({
         {/* Transport decision callout (FR-017) — above Legs */}
         {hasTransportDecision ? <TransportDecisionCallout decision={trip.planning.transportDecision} /> : null}
 
-        {/* Legs */}
+        {/* Legs (with map embedded) */}
         {hasLegs ? (
           <DetailSection title="Legs" emoji="🛤️">
             <ol className="leg-detail-list">
@@ -691,17 +691,14 @@ export function TripDetailSurface({
                 <LegRow key={`${trip.id}-leg-${i}`} leg={leg} index={i} />
               ))}
             </ol>
+            {hasMap ? (
+              <div className="leg-detail-map" aria-label="Trip map">
+                <h3 className="leg-detail-map-heading">Trip map</h3>
+                <TripMap legs={trip.legs} />
+              </div>
+            ) : null}
           </DetailSection>
         ) : null}
-
-        {/* Map */}
-        <SectionCollapsible title="Map" emoji="🗺️" defaultOpen={hasMap}>
-          {hasMap ? (
-            <TripMap legs={trip.legs} />
-          ) : (
-            <p className="text-muted">Not enough location data for a map.</p>
-          )}
-        </SectionCollapsible>
 
         {/* Programme */}
         {hasProgrammeSection ? (

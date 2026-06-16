@@ -90,4 +90,39 @@ assert.match(
   '.detail-topbar .theme-toggle must align within the top navigation row'
 );
 
+// Trip detail map — must be embedded inside the Legs section (not its own
+// collapsible) and must render as inline SVG (no third-party tile image
+// dependency that can rate-limit and silently fail).
+const tripMap = readFileSync('components/trip-map.jsx', 'utf8');
+assert.match(
+  tripDetailSurface,
+  /<DetailSection\s+title="Legs"[\s\S]*?<TripMap[\s\S]*?<\/DetailSection>/,
+  'trip detail must embed TripMap inside the Legs DetailSection'
+);
+assert.doesNotMatch(
+  tripDetailSurface,
+  /<SectionCollapsible\s+title="Map"/,
+  'trip detail must not render Map as its own collapsible section; it lives inside Legs'
+);
+assert.match(
+  tripMap,
+  /<svg[\s\S]*?viewBox=/,
+  'TripMap must render an inline SVG with a viewBox rather than a remote image'
+);
+assert.doesNotMatch(
+  tripMap,
+  /staticmap\.openstreetmap\.de|api\.mapbox|googleapis\.com\/maps/,
+  'TripMap must not depend on third-party static-tile endpoints that can rate-limit and silently fail'
+);
+assert.match(
+  globalCss,
+  /\.trip-map-svg\s*\{/,
+  '.trip-map-svg must have visible styling'
+);
+assert.match(
+  globalCss,
+  /\.leg-detail-map\s*\{/,
+  '.leg-detail-map must style the embedded map region in the Legs section'
+);
+
 console.log('OIDC source checks passed.');

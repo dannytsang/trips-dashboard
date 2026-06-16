@@ -739,10 +739,24 @@ p {
 .leg-detail-list {
   list-style: none;
   padding: 0;
-  margin: 0;
+  margin: 0 0 0.5rem 0;
   display: flex;
   flex-direction: column;
   gap: 0.625rem;
+}
+
+.leg-detail-map {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+.leg-detail-map-heading {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .leg-detail-row {
@@ -937,7 +951,7 @@ p {
 .waypoint-list {
   list-style: none;
   padding: 0;
-  margin: 0;
+  margin: 0.75rem 0 0;
   text-align: left;
   font-size: 0.8rem;
   color: var(--text-secondary);
@@ -947,6 +961,50 @@ p {
   border-bottom: 1px solid var(--border-color);
 }
 .waypoint-list li:last-child { border-bottom: none; }
+
+.trip-map-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.trip-map-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-tertiary), transparent 30%);
+}
+.trip-map-canvas {
+  fill: color-mix(in srgb, var(--bg-elevated), transparent 12%);
+  stroke: var(--border-color);
+  stroke-width: 1;
+}
+.trip-map-route-line {
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+}
+.trip-map-marker-ring {
+  fill: var(--bg-secondary);
+  stroke: var(--accent-cyan);
+  stroke-width: 2;
+}
+.trip-map-marker {
+  fill: var(--accent-cyan);
+}
+.trip-map-marker-label {
+  fill: var(--bg-secondary);
+  font-size: 11px;
+  font-weight: 700;
+}
+.trip-map-waypoint-label {
+  fill: var(--text-primary);
+  font-size: 10px;
+  font-weight: 600;
+}
+.trip-map-loading,
+.trip-map-fallback {
+  text-align: center;
+  padding: 1rem 0;
+}
 
 /* Programme */
 .programme-list {
