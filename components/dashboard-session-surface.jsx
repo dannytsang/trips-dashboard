@@ -260,7 +260,6 @@ export function DashboardSessionSurface({
             <div className={`portfolio-status ${portfolioStale ? 'status-warning' : 'status-ok'}`}>
               <span>{portfolioStale ? '⚠️ Portfolio stale' : '✅ Portfolio current'}</span>
               {generatedAt ? <span>🕒 Generated {new Date(generatedAt).toLocaleString('en-GB')}</span> : <span>🕒 Not generated yet</span>}
-              {portfolioStorage?.pathname ? <span>🔒 Private manifest: {portfolioStorage.pathname}</span> : null}
               {portfolioMessage ? <span>ℹ️ {portfolioMessage}</span> : null}
             </div>
 
