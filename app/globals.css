@@ -398,7 +398,9 @@ p {
   display: block;
   text-decoration: none;
   color: inherit;
-  border-radius: 8px;
+  /* Must match .trip-card's 1rem so the hover box-shadow follows the
+     visible card corners instead of clipping into them. */
+  border-radius: 1rem;
   transition: transform 0.1s, box-shadow 0.1s;
 }
 .trip-card-link:hover {
