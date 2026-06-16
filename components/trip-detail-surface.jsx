@@ -105,6 +105,7 @@ function LegRow({ leg, index }) {
   const label = leg.label || 'Unknown leg';
   const mode = leg.mode || 'unknown';
   const cju = leg.contactJourneyUpdate;
+  const notif = leg.notification;
 
   return (
     <li className="leg-detail-row">
@@ -114,6 +115,7 @@ function LegRow({ leg, index }) {
         <span className="leg-detail-label">{label}</span>
         <span className="leg-detail-sub">{formatLegModeLabel(mode)}</span>
         {cju ? <ContactJourneyUpdateBlock cju={cju} /> : null}
+        {notif ? <NotificationBlock notif={notif} /> : null}
       </div>
       {leg.flight ? (
         <div className="leg-detail-flight">
@@ -170,6 +172,72 @@ function ContactJourneyUpdateBlock({ cju }) {
           {keepTriggers.length ? ` [${keepTriggers.join(', ')}]` : ''}
         </span>
       ) : null}
+    </div>
+  );
+}
+
+function NotificationBlock({ notif }) {
+  const pol = notif?.policy;
+  const st = notif?.state;
+  if (!pol && !st) return null;
+
+  const policyBits = [];
+  if (pol?.enabled === false) {
+    policyBits.push(<span key="off" className="leg-notif-pill" data-state="off">🔕 Disabled</span>);
+  } else if (pol?.enabled === true) {
+    policyBits.push(<span key="on" className="leg-notif-pill" data-state="on">🔔 Enabled</span>);
+  }
+  if (pol?.approvalPolicy) {
+    policyBits.push(<span key="ap" className="leg-notif-detail">Approval: {pol.approvalPolicy.replace(/_/g, ' ')}</span>);
+  }
+  if (typeof pol?.etaChangeThresholdMinutes === 'number') {
+    policyBits.push(<span key="eta" className="leg-notif-detail">ETA threshold: {pol.etaChangeThresholdMinutes}m</span>);
+  }
+  if (Array.isArray(pol?.enabledTriggers) && pol.enabledTriggers.length) {
+    policyBits.push(
+      <span key="tr" className="leg-notif-detail">
+        Triggers: {pol.enabledTriggers.map(t => t.replace('send_on_', '')).join(', ')}
+      </span>
+    );
+  }
+  if (pol?.arrivalWhatsappPolicy) {
+    policyBits.push(
+      <span key="arr" className="leg-notif-detail">Arrival: {pol.arrivalWhatsappPolicy.replace(/_/g, ' ')}</span>
+    );
+  }
+
+  const stateBits = [];
+  if (st?.journeyStart?.status) {
+    stateBits.push(
+      <span key="js" className="leg-notif-detail">
+        Journey start: {st.journeyStart.status}
+        {st.journeyStart.sentAt ? ` @ ${new Date(st.journeyStart.sentAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : ''}
+      </span>
+    );
+  }
+  if (typeof st?.updatesSentCount === 'number' && st.updatesSentCount > 0) {
+    stateBits.push(<span key="sent" className="leg-notif-detail">Sent: {st.updatesSentCount}</span>);
+  }
+  if (typeof st?.suppressedCount === 'number' && st.suppressedCount > 0) {
+    stateBits.push(<span key="sup" className="leg-notif-detail">Suppressed: {st.suppressedCount}</span>);
+  }
+  if (typeof st?.queuedCount === 'number' && st.queuedCount > 0) {
+    stateBits.push(<span key="q" className="leg-notif-detail">Queued: {st.queuedCount}</span>);
+  }
+  if (st?.lastSentAt) {
+    stateBits.push(
+      <span key="lsa" className="leg-notif-detail">
+        Last: {new Date(st.lastSentAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+      </span>
+    );
+  }
+
+  if (policyBits.length === 0 && stateBits.length === 0) return null;
+
+  return (
+    <div className="leg-notif">
+      {policyBits}
+      {stateBits.length > 0 ? <div className="leg-notif-row">{stateBits}</div> : null}
     </div>
   );
 }

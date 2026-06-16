@@ -752,6 +752,42 @@ p {
   font-size: 0.72rem;
 }
 
+.leg-notif {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.5rem;
+  margin-top: 0.3rem;
+  font-size: 0.72rem;
+  align-items: center;
+  width: 100%;
+}
+.leg-notif-pill {
+  background: var(--surface-2);
+  color: var(--text-primary);
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  font-weight: 500;
+}
+.leg-notif-pill[data-state="on"] {
+  border-color: #0a7;
+  color: #0a7;
+}
+.leg-notif-pill[data-state="off"] {
+  border-color: var(--text-muted);
+  color: var(--text-muted);
+}
+.leg-notif-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.5rem;
+  width: 100%;
+}
+.leg-notif-detail {
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+}
+
 /* Map placeholder */
 .map-placeholder {
   text-align: center;
