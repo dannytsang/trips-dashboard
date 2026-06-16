@@ -638,25 +638,11 @@ export function TripDetailSurface({
   return (
     <main className="dashboard-shell" data-theme={theme}>
       <section className="detail-panel" aria-label={`Trip detail: ${trip.title}`}>
-        {/* Back navigation */}
-        <Link href="/" className="back-link">
-          ← Back to trip summary
-        </Link>
-
-        {/* Header */}
-        <header className="detail-header">
-          <p className="trip-date">🗓️ {formatDateRange(trip.start, trip.end)}</p>
-          <h1 className="detail-title">{trip.title || tripId}</h1>
-          <p className="detail-destination">📍 {trip.destinationLabel || 'Destination TBC'}</p>
-          <div className="detail-badges">
-            <span className={`status-pill ${rbc}`}>{rl}</span>
-            <span className={`status-pill ${mlc}`}>{ml}</span>
-            <span className="status-pill">{statusLabel(trip)}</span>
-          </div>
-        </header>
-
-        {/* Theme toggle */}
-        <div className="detail-actions">
+        {/* Top navigation */}
+        <div className="detail-topbar">
+          <Link href="/" className="back-link">
+            ← Back to trip summary
+          </Link>
           <button
             type="button"
             className="secondary-action theme-toggle"
@@ -666,6 +652,20 @@ export function TripDetailSurface({
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>
         </div>
+
+        {/* Header */}
+        <header className="detail-header">
+          <div className="detail-header-body">
+            <p className="trip-date">🗓️ {formatDateRange(trip.start, trip.end)}</p>
+            <h1 className="detail-title">{trip.title || tripId}</h1>
+            <p className="detail-destination">📍 {trip.destinationLabel || 'Destination TBC'}</p>
+            <div className="detail-badges">
+              <span className={`status-pill ${rbc}`}>{rl}</span>
+              <span className={`status-pill ${mlc}`}>{ml}</span>
+              <span className="status-pill">{statusLabel(trip)}</span>
+            </div>
+          </div>
+        </header>
 
         {/* Next action callout (FR-018) */}
         {hasNextAction ? <NextActionCallout nextAction={trip.planning.nextAction} /> : null}

@@ -542,10 +542,42 @@ p {
   text-decoration: underline;
 }
 
+.detail-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.detail-topbar .back-link {
+  margin-bottom: 0;
+}
+.detail-topbar .theme-toggle {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-top: 0;
+}
+
 .detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid var(--border-color);
+}
+.detail-header-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.detail-header-toggle {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  margin-top: 0;
+}
+.detail-header-toggle .theme-toggle {
+  margin-top: 0;
 }
 
 .detail-title {

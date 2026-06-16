@@ -6,6 +6,7 @@ const auth = readFileSync('lib/auth.js', 'utf8');
 const signInPage = readFileSync('components/auth-signin-page.jsx', 'utf8');
 const homePage = readFileSync('app/page.jsx', 'utf8');
 const dashboardSurface = readFileSync('components/dashboard-session-surface.jsx', 'utf8');
+const tripDetailSurface = readFileSync('components/trip-detail-surface.jsx', 'utf8');
 const globalCss = readFileSync('app/globals.css', 'utf8');
 const syncRoute = readFileSync('app/api/trips/sync/route.js', 'utf8');
 const tripsRoute = readFileSync('app/api/trips/route.js', 'utf8');
@@ -59,5 +60,34 @@ assert.match(storage, /deleteBlob/, 'storage helper must delete removed or chang
 assert.doesNotMatch(storage, /issueSignedToken|presignUrl|getDownloadUrl/, 'storage helper must not expose signed/direct Blob URLs to clients');
 assert.match(portfolio, /FORBIDDEN_KEY_PATTERNS/, 'portfolio validation must include private-data key guards');
 assert.match(portfolio, /FORBIDDEN_VALUE_PATTERNS/, 'portfolio validation must include private-data value guards');
+
+// Trip detail top bar — theme toggle must sit in the top navigation row with
+// the Back link so it lands at the page's top-right, not merely the title
+// header's top-right. This regression-locks the corrected FR-003 behaviour.
+assert.match(
+  tripDetailSurface,
+  /<div\s+className="detail-topbar">[\s\S]*?<Link\s+href="\/"\s+className="back-link">[\s\S]*?className="secondary-action theme-toggle"[\s\S]*?<\/div>/,
+  'trip detail must place the Back link and theme toggle together in .detail-topbar'
+);
+assert.doesNotMatch(
+  tripDetailSurface,
+  /detail-header-toggle/,
+  'trip detail must not keep the theme toggle inside .detail-header-toggle; it belongs in the topbar'
+);
+assert.doesNotMatch(
+  tripDetailSurface,
+  /<div\s+className="detail-actions">/,
+  'trip detail must not use a separate .detail-actions div for the theme toggle; it belongs in the topbar'
+);
+assert.match(
+  globalCss,
+  /\.detail-topbar\s*\{[^}]*display:\s*flex[^}]*justify-content:\s*space-between/,
+  '.detail-topbar must be a flex row with space-between so Back sits left and the toggle sits right'
+);
+assert.match(
+  globalCss,
+  /\.detail-topbar\s+\.theme-toggle\s*\{[^}]*align-self:\s*center/,
+  '.detail-topbar .theme-toggle must align within the top navigation row'
+);
 
 console.log('OIDC source checks passed.');
