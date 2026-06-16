@@ -392,6 +392,16 @@ p {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr));
   gap: 1rem;
+  /* Each card sizes to its own content (the default), so the hover lift/shadow
+     hugs the actual card and does not include the trailing whitespace that
+     would otherwise appear when a shorter card is stretched to match a
+     taller card in the same row. Use the --align-row modifier to opt back
+     into the equal-height row layout for a tighter visual grid. */
+  align-items: start;
+}
+
+.trip-list--align-row {
+  align-items: stretch;
 }
 
 .trip-card-link {

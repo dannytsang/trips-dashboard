@@ -118,4 +118,16 @@ const tripCardLinkBase = globalCss.match(/\.trip-card-link\s*\{([\s\S]*?)\}/);
 assert.ok(tripCardLinkBase, '.trip-card-link base rule must exist');
 assert.match(tripCardLinkBase[1], /transition:[\s\S]*?box-shadow/, '.trip-card-link must declare a CSS transition that includes box-shadow so the hover effect animates without JS');
 
+// SC-021 — trip-list default card sizing: cards must size to their own content
+// (align-items: start) by default so a shorter card does not gain trailing
+// whitespace that the hover lift/shadow would then include. The CSS must
+// provide an opt-in modifier (.trip-list--align-row) that re-enables the
+// equal-height row layout for future layout decisions, but the modifier
+// must not be applied by default.
+const tripListRule = globalCss.match(/\.trip-list\s*\{([\s\S]*?)\}/);
+assert.ok(tripListRule, '.trip-list rule must exist');
+assert.match(tripListRule[1], /align-items:\s*start/, '.trip-list must default to align-items: start so each card sizes to its own content');
+assert.match(globalCss, /\.trip-list--align-row\s*\{[^}]*align-items:\s*stretch/, '.trip-list--align-row modifier must opt back into align-items: stretch for an equal-height row layout');
+assert.doesNotMatch(dashboardSurface, /trip-list\s+trip-list--align-row|trip-list--align-row/, 'the trip-list modifier must be CSS-only — no JSX should reference it until a future spec adds a control for it');
+
 console.log('Dashboard polish checks passed.');
