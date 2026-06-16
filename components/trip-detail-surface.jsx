@@ -106,6 +106,7 @@ function LegRow({ leg, index }) {
   const mode = leg.mode || 'unknown';
   const cju = leg.contactJourneyUpdate;
   const notif = leg.notification;
+  const review = leg.planningReview;
 
   return (
     <li className="leg-detail-row">
@@ -116,6 +117,7 @@ function LegRow({ leg, index }) {
         <span className="leg-detail-sub">{formatLegModeLabel(mode)}</span>
         {cju ? <ContactJourneyUpdateBlock cju={cju} /> : null}
         {notif ? <NotificationBlock notif={notif} /> : null}
+        {review ? <PlanningReviewBlock review={review} /> : null}
       </div>
       {leg.flight ? (
         <div className="leg-detail-flight">
@@ -180,7 +182,6 @@ function NotificationBlock({ notif }) {
   const pol = notif?.policy;
   const st = notif?.state;
   if (!pol && !st) return null;
-
   const policyBits = [];
   if (pol?.enabled === false) {
     policyBits.push(<span key="off" className="leg-notif-pill" data-state="off">🔕 Disabled</span>);
@@ -238,6 +239,87 @@ function NotificationBlock({ notif }) {
     <div className="leg-notif">
       {policyBits}
       {stateBits.length > 0 ? <div className="leg-notif-row">{stateBits}</div> : null}
+    </div>
+  );
+}
+
+function PlanningReviewBlock({ review }) {
+  const action = review?.action;
+  const drafts = review?.drafts;
+  if (!action && !drafts) return null;
+
+  const actionStatus = action?.status;
+  const actionStatusLabel = ({
+    pending: 'Pending decision',
+    approved: 'Approved',
+    declined: 'Declined',
+    blocked_missing_recipient: 'Blocked — missing recipient',
+    not_applicable: 'Not applicable',
+  })[actionStatus] || actionStatus;
+
+  const bits = [];
+  if (action && actionStatus) {
+    bits.push(
+      <span
+        key="ra"
+        className="leg-review-pill"
+        data-state={actionStatus}
+        title={action.question || ''}
+      >
+        📋 {actionStatusLabel}
+      </span>
+    );
+  }
+  if (action?.shownAt) {
+    bits.push(
+      <span key="rs" className="leg-review-detail">
+        Shown: {new Date(action.shownAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+      </span>
+    );
+  }
+  if (action?.decidedAt) {
+    bits.push(
+      <span key="rd" className="leg-review-detail">
+        Decided: {new Date(action.decidedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+        {action.decidedBy ? ` by ${action.decidedBy}` : ''}
+      </span>
+    );
+  }
+  if (action?.includeInItinerary === false) {
+    bits.push(<span key="rii" className="leg-review-detail">Excluded from itinerary</span>);
+  }
+
+  const draftBits = [];
+  if (drafts?.count) {
+    draftBits.push(
+      <span key="dc" className="leg-review-detail">
+        Drafts: {drafts.count}
+        {drafts.statuses?.length ? ` (${drafts.statuses.join(', ')})` : ''}
+      </span>
+    );
+    if (drafts.templateVersions?.length) {
+      draftBits.push(
+        <span key="dt" className="leg-review-detail">Templates: {drafts.templateVersions.join(', ')}</span>
+      );
+    }
+    if (drafts.triggers?.length) {
+      draftBits.push(
+        <span key="dk" className="leg-review-detail">Triggers: {drafts.triggers.join(', ')}</span>
+      );
+    }
+    if (drafts.pointOfView?.length) {
+      draftBits.push(
+        <span key="dp" className="leg-review-detail">POV: {drafts.pointOfView.join(', ')}</span>
+      );
+    }
+  }
+
+  if (bits.length === 0 && draftBits.length === 0) return null;
+
+  return (
+    <div className="leg-review">
+      {bits}
+      {draftBits.length > 0 ? <div className="leg-review-row">{draftBits}</div> : null}
     </div>
   );
 }

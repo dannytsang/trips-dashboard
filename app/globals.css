@@ -788,6 +788,51 @@ p {
   font-size: 0.7rem;
 }
 
+.leg-review {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.5rem;
+  margin-top: 0.3rem;
+  font-size: 0.72rem;
+  align-items: center;
+  width: 100%;
+}
+.leg-review-pill {
+  background: var(--surface-2);
+  color: var(--text-primary);
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  font-weight: 500;
+  cursor: help;
+}
+.leg-review-pill[data-state="pending"] {
+  border-color: #d49a07;
+  color: #d49a07;
+}
+.leg-review-pill[data-state="approved"] {
+  border-color: #0a7;
+  color: #0a7;
+}
+.leg-review-pill[data-state="declined"] {
+  border-color: var(--text-muted);
+  color: var(--text-muted);
+}
+.leg-review-pill[data-state="blocked_missing_recipient"] {
+  border-color: #c0392b;
+  color: #c0392b;
+}
+.leg-review-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.5rem;
+  width: 100%;
+}
+.leg-review-detail {
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+}
+
 /* Map placeholder */
 .map-placeholder {
   text-align: center;
