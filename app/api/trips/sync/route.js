@@ -1,10 +1,10 @@
 import { timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
-import { ProjectionValidationError } from '@/lib/trips-projection';
+import { BriefValidationError } from '@/lib/trips-brief';
 import {
   getMissingBlobStorageEnvironment,
-  TripsProjectionStorageError,
-  writeTripsDashboardProjection,
+  TripsBriefStorageError,
+  writeTripsDashboardBrief,
 } from '@/lib/trips-storage';
 
 export const dynamic = 'force-dynamic';
@@ -58,7 +58,7 @@ export async function POST(request) {
   if (missingStorage.length > 0) {
     return NextResponse.json(
       {
-        error: 'Trips projection storage is not configured',
+        error: 'Trips brief storage is not configured',
         accepted: false,
       },
       { status: 503 },
@@ -73,16 +73,16 @@ export async function POST(request) {
   }
 
   try {
-    const result = await writeTripsDashboardProjection(payload);
+    const result = await writeTripsDashboardBrief(payload);
 
     return NextResponse.json({
       accepted: true,
-      generatedAt: result.projection.generatedAt,
-      receivedAt: result.projection.receivedAt,
+      generatedAt: result.brief.generatedAt,
+      receivedAt: result.brief.receivedAt,
       storage: result.storage,
     });
   } catch (error) {
-    if (error instanceof ProjectionValidationError) {
+    if (error instanceof BriefValidationError) {
       return NextResponse.json(
         {
           error: error.message,
@@ -93,7 +93,7 @@ export async function POST(request) {
       );
     }
 
-    if (error instanceof TripsProjectionStorageError) {
+    if (error instanceof TripsBriefStorageError) {
       return NextResponse.json(
         {
           error: error.message,
@@ -106,7 +106,7 @@ export async function POST(request) {
 
     return NextResponse.json(
       {
-        error: 'Failed to sync trips projection',
+        error: 'Failed to sync trips brief',
         accepted: false,
         lastKnownGoodPreserved: true,
       },

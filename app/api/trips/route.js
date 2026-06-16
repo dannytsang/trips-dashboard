@@ -3,8 +3,8 @@ import { NextResponse } from 'next/server';
 import { authOptions, getMissingAuthEnvironment } from '@/lib/auth';
 import {
   getMissingBlobStorageEnvironment,
-  readTripsDashboardProjection,
-  TripsProjectionStorageError,
+  readTripsDashboardBrief,
+  TripsBriefStorageError,
 } from '@/lib/trips-storage';
 
 export const dynamic = 'force-dynamic';
@@ -30,7 +30,7 @@ export async function GET() {
   if (missingStorage.length > 0) {
     return NextResponse.json(
       {
-        error: 'Trips projection storage is not configured',
+        error: 'Trips brief storage is not configured',
         storage: { configured: false },
       },
       { status: 503 },
@@ -38,11 +38,11 @@ export async function GET() {
   }
 
   try {
-    const { projection, storage, stale, message } = await readTripsDashboardProjection();
+    const { brief, storage, stale, message } = await readTripsDashboardBrief();
 
     return NextResponse.json(
       {
-        ...projection,
+        ...brief,
         storage,
         stale,
         message,
@@ -55,9 +55,9 @@ export async function GET() {
       },
     );
   } catch (error) {
-    const message = error instanceof TripsProjectionStorageError
+    const message = error instanceof TripsBriefStorageError
       ? error.message
-      : 'Failed to read trips projection';
+      : 'Failed to read trips brief';
 
     return NextResponse.json(
       {

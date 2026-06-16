@@ -345,7 +345,7 @@ p {
   text-transform: uppercase;
 }
 
-.projection-status {
+.brief-status {
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem;
@@ -354,7 +354,7 @@ p {
   font-size: 0.86rem;
 }
 
-.projection-status span,
+.brief-status span,
 .status-pill {
   border: 1px solid var(--border-color);
   border-radius: 999px;

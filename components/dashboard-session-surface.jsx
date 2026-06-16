@@ -70,8 +70,8 @@ function nextActionLabel(trip) {
   return formatNextActionLabel(trip.planning?.nextAction);
 }
 
-function metricValue(projection, predicate) {
-  return projection?.trips?.filter(predicate).length || 0;
+function metricValue(brief, predicate) {
+  return brief?.trips?.filter(predicate).length || 0;
 }
 
 function normaliseFilter(value) {
@@ -99,11 +99,11 @@ export function DashboardSessionSurface({
   userName,
   authConfigurationIncomplete = false,
   storageConfigurationIncomplete = false,
-  projection = null,
-  projectionStorage = null,
-  projectionStale = false,
-  projectionMessage = null,
-  projectionError = null,
+  brief = null,
+  briefStorage = null,
+  briefStale = false,
+  briefMessage = null,
+  briefError = null,
 }) {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [theme, setTheme] = useState('dark');
@@ -163,11 +163,11 @@ export function DashboardSessionSurface({
     );
   }
 
-  const trips = projection?.trips || [];
-  const generatedAt = projection?.generatedAt || null;
-  const activeTrips = metricValue(projection, trip => trip.monitoring?.active === true);
-  const monitorableTrips = metricValue(projection, trip => trip.monitoring?.enabled === true);
-  const blockers = metricValue(projection, trip => trip.planning?.nextAction != null);
+  const trips = brief?.trips || [];
+  const generatedAt = brief?.generatedAt || null;
+  const activeTrips = metricValue(brief, trip => trip.monitoring?.active === true);
+  const monitorableTrips = metricValue(brief, trip => trip.monitoring?.enabled === true);
+  const blockers = metricValue(brief, trip => trip.planning?.nextAction != null);
   const filteredTrips = activeFilter ? trips.filter(TRIP_FILTERS[activeFilter].predicate) : trips;
   const activeFilterLabel = activeFilter ? TRIP_FILTERS[activeFilter].label : null;
 
@@ -203,13 +203,13 @@ export function DashboardSessionSurface({
           </div>
         ) : storageConfigurationIncomplete ? (
           <div className="notice notice-warning">
-            <strong>⚠️ Projection storage is not configured.</strong>
+            <strong>⚠️ Brief storage is not configured.</strong>
             <span>The dashboard is protected, but private Blob storage is unavailable.</span>
           </div>
-        ) : projectionError ? (
+        ) : briefError ? (
           <div className="notice notice-danger">
-            <strong>🚨 Projection unavailable.</strong>
-            <span>{projectionError}</span>
+            <strong>🚨 Brief unavailable.</strong>
+            <span>{briefError}</span>
           </div>
         ) : (
           <>
@@ -257,11 +257,11 @@ export function DashboardSessionSurface({
               ) : null}
             </div>
 
-            <div className={`projection-status ${projectionStale ? 'status-warning' : 'status-ok'}`}>
-              <span>{projectionStale ? '⚠️ Brief stale' : '✅ Brief current'}</span>
+            <div className={`brief-status ${briefStale ? 'status-warning' : 'status-ok'}`}>
+              <span>{briefStale ? '⚠️ Brief stale' : '✅ Brief current'}</span>
               {generatedAt ? <span>🕒 Generated {new Date(generatedAt).toLocaleString('en-GB')}</span> : <span>🕒 Not generated yet</span>}
-              {projectionStorage?.pathname ? <span>🔒 Private manifest: {projectionStorage.pathname}</span> : null}
-              {projectionMessage ? <span>ℹ️ {projectionMessage}</span> : null}
+              {briefStorage?.pathname ? <span>🔒 Private manifest: {briefStorage.pathname}</span> : null}
+              {briefMessage ? <span>ℹ️ {briefMessage}</span> : null}
             </div>
 
             {trips.length === 0 ? (

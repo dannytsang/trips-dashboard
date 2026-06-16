@@ -10,7 +10,7 @@ const globalCss = readFileSync('app/globals.css', 'utf8');
 const syncRoute = readFileSync('app/api/trips/sync/route.js', 'utf8');
 const tripsRoute = readFileSync('app/api/trips/route.js', 'utf8');
 const storage = readFileSync('lib/trips-storage.js', 'utf8');
-const projection = readFileSync('lib/trips-projection.js', 'utf8');
+const brief = readFileSync('lib/trips-brief.js', 'utf8');
 
 assert.match(middleware, /matcher:\s*\['\/'\]/, 'middleware must protect the dashboard root');
 assert.match(auth, /NEXTAUTH_URL/, 'auth config must require NEXTAUTH_URL for production callback/origin correctness');
@@ -43,8 +43,8 @@ assert.match(syncRoute, /timingSafeEqual/, 'sync endpoint must use constant-time
 assert.match(syncRoute, /Machine authentication required/, 'sync endpoint must reject missing or bad bearer token');
 assert.match(tripsRoute, /getServerSession/, 'browser-facing trips API must require server session');
 assert.match(tripsRoute, /Authentication required/, 'browser-facing trips API must return explicit auth failure without relying only on middleware');
-assert.match(tripsRoute, /readTripsDashboardProjection/, 'browser-facing trips API must read projection through server-side split storage helper');
-assert.match(homePage, /readTripsDashboardProjection/, 'authenticated dashboard page must read the private split projection server-side');
+assert.match(tripsRoute, /readTripsDashboardBrief/, 'browser-facing trips API must read brief through server-side split storage helper');
+assert.match(homePage, /readTripsDashboardBrief/, 'authenticated dashboard page must read the private split brief server-side');
 assert.match(dashboardSurface, /Upcoming and active trips/, 'dashboard surface must render summary-list copy');
 assert.match(dashboardSurface, /trip-list/, 'dashboard surface must include trip list rendering');
 assert.match(dashboardSurface, /metric-grid/, 'dashboard surface must include summary metric cards');
@@ -57,7 +57,7 @@ assert.match(storage, /trips-dashboard\/trips\//, 'storage helper must use per-t
 assert.match(storage, /\.sha256/, 'storage helper must use checksum sidecars');
 assert.match(storage, /deleteBlob/, 'storage helper must delete removed or changed split objects when needed');
 assert.doesNotMatch(storage, /issueSignedToken|presignUrl|getDownloadUrl/, 'storage helper must not expose signed/direct Blob URLs to clients');
-assert.match(projection, /FORBIDDEN_KEY_PATTERNS/, 'projection validation must include private-data key guards');
-assert.match(projection, /FORBIDDEN_VALUE_PATTERNS/, 'projection validation must include private-data value guards');
+assert.match(brief, /FORBIDDEN_KEY_PATTERNS/, 'brief validation must include private-data key guards');
+assert.match(brief, /FORBIDDEN_VALUE_PATTERNS/, 'brief validation must include private-data value guards');
 
 console.log('OIDC source checks passed.');

@@ -4,8 +4,8 @@ import { DashboardSessionSurface } from '@/components/dashboard-session-surface'
 import { authOptions, getMissingAuthEnvironment } from '@/lib/auth';
 import {
   getMissingBlobStorageEnvironment,
-  readTripsDashboardProjection,
-  TripsProjectionStorageError,
+  readTripsDashboardBrief,
+  TripsBriefStorageError,
 } from '@/lib/trips-storage';
 
 export const dynamic = 'force-dynamic';
@@ -20,23 +20,23 @@ export default async function HomePage() {
   const missingAuth = getMissingAuthEnvironment();
   const missingStorage = getMissingBlobStorageEnvironment();
   const userName = session.user?.name || session.user?.email || 'authorised traveller';
-  let projection = null;
+  let brief = null;
   let storage = missingStorage.length > 0 ? { configured: false } : null;
-  let projectionStale = false;
-  let projectionMessage = null;
-  let projectionError = null;
+  let briefStale = false;
+  let briefMessage = null;
+  let briefError = null;
 
   if (missingAuth.length === 0 && missingStorage.length === 0) {
     try {
-      const result = await readTripsDashboardProjection();
-      projection = result.projection;
+      const result = await readTripsDashboardBrief();
+      brief = result.brief;
       storage = result.storage;
-      projectionStale = result.stale;
-      projectionMessage = result.message;
+      briefStale = result.stale;
+      briefMessage = result.message;
     } catch (error) {
-      projectionError = error instanceof TripsProjectionStorageError
+      briefError = error instanceof TripsBriefStorageError
         ? error.message
-        : 'Failed to read trips projection';
+        : 'Failed to read trips brief';
       storage = { configured: true };
     }
   }
@@ -46,11 +46,11 @@ export default async function HomePage() {
       userName={userName}
       authConfigurationIncomplete={missingAuth.length > 0}
       storageConfigurationIncomplete={missingStorage.length > 0}
-      projection={projection}
-      projectionStorage={storage}
-      projectionStale={projectionStale}
-      projectionMessage={projectionMessage}
-      projectionError={projectionError}
+      brief={brief}
+      briefStorage={storage}
+      briefStale={briefStale}
+      briefMessage={briefMessage}
+      briefError={briefError}
     />
   );
 }

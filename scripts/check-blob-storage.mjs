@@ -1,17 +1,17 @@
 import assert from 'node:assert/strict';
 import { ReadableStream } from 'node:stream/web';
 import {
-  ProjectionValidationError,
+  BriefValidationError,
   canonicalJson,
   sha256ForObject,
-  validateTripsProjection,
-  validateTripsProjectionEnvelope,
-} from '../lib/trips-projection.js';
+  validateTripsBrief,
+  validateTripsBriefEnvelope,
+} from '../lib/trips-brief.js';
 import {
   DEFAULT_TRIPS_MANIFEST_PATH,
-  readTripsDashboardProjection,
-  TripsProjectionStorageError,
-  writeTripsDashboardProjection,
+  readTripsDashboardBrief,
+  TripsBriefStorageError,
+  writeTripsDashboardBrief,
 } from '../lib/trips-storage.js';
 
 function streamFromString(text) {
@@ -103,43 +103,43 @@ const splitEnvelope = {
   },
 };
 
-const normalised = validateTripsProjectionEnvelope(splitEnvelope, { receivedAt: '2026-06-14T20:01:00.000Z' });
+const normalised = validateTripsBriefEnvelope(splitEnvelope, { receivedAt: '2026-06-14T20:01:00.000Z' });
 assert.equal(normalised.manifest.schemaVersion, 1);
 assert.equal(normalised.manifest.generatedAt, splitEnvelope.manifest.generatedAt);
-assert.equal(normalised.projection.trips.length, 2);
-assert.equal(normalised.projection.trips[0].title, 'Eastbourne fixture');
+assert.equal(normalised.brief.trips.length, 2);
+assert.equal(normalised.brief.trips[0].title, 'Eastbourne fixture');
 assert.equal(canonicalJson(tripA).startsWith('{"destinationLabel"'), true, 'canonical JSON must be deterministic and key-sorted');
 
 assert.throws(
-  () => validateTripsProjection({ trips: [{ id: 'x', title: 'Bad', status: 'planned', google_calendar_event_id: 'secret' }] }),
-  ProjectionValidationError,
+  () => validateTripsBrief({ trips: [{ id: 'x', title: 'Bad', status: 'planned', google_calendar_event_id: 'secret' }] }),
+  BriefValidationError,
   'raw source identifiers must fail validation',
 );
 
 assert.throws(
-  () => validateTripsProjectionEnvelope({
+  () => validateTripsBriefEnvelope({
     manifest: splitEnvelope.manifest,
     trips: { 'trip-a': { ...tripA, notes: 'google_calendar:family/abc' }, 'trip-b': tripB },
   }),
-  ProjectionValidationError,
+  BriefValidationError,
   'raw google calendar source values must fail validation',
 );
 
 await assert.rejects(
-  () => readTripsDashboardProjection({ env: {}, blobGet: async () => null }),
-  error => error instanceof TripsProjectionStorageError && error.code === 'storage_not_configured',
+  () => readTripsDashboardBrief({ env: {}, blobGet: async () => null }),
+  error => error instanceof TripsBriefStorageError && error.code === 'storage_not_configured',
   'storage reads must fail closed without Blob env',
 );
 
-const emptyRead = await readTripsDashboardProjection({
+const emptyRead = await readTripsDashboardBrief({
   env: { BLOB_READ_WRITE_TOKEN: 'test-token' },
   blobGet: async () => null,
 });
 assert.equal(emptyRead.storage.exists, false);
 assert.equal(emptyRead.stale, true);
-assert.deepEqual(emptyRead.projection.trips, []);
+assert.deepEqual(emptyRead.brief.trips, []);
 
-const storedRead = await readTripsDashboardProjection({
+const storedRead = await readTripsDashboardBrief({
   env: { BLOB_READ_WRITE_TOKEN: 'test-token' },
   blobGet: async pathname => {
     if (pathname === DEFAULT_TRIPS_MANIFEST_PATH) return blobResult(pathname, splitEnvelope.manifest);
@@ -151,12 +151,12 @@ const storedRead = await readTripsDashboardProjection({
 assert.equal(storedRead.storage.exists, true);
 assert.equal(storedRead.storage.pathname, DEFAULT_TRIPS_MANIFEST_PATH);
 assert.equal(storedRead.storage.url, undefined, 'storage metadata must not expose direct Blob URL');
-assert.equal(storedRead.projection.trips[0].title, 'Eastbourne fixture');
-assert.equal(storedRead.projection.trips[1].title, 'Birmingham fixture');
+assert.equal(storedRead.brief.trips[0].title, 'Eastbourne fixture');
+assert.equal(storedRead.brief.trips[1].title, 'Birmingham fixture');
 
 const putCalls = [];
 const delCalls = [];
-const writeResult = await writeTripsDashboardProjection(splitEnvelope, {
+const writeResult = await writeTripsDashboardBrief(splitEnvelope, {
   env: { BLOB_READ_WRITE_TOKEN: 'test-token' },
   now: '2026-06-14T20:03:00.000Z',
   blobGet: async pathname => {
@@ -187,7 +187,7 @@ const writeResult = await writeTripsDashboardProjection(splitEnvelope, {
 
 assert.equal(writeResult.storage.exists, true);
 assert.equal(writeResult.storage.pathname, DEFAULT_TRIPS_MANIFEST_PATH);
-assert.equal(writeResult.projection.trips.length, 2);
+assert.equal(writeResult.brief.trips.length, 2);
 assert.deepEqual(
   putCalls.map(call => call.pathname),
   [
@@ -209,7 +209,7 @@ assert.equal(JSON.parse(putCalls.at(-1).body).receivedAt, '2026-06-14T20:03:00.0
 
 let putCalled = false;
 await assert.rejects(
-  () => writeTripsDashboardProjection(
+  () => writeTripsDashboardBrief(
     {
       manifest: splitEnvelope.manifest,
       trips: { 'trip-a': { ...tripA, rawEvidence: 'nope' }, 'trip-b': tripB },
@@ -220,13 +220,13 @@ await assert.rejects(
       blobPut: async () => { putCalled = true; },
     },
   ),
-  ProjectionValidationError,
-  'invalid projection must be rejected before write',
+  BriefValidationError,
+  'invalid brief must be rejected before write',
 );
-assert.equal(putCalled, false, 'invalid projection must not overwrite last known good Blob');
+assert.equal(putCalled, false, 'invalid brief must not overwrite last known good Blob');
 
 await assert.rejects(
-  () => writeTripsDashboardProjection(splitEnvelope, {
+  () => writeTripsDashboardBrief(splitEnvelope, {
     env: { BLOB_READ_WRITE_TOKEN: 'test-token' },
     blobGet: async pathname => {
       if (pathname === DEFAULT_TRIPS_MANIFEST_PATH) return blobResult(pathname, splitEnvelope.manifest);
@@ -239,10 +239,10 @@ await assert.rejects(
       return { pathname, uploadedAt: new Date(), size: 1 };
     },
   }),
-  error => error instanceof TripsProjectionStorageError
+  error => error instanceof TripsBriefStorageError
     && error.code === 'storage_write_failed'
     && /left intact/.test(error.message),
-  'manifest write failures must preserve last known good projection',
+  'manifest write failures must preserve last known good brief',
 );
 
 console.log('Blob storage checks passed.');

@@ -12,7 +12,7 @@ The governing dashboard specs live in the travel-planner skill hierarchy, matchi
 
 | Spec | Status | Purpose |
 |---|---|---|
-| `/home/hermes/workspace/Hermes-Skills/productivity/travel-planner/.specify/specs/008-dashboard-summary/spec.md` | Draft | Upcoming trips summary projection, privacy, sync, and visual contract. |
+| `/home/hermes/workspace/Hermes-Skills/productivity/travel-planner/.specify/specs/008-dashboard-summary/spec.md` | Draft | Upcoming trips summary brief, privacy, sync, and visual contract. |
 | `/home/hermes/workspace/Hermes-Skills/productivity/travel-planner/.specify/specs/009-dashboard-oidc-authentication/spec.md` | Final | OIDC/AuthentiK and private data/API protection contract. |
 
 This repository owns the web implementation, Vercel deployment, and any repo-local implementation notes. The travel-planner skill owns the source-of-truth dashboard behaviour specs.
@@ -27,7 +27,7 @@ Set these in Vercel production/preview environments; never commit their values:
 - `NEXTAUTH_URL=https://tsang-travel.vercel.app`
 - `NEXTAUTH_SECRET`
 - `TRIPS_DASHBOARD_SYNC_SECRET` once the sync endpoint is used by Hermes/travel-planner
-- Vercel Blob storage for the latest projection, using either Vercel-managed Blob OIDC/store binding or `BLOB_READ_WRITE_TOKEN`
+- Vercel Blob storage for the latest brief, using either Vercel-managed Blob OIDC/store binding or `BLOB_READ_WRITE_TOKEN`
 - Optional `TRIPS_DASHBOARD_BLOB_PATH` override; defaults to `trips-dashboard/latest.json`
 
 ## Privacy rule
