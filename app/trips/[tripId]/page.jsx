@@ -18,62 +18,38 @@ export default async function TripDetailPage({ params }) {
     redirect(`/auth/signin?callbackUrl=/trips/${tripId}`);
   }
 
+  const missingAuth = [];
   const missingStorage = getMissingBlobStorageEnvironment();
 
-  if (missingStorage.length > 0) {
-    return (
-      <main style={{ maxWidth: 520, margin: '3rem auto', padding: '0 1rem', textAlign: 'center' }}>
-        <h1>Storage not configured</h1>
-        <p>{missingStorage.join(', ')}</p>
-      </main>
-    );
-  }
-
   let trip = null;
+  let storageOk = false;
   let notFound = false;
   let errorMessage = null;
 
-  try {
-    trip = await readTripById(tripId);
-    if (!trip) {
-      notFound = true;
+  if (missingStorage.length === 0) {
+    try {
+      trip = await readTripById(tripId);
+      storageOk = true;
+      if (!trip) {
+        notFound = true;
+      }
+    } catch (err) {
+      errorMessage =
+        err instanceof TripsProjectionStorageError
+          ? err.message
+          : 'Failed to load trip data';
     }
-  } catch (err) {
-    const msg = err instanceof TripsProjectionStorageError
-      ? err.message
-      : err instanceof Error
-        ? err.message
-        : String(err);
-    errorMessage = `Failed to load trip: ${msg}`;
-  }
-
-  if (notFound) {
-    return (
-      <main style={{ maxWidth: 520, margin: '3rem auto', padding: '0 1rem', textAlign: 'center' }}>
-        <h1>Trip not found</h1>
-        <p>No trip found with ID: {tripId}</p>
-      </main>
-    );
-  }
-
-  if (errorMessage) {
-    return (
-      <main style={{ maxWidth: 520, margin: '3rem auto', padding: '0 1rem', textAlign: 'center' }}>
-        <h1>Error</h1>
-        <p>{errorMessage}</p>
-      </main>
-    );
   }
 
   return (
     <TripDetailSurface
       trip={trip}
       tripId={tripId}
-      authConfigurationIncomplete={false}
-      storageConfigurationIncomplete={false}
-      storageOk={true}
-      notFound={false}
-      errorMessage={null}
+      authConfigurationIncomplete={missingAuth.length > 0}
+      storageConfigurationIncomplete={missingStorage.length > 0}
+      storageOk={storageOk}
+      notFound={notFound}
+      errorMessage={errorMessage}
     />
   );
 }
