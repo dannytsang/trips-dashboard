@@ -573,6 +573,7 @@ export function TripDetailSurface({
 }) {
   const [theme, setTheme] = useState('dark');
   const [showTopbarTitle, setShowTopbarTitle] = useState(false);
+  const topbarRef = useRef(null);
   const headerRef = useRef(null);
 
   useEffect(() => {
@@ -586,29 +587,32 @@ export function TripDetailSurface({
   }, [theme]);
 
   useEffect(() => {
+    const topbar = topbarRef.current;
     const header = headerRef.current;
-    if (!header) return undefined;
+    if (!topbar || !header) return undefined;
 
-    if (typeof IntersectionObserver === 'undefined') {
-      const onScroll = () => {
-        const rect = header.getBoundingClientRect();
-        setShowTopbarTitle(rect.bottom <= 0);
-      };
-      onScroll();
-      window.addEventListener('scroll', onScroll, { passive: true });
-      window.addEventListener('resize', onScroll);
-      return () => {
-        window.removeEventListener('scroll', onScroll);
-        window.removeEventListener('resize', onScroll);
-      };
-    }
+    let frame = 0;
+    const updateTopbarTitle = () => {
+      frame = 0;
+      const topbarRect = topbar.getBoundingClientRect();
+      const headerRect = header.getBoundingClientRect();
+      // Show the compact title as soon as the full header starts sliding
+      // behind the sticky topbar, not only after the whole header disappears.
+      setShowTopbarTitle(headerRect.top <= topbarRect.bottom + 2);
+    };
+    const scheduleUpdate = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(updateTopbarTitle);
+    };
 
-    const observer = new IntersectionObserver(
-      ([entry]) => setShowTopbarTitle(!entry.isIntersecting),
-      { root: null, threshold: 0 }
-    );
-    observer.observe(header);
-    return () => observer.disconnect();
+    updateTopbarTitle();
+    window.addEventListener('scroll', scheduleUpdate, { passive: true });
+    window.addEventListener('resize', scheduleUpdate);
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', scheduleUpdate);
+      window.removeEventListener('resize', scheduleUpdate);
+    };
   }, [trip?.id]);
 
   const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -684,7 +688,7 @@ export function TripDetailSurface({
     <main className="dashboard-shell" data-theme={theme}>
       <section className="detail-panel" aria-label={`Trip detail: ${trip.title}`}>
         {/* Top navigation */}
-        <div className="detail-topbar">
+        <div ref={topbarRef} className="detail-topbar">
           <Link href="/" className="back-link">
             ← Back to trip summary
           </Link>
