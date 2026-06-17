@@ -227,7 +227,7 @@ function TransportDecisionCallout({ decision }) {
     ? toDisplayLabel(decision.recommendationConfidence, '')
     : '';
   return (
-    <DetailSection title="Transport decision" emoji="🚦">
+    <SectionCollapsible title="Transport decision" emoji="🚦" defaultOpen={true}>
       <p className="transport-decision-mode">
         Selected: <strong>{toDisplayLabel(decision.selectedMode, 'Mode pending')}</strong>
         {confidence ? (
@@ -244,7 +244,7 @@ function TransportDecisionCallout({ decision }) {
           ))}
         </ul>
       ) : null}
-    </DetailSection>
+    </SectionCollapsible>
   );
 }
 
@@ -674,27 +674,27 @@ export function TripDetailSurface({
         {hasNextAction ? <NextActionCallout nextAction={trip.planning.nextAction} /> : null}
 
         {/* Travellers */}
-        <DetailSection title="Travellers" emoji="👥">
+        <SectionCollapsible title="Travellers" emoji="👥" defaultOpen={true}>
           <ul className="traveller-list">
             {(trip.travellers && trip.travellers.length > 0)
               ? trip.travellers.map((t, i) => <li key={i}>{t}</li>)
               : <li className="text-muted">To confirm</li>
             }
           </ul>
-        </DetailSection>
+        </SectionCollapsible>
 
         {/* Transport decision callout (FR-017) — above Legs */}
         {hasTransportDecision ? <TransportDecisionCallout decision={trip.planning.transportDecision} /> : null}
 
         {/* Legs (with map embedded) */}
         {hasLegs ? (
-          <DetailSection title="Legs" emoji="🛤️">
+          <SectionCollapsible title="Legs" emoji="🛤️" defaultOpen={true}>
             <ol className="leg-detail-list">
               {trip.legs.map((leg, i) => (
                 <LegRow key={`${trip.id}-leg-${i}`} leg={leg} index={i} />
               ))}
             </ol>
-          </DetailSection>
+          </SectionCollapsible>
         ) : null}
 
         {/* Programme */}
