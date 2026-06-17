@@ -124,10 +124,12 @@ assert.doesNotMatch(
   /leg-detail-map-strip/,
   'trip detail must not reference the .leg-detail-map-strip container (removed by FR-036)'
 );
-// v5 expansion (spec 010 FR-038..FR-040): Travellers, Transport
-// decision, and Legs+Map render as SectionCollapsible with
-// defaultOpen={true} — Danny asked for the three primary sections
-// to be collapsible, all starting open on first load.
+// v5 + v5.1 expansion (spec 010 FR-038..FR-040): Travellers, Transport
+// decision, Legs+Map, and Accommodation render as SectionCollapsible
+// with defaultOpen={true} — Danny asked for the four primary sections
+// to be collapsible, all starting open on first load. Accommodation
+// was added in v5.1 (2026-06-18) after Danny confirmed it should
+// match the v5 contract.
 assert.match(
   tripDetailSurface,
   /<SectionCollapsible\s+title="Travellers"\s+emoji="👥"\s+defaultOpen=\{true\}>/,
@@ -143,7 +145,12 @@ assert.match(
   /<SectionCollapsible\s+title="Legs"\s+emoji="🛤️"\s+defaultOpen=\{true\}>/,
   'Legs+Map section must render as SectionCollapsible with defaultOpen={true} (FR-040)'
 );
-// Regression check (FR-038): the three primary sections must not
+assert.match(
+  tripDetailSurface,
+  /<SectionCollapsible\s+title="Accommodation"\s+emoji="🏨"\s+defaultOpen=\{true\}>/,
+  'Accommodation section must render as SectionCollapsible with defaultOpen={true} (FR-040, v5.1)'
+);
+// Regression check (FR-038): the four primary sections must not
 // regress to non-collapsible DetailSection. A future edit that
 // silently flips them back would lose the user's ability to tuck
 // them away after reading.
@@ -162,6 +169,11 @@ assert.doesNotMatch(
   /<DetailSection\s+title="Legs"/,
   'Legs+Map section must not regress to non-collapsible DetailSection (FR-038)'
 );
+// Note: there is no <DetailSection title="Accommodation"> regression
+// check any more — under v5.1 the Accommodation call site is now
+// SectionCollapsible, so a doesNotMatch assertion for that exact
+// DetailSection would fire legitimately on the current code.
+// The four positive-existence assertions above are the new contract.
 // LegRouteMap must build both provider iframe URLs (FR-036). We
 // assert on the source shape, not the final URL.
 assert.match(
