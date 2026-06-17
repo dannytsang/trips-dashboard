@@ -2,19 +2,13 @@
 
 /**
  * TripOverviewMap — one Google Maps JavaScript API map showing all trip legs.
- * Renders a single <div> that the @googlemaps/js-api-loader v2 functional API
- * populates with a google.maps.Map instance. Each leg is drawn as a Polyline
- * (straight-line segments between waypoints, coloured by transport mode) plus
- * origin/destination Markers. The map auto-fits its bounds to show all legs.
+ * Uses @googlemaps/js-api-loader v2: setOptions() + importLibrary().
+ * After importLibrary('maps') resolves, google.maps is available as a
+ * global; we use it directly rather than relying on destructured exports.
  *
- * FR-042 Revised (JS API): replaces the stacked iframe strip with one
- * interactive map. All legs visible at once — one map, polyline per leg,
- * coloured route lines, clickable markers. Privacy contract unchanged:
- * precision 'home' or 'exact' waypoints are excluded from the map.
- *
- * Hydration safety: 'use client' + phase state ('idle' → 'loading' → 'map')
- * ensures the component renders null on both server and client first render,
- * then re-renders with the map after the client-only effect fires.
+ * FR-042 Revised (JS API): one interactive map, all legs as coloured
+ * Polylines + markers. Privacy contract unchanged (precision home/exact
+ * excluded). Hydration-safe: phase='idle' renders null on first render.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -60,26 +54,24 @@ function geocodeShared(wp) {
 
 async function collectLegCoords(legs) {
   const results = await Promise.all(
-    legs.map(async (leg, index) => {
+    legs.map(async (leg) => {
       if (!leg?.origin?.label || !leg?.destination?.label) {
-        return { index, origin: null, dest: null };
+        return null;
       }
       const [origin, dest] = await Promise.all([
         geocodeShared(leg.origin),
         geocodeShared(leg.destination),
       ]);
-      return { index, origin, dest };
+      return { leg, origin, dest };
     })
   );
 
   return results
-    .filter(r => r.origin?.geocoded && r.dest?.geocoded)
+    .filter(r => r && r.origin?.geocoded && r.dest?.geocoded)
     .filter(r => r.origin.precision !== 'home' && r.origin.precision !== 'exact')
-    .filter(r => r.dest.precision !== 'home' && r.dest.precision !== 'exact')
-    .sort((a, b) => a.index - b.index);
+    .filter(r => r.dest.precision !== 'home' && r.dest.precision !== 'exact');
 }
 
-// Mode → stroke colour (used for polylines; no TravelMode needed with Polyline).
 const MODE_COLORS = {
   driving:   { color: '#4285F4', weight: 4 },
   walking:   { color: '#34A853', weight: 3 },
@@ -103,12 +95,12 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
   const mapDivRef = useRef(null);
 
   // phase: 'idle' | 'loading' | 'map' | 'error'
-  // 'idle' renders null on both server and client first render (hydration-safe).
+  // 'idle' renders null on server and client first render → hydration-safe.
   const [phase, setPhase] = useState('idle');
   const [legCoords, setLegCoords] = useState([]);
   const envKey = process.env.NEXT_PUBLIC_GMAPS_EMBED_KEY || '';
 
-  // Phase 1: resolve provider and geocode all leg endpoints (client-only).
+  // Phase 1: resolve provider and geocode (client-only).
   useEffect(() => {
     if (!legs || legs.length === 0) {
       setPhase('error');
@@ -144,20 +136,29 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
     };
   }, [legs, mapProvider, envKey]);
 
-  // Phase 2: initialise Google Maps JS API once map div is in the DOM.
+  // Phase 2: init Google Maps once div is in DOM.
   useEffect(() => {
     if (phase !== 'loading' || !mapDivRef.current) return;
 
     let cancelled = false;
 
     async function initMap() {
+      // Configure the loader with the API key.
       setOptions({ key: envKey, v: 'weekly' });
 
-      // Only the 'maps' library is needed — Polyline, Marker, etc. are all in core maps.
-      const maps = await importLibrary('maps');
+      // After this resolves, google.maps is available as a global.
+      await importLibrary('maps');
+
       if (cancelled || !mapDivRef.current) return;
 
-      const { Map, Polyline, LatLngBounds, Marker, InfoWindow, SymbolPath, MapTypeId } = maps;
+      const google = window.google;
+      if (!google || !google.maps) {
+        console.error('TripOverviewMap: google.maps not available after importLibrary');
+        setPhase('error');
+        return;
+      }
+
+      const { Map, Polyline, LatLngBounds, Marker, InfoWindow, SymbolPath, MapTypeId } = google.maps;
 
       const bounds = new LatLngBounds();
       const infoWindow = new InfoWindow();
@@ -169,10 +170,12 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
         fullscreenControl: true,
       });
 
-      for (const { leg, origin, dest } of legCoords) {
+      for (let i = 0; i < legCoords.length; i++) {
+        const { leg, origin, dest } = legCoords[i];
         const { color, weight } = getModeColor(leg.mode);
+        const legNum = i + 1;
 
-        // Draw a straight-line polyline between origin and destination.
+        // Polyline: straight-line route segment, colour-coded by mode.
         new Polyline({
           path: [
             { lat: origin.lat, lng: origin.lon },
@@ -184,17 +187,11 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
           map,
         });
 
-        // Find the leg's sequential index among the valid legs for labelling.
-        const legIndex = legCoords.findIndex(l =>
-          (l.origin.lat === origin.lat && l.origin.lon === origin.lon) ||
-          (l.dest.lat === dest.lat && l.dest.lon === dest.lon)
-        ) + 1;
-
         // Circle marker at origin.
         const originMarker = new Marker({
           position: { lat: origin.lat, lng: origin.lon },
           map,
-          label: { text: String(legIndex), color: '#fff', fontWeight: 'bold', fontSize: '10px' },
+          label: { text: String(legNum), color: '#fff', fontWeight: 'bold', fontSize: '10px' },
           icon: {
             path: SymbolPath.CIRCLE,
             scale: 10,
@@ -215,7 +212,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
         const destMarker = new Marker({
           position: { lat: dest.lat, lng: dest.lon },
           map,
-          label: { text: String(legIndex), color: '#fff', fontWeight: 'bold', fontSize: '10px' },
+          label: { text: String(legNum), color: '#fff', fontWeight: 'bold', fontSize: '10px' },
           icon: {
             path: SymbolPath.SQUARE,
             scale: 8,
