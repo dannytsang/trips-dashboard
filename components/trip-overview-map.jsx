@@ -210,8 +210,11 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
       const bounds = new LatLngBounds();
       const infoWindow = new InfoWindow();
 
+      const mapId = process.env.NEXT_PUBLIC_GMAPS_MAP_ID;
+
       const map = new Map(mapDivRef.current, {
         mapTypeId: MapTypeId.ROADMAP,
+        mapId, // required for AdvancedMarkerElement; free Map ID from Google Cloud Console
         disableDefaultUI: false,
         zoomControl: true,
         fullscreenControl: true,
