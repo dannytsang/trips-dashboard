@@ -16,6 +16,17 @@ assert.equal(toDisplayLabel('finalised_core_details'), 'Finalised core details')
 assert.equal(toDisplayLabel('driving_ev'), 'Driving EV');
 assert.equal(toDisplayLabel('gps_signal_lost'), 'GPS signal lost');
 assert.equal(toDisplayLabel('oidc_callback_url'), 'OIDC callback URL');
+// Transport decision label humanisation (Petersfield brief contract):
+// snake_case basis keys and mode values must collapse to sentence case, with
+// acronyms like EV preserved in capitals. (e.g. `monitoring_feasibility` →
+// `Monitoring feasibility`, `driving_ev_confirmed` → `Driving EV confirmed`.)
+assert.equal(toDisplayLabel('monitoring_feasibility'), 'Monitoring feasibility');
+assert.equal(toDisplayLabel('journey_time'), 'Journey time');
+assert.equal(toDisplayLabel('reliability'), 'Reliability');
+assert.equal(toDisplayLabel('convenience'), 'Convenience');
+assert.equal(toDisplayLabel('cost'), 'Cost');
+assert.equal(toDisplayLabel('driving_ev_confirmed'), 'Driving EV confirmed');
+assert.equal(toDisplayLabel('medium'), 'Medium');
 assert.equal(formatStatusLabel('finalised_core_details'), 'Finalised core details');
 assert.equal(formatStatusLabel('planned', { active: true }), 'Active');
 assert.equal(formatReadinessLabel('needs_info'), 'Needs info');
@@ -77,6 +88,19 @@ assert.doesNotMatch(dashboardSurface, /<span>🛣️ \{leg\.label\}<\/span>/, 'l
 assert.doesNotMatch(dashboardSurface, />\{trip\.status \|\| 'Unknown'\}</, 'raw trip status must not render directly');
 assert.doesNotMatch(dashboardSurface, />\{trip\.planning\?\.readiness/, 'raw planning readiness must not render directly');
 assert.doesNotMatch(dashboardSurface, />\{leg\.mode\}</, 'raw leg mode must not render directly');
+
+// SC-??? — transport decision labels: snake_case basis keys and mode values must
+// not leak into the rendered output. The contract is that every basis key and
+// selected mode is humanised through `toDisplayLabel`, which collapses
+// `monitoring_feasibility` → `Monitoring feasibility` and
+// `driving_ev_confirmed` → `Driving EV confirmed`. The check reads
+// trip-detail-surface.jsx (where the transport-decision callout lives), not
+// dashboard-session-surface.jsx.
+const tripDetailSurface = readFileSync('components/trip-detail-surface.jsx', 'utf8');
+assert.doesNotMatch(tripDetailSurface, /String\(decision\.selectedMode\)\.replace\(.*?\)/, 'transport decision must not render the selected mode via a raw .replace(/_/g, ...) call');
+assert.doesNotMatch(tripDetailSurface, /k\.replace\(\/\[A-Z\]\/g, ' '\$1'\)/, 'transport decision basis keys must not be humanised with the camelCase-only regex; use toDisplayLabel so snake_case also collapses');
+assert.match(tripDetailSurface, /toDisplayLabel\(decision\.selectedMode/, 'transport decision must humanise the selected mode through toDisplayLabel');
+assert.match(tripDetailSurface, /toDisplayLabel\(k, k\)/, 'transport decision must humanise basis keys through toDisplayLabel');
 
 for (const emoji of ['✈️', '🧭', '👤', '🔐', '🧳', '🚦', '📡', '✅', '🕒', '📍', '👥', '🧩', '➡️']) {
   assert.match(dashboardSurface, new RegExp(emoji), `dashboard surface must include emoji accent ${emoji}`);

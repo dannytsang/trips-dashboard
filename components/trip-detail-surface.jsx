@@ -222,19 +222,22 @@ function TransportDecisionCallout({ decision }) {
   if (!decision || !decision.selectedMode) return null;
   const basis = decision.bestOptionBasis || {};
   const basisKeys = Object.keys(basis).filter((k) => basis[k]);
+  const confidence = decision.recommendationConfidence
+    ? toDisplayLabel(decision.recommendationConfidence, '')
+    : '';
   return (
     <DetailSection title="Transport decision" emoji="🚦">
       <p className="transport-decision-mode">
-        Selected: <strong>{String(decision.selectedMode).replace(/_/g, ' ')}</strong>
-        {decision.recommendationConfidence ? (
-          <span className="transport-decision-confidence"> ({decision.recommendationConfidence})</span>
+        Selected: <strong>{toDisplayLabel(decision.selectedMode, 'Mode pending')}</strong>
+        {confidence ? (
+          <span className="transport-decision-confidence"> ({confidence})</span>
         ) : null}
       </p>
       {basisKeys.length > 0 ? (
         <ul className="transport-decision-basis">
           {basisKeys.map((k) => (
             <li key={k}>
-              <strong>{k.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase())}:</strong>{' '}
+              <strong>{toDisplayLabel(k, k)}:</strong>{' '}
               {basis[k]}
             </li>
           ))}
