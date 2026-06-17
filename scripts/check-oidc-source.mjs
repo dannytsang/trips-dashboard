@@ -90,162 +90,117 @@ assert.match(
   '.detail-topbar .theme-toggle must align within the top navigation row'
 );
 
-// Trip detail map — must be embedded inside the Legs section (not its own
-// collapsible) and must render as inline SVG (no third-party tile image
-// dependency that can rate-limit and silently fail).
-const tripMap = readFileSync('components/trip-map.jsx', 'utf8');
+// Per-leg inline map (spec 010 FR-036..037) — must be embedded
+// inside each leg row, not as a standalone Trip map section. This
+// replaces the previous FR-027 single-pin map and the FR-032 strip;
+// the standalone leg-detail-map block is removed entirely.
+const legRouteMap = readFileSync('components/leg-route-map.jsx', 'utf8');
 assert.match(
   tripDetailSurface,
-  /<DetailSection\s+title="Legs"[\s\S]*?<TripMap[\s\S]*?<\/DetailSection>/,
-  'trip detail must embed TripMap inside the Legs DetailSection'
+  /<LegRouteMap\s+leg=\{leg\}\s*\/>/,
+  'trip detail must render LegRouteMap inline inside each leg row (spec 010 FR-036)'
 );
 assert.doesNotMatch(
   tripDetailSurface,
   /<SectionCollapsible\s+title="Map"/,
-  'trip detail must not render Map as its own collapsible section; it lives inside Legs'
+  'trip detail must not render Map as its own collapsible section'
 );
-// TripMap must use an embedded OpenStreetMap iframe (raster tiles at
-// street/city resolution). Real OSM tiles look dramatically better than
-// our previous simplified Natural Earth SVG basemap — the user flagged
-// that the SVG output looked like a data issue (markers spanning India
-// to UK). The iframe is the right primitive: zero API key, native zoom,
-// proper raster tiles. Spec 010 FR-009 + FR-027.
-//
-// The literal <iframe> JSX element uses src={embed.src} — embed.src is
-// a URLSearchParams-composed value, so the iframe and the URL hostname
-// are on different lines. We assert on the element shape and the URL
-// shape separately, both within the same TripMap source file.
-assert.match(
+// Regression check (FR-036): the standalone trip map section is
+// removed. A future regression that re-adds the FR-027 single-pin
+// map or the FR-032 strip inside the Legs DetailSection would
+// re-introduce the overview map Danny asked to remove.
+assert.doesNotMatch(
   tripDetailSurface,
-  /<TripMap\s+legs=\{trip\.legs\}\s+homeBase=\{trip\.homeBase\}/,
-  'trip detail must pass homeBase to TripMap so the OSM marker avoids the home return waypoint (spec 010 FR-027 marker rule)'
+  /<TripMap\s/,
+  'trip detail must not render the standalone TripMap (FR-036 removes the FR-027 overview section)'
 );
-assert.match(
-  tripMap,
-  /<iframe/,
-  'TripMap must use an <iframe> element'
-);
-assert.match(
-  tripMap,
-  /openstreetmap\.org\/export\/embed\.html/,
-  'TripMap must build the OpenStreetMap /export/embed.html URL'
-);
-// URLSearchParams is composed from named keys, not raw "key=value"
-// strings, so the assertions below match the JS shape rather than the
-// final encoded URL.
-assert.match(
-  tripMap,
-  /URLSearchParams\(\s*\{\s*bbox/,
-  'TripMap iframe URL must include a bbox parameter (URLSearchParams key)'
-);
-assert.match(
-  tripMap,
-  /URLSearchParams\([\s\S]*?marker:/,
-  'TripMap iframe URL must include a marker parameter (URLSearchParams key)'
-);
-assert.match(
-  tripMap,
-  /layer:\s*'mapnik'/,
-  'TripMap iframe URL must pin layer=mapnik for consistent rendering'
-);
-assert.match(
-  tripMap,
-  /w\.precision\s*!==\s*'home'\s*&&\s*w\.precision\s*!==\s*'exact'/,
-  'TripMap must filter out home/exact precision waypoints from the iframe URL (spec 010 FR-027 privacy contract)'
-);
-assert.match(
-  tripMap,
-  /homeBase\?\.town|homeBase\?\?null|homeBase\s*=\s*null/,
-  'TripMap must read the home base town from props so the OSM marker avoids the home return (spec 010 FR-027 marker rule)'
-);
-assert.match(
-  tripMap,
-  /nonHomeVisible|nonHomeWaypoints|nonHome/,
-  'TripMap must select the marker as the last non-home visible waypoint (spec 010 FR-027 marker rule)'
-);
-assert.match(
-  tripMap,
-  /wp\.geocodeLabel\s*\|\|\s*wp\.label/,
-  'TripMap must prefer geocodeLabel over label for the Nominatim lookup (spec 010 FR-026)'
-);
-assert.match(
-  globalCss,
-  /\.trip-map-iframe\s*\{/,
-  '.trip-map-iframe must have visible styling'
-);
-assert.match(
-  globalCss,
-  /\.trip-map-attribution\s*\{/,
-  '.trip-map-attribution must style the OSM copyright line'
-);
-// TripMap provider switch (spec 010 — optional Google Maps Embed support).
-// We do NOT require the Google path to be present — OSM is the default
-// and the dashboard must work on every preview deploy without a key.
-// The assertions below are positive existence checks for the wiring
-// (env-aware resolver + Google URL builder) so a future regression that
-// breaks the provider switch fails the build.
-assert.match(
-  tripMap,
-  /resolveProvider\(mapProvider,\s*envProvider/,
-  'TripMap must call resolveProvider with the prop, env var, and key gate'
-);
-assert.match(
-  tripMap,
-  /NEXT_PUBLIC_GMAPS_PROVIDER/,
-  'TripMap must read NEXT_PUBLIC_GMAPS_PROVIDER for the provider switch'
-);
-assert.match(
-  tripMap,
-  /NEXT_PUBLIC_GMAPS_EMBED_KEY/,
-  'TripMap must read NEXT_PUBLIC_GMAPS_EMBED_KEY for the Google Maps Embed key'
-);
-assert.match(
-  tripMap,
-  /google\.com\/maps\/embed\/v1\/place/,
-  'TripMap Google path must build the Maps Embed v1 place URL'
-);
-// TripMapStrip (spec 010 FR-032..035) — per-leg directions strip.
-// The trip detail surface must render BOTH TripMap and TripMapStrip
-// inside the same leg-detail-map block. The strip is a sibling of
-// TripMap, not a replacement. The TripMapStrip element must use the
-// camelCase tag (compiled from trip-map-strip.jsx) and must pass
-// `legs` and `homeBase` so the strip can apply the same privacy
-// contract.
-assert.match(
+assert.doesNotMatch(
   tripDetailSurface,
-  /<TripMapStrip\s+legs=\{trip\.legs\}\s+homeBase=\{trip\.homeBase\}\s*\/>/,
-  'trip detail must embed TripMapStrip with legs and homeBase inside the leg-detail-map block (spec 010 FR-032)'
+  /<TripMapStrip\s/,
+  'trip detail must not render the standalone TripMapStrip (FR-036 removes the FR-032 strip)'
 );
-assert.match(
+assert.doesNotMatch(
   tripDetailSurface,
   /leg-detail-map-strip/,
-  'trip detail must wrap TripMapStrip in a .leg-detail-map-strip container so the strip has its own heading + border'
+  'trip detail must not reference the .leg-detail-map-strip container (removed by FR-036)'
 );
+// LegRouteMap must build both provider iframe URLs (FR-036). We
+// assert on the source shape, not the final URL.
 assert.match(
-  tripDetailSurface,
-  /leg-detail-map-strip-heading/,
-  'trip detail must render a heading for the directions strip (spec 010 FR-035)'
-);
-const tripMapStrip = readFileSync('components/trip-map-strip.jsx', 'utf8');
-assert.match(
-  tripMapStrip,
+  legRouteMap,
   /google\.com\/maps\/embed\/v1\/directions/,
-  'TripMapStrip must build the Maps Embed v1 directions URL (not place mode)'
+  'LegRouteMap must build the Google Maps Embed v1 directions URL (FR-036, provider=google)'
 );
 assert.match(
-  tripMapStrip,
-  /NEXT_PUBLIC_GMAPS_EMBED_KEY/,
-  'TripMapStrip must read NEXT_PUBLIC_GMAPS_EMBED_KEY for the directions iframe'
+  legRouteMap,
+  /openstreetmap\.org\/export\/embed\.html/,
+  'LegRouteMap must build the OSM embed URL (FR-036, provider=osm)'
 );
 assert.match(
-  tripMapStrip,
+  legRouteMap,
   /NEXT_PUBLIC_GMAPS_PROVIDER/,
-  'TripMapStrip must read NEXT_PUBLIC_GMAPS_PROVIDER for the provider gate'
+  'LegRouteMap must read NEXT_PUBLIC_GMAPS_PROVIDER for the provider gate'
+);
+assert.match(
+  legRouteMap,
+  /NEXT_PUBLIC_GMAPS_EMBED_KEY/,
+  'LegRouteMap must read NEXT_PUBLIC_GMAPS_EMBED_KEY for the Google directions iframe'
+);
+assert.match(
+  legRouteMap,
+  /<iframe/,
+  'LegRouteMap must render an <iframe> element'
+);
+assert.match(
+  legRouteMap,
+  /loading="lazy"/,
+  'LegRouteMap iframe must use loading="lazy" (FR-034 CLS guard)'
+);
+assert.match(
+  legRouteMap,
+  /aspect-ratio:\s*4\s*\/\s*3|aspectRatio:\s*['"]4\s*\/\s*3['"]/,
+  'LegRouteMap must reserve iframe space with aspect-ratio 4/3 (FR-034 CLS guard)'
+);
+// Privacy contract (FR-027 reuse). The component must filter out
+// home/exact precision endpoints.
+assert.match(
+  legRouteMap,
+  /precision\s*===\s*['"]home['"]|precision\s*===\s*['"]exact['"]/,
+  'LegRouteMap must filter out home/exact precision endpoints (FR-027 privacy contract)'
+);
+// GeocodeLabel override (FR-026 reuse).
+assert.match(
+  legRouteMap,
+  /geocodeLabel\s*\|\|\s*wp\.label|geocodeInput\s*=\s*wp\.geocodeLabel\s*\|\|\s*wp\.label/,
+  'LegRouteMap must prefer geocodeLabel over label for the Nominatim lookup (spec 010 FR-026)'
+);
+// Geocode cache: a module-level Map dedupes waypoint lookups across
+// the multiple LegRouteMap instances on the same page.
+assert.match(
+  legRouteMap,
+  /geocodeCache\s*=\s*new Map\(\)/,
+  'LegRouteMap must share a module-level geocode cache across instances (FR-036 dedup)'
 );
 assert.match(
   globalCss,
-  /\.leg-detail-map\s*\{/,
-  '.leg-detail-map must style the embedded map region in the Legs section'
+  /\.leg-route-map\s*\{/,
+  '.leg-route-map must have visible styling'
 );
+assert.match(
+  globalCss,
+  /\.leg-route-map-iframe\s*\{/,
+  '.leg-route-map-iframe must reserve space and style the inline iframe'
+);
+assert.match(
+  globalCss,
+  /\.leg-route-map-attribution\s*\{/,
+  '.leg-route-map-attribution must style the provider copyright line'
+);
+// FR-032 supersession: the FR-027 standalone map and the FR-032
+// strip classes are no longer rendered on the trip detail page. The
+// CSS rules are kept (the source files are kept for backwards
+// compatibility) but the trip detail JSX does not reference them.
+// We assert that the trip detail source does not reference the
+// removed class names. The CSS rules themselves can stay.
 
 console.log('OIDC source checks passed.');

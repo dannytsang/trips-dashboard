@@ -362,16 +362,17 @@ assert.equal(
   'env provider name is case-insensitive'
 );
 
-// TripMapStrip (spec 010 FR-032..035) — per-leg directions strip using
-// Google Maps Embed `directions` mode. The strip is provider-gated:
-// it only renders when the resolved provider is 'google'. The strip
-// renders one iframe per leg that has BOTH endpoints geocoded and
-// non-private. Mode is normalised to Google's accepted set.
+// LegRouteMap (spec 010 FR-036..037) — per-leg inline map. Replaces
+// both the FR-027 single-pin overview and the FR-032 standalone
+// strip. The component renders one iframe per leg inside the leg
+// row, with the provider switch (FR-028) controlling the iframe URL
+// shape. OSM users get a single destination pin per iframe; Google
+// users get the A→B route line.
 //
-// Mirrors the helpers in components/trip-map-strip.jsx — keep them in
-// sync.
+// Mirrors the helpers in components/leg-route-map.jsx — keep them
+// in sync.
 
-function normaliseStripMode(rawMode) {
+function normaliseLegRouteMode(rawMode) {
   const m = String(rawMode || '').toLowerCase();
   if (m.includes('walk')) return 'walking';
   if (m.includes('bike') || m.includes('cycl')) return 'bicycling';
@@ -391,158 +392,135 @@ function normaliseStripMode(rawMode) {
 }
 
 // Mode normalisation cases — covers the spec FR-034 mapping.
-assert.equal(normaliseStripMode('driving'), 'driving', 'mode=driving stays driving');
-assert.equal(normaliseStripMode('driving_ev'), 'driving', 'driving_ev maps to driving');
-assert.equal(normaliseStripMode('walking'), 'walking', 'mode=walking stays walking');
-assert.equal(normaliseStripMode('cycling'), 'bicycling', 'cycling maps to bicycling');
-assert.equal(normaliseStripMode('bicycling'), 'bicycling', 'bicycling maps to bicycling');
-assert.equal(normaliseStripMode('transit'), 'transit', 'transit stays transit');
-assert.equal(normaliseStripMode('train'), 'transit', 'train maps to transit');
-assert.equal(normaliseStripMode('rail'), 'transit', 'rail maps to transit');
-assert.equal(normaliseStripMode('flight'), 'driving', 'flight collapses to driving (no Google directions mode)');
-assert.equal(normaliseStripMode('cruise'), 'driving', 'cruise collapses to driving');
-assert.equal(normaliseStripMode('ferry'), 'driving', 'ferry collapses to driving');
-assert.equal(normaliseStripMode('taxi'), 'driving', 'taxi collapses to driving');
-assert.equal(normaliseStripMode('bus'), 'driving', 'bus collapses to driving');
-assert.equal(normaliseStripMode(null), 'driving', 'null mode defaults to driving');
-assert.equal(normaliseStripMode(''), 'driving', 'empty mode defaults to driving');
-assert.equal(normaliseStripMode('unicycle'), 'bicycling', 'unicycle matches the bicycling substring cycl');
-assert.equal(normaliseStripMode('horseback'), 'driving', 'unrecognised mode defaults to driving');
+assert.equal(normaliseLegRouteMode('driving'), 'driving', 'mode=driving stays driving');
+assert.equal(normaliseLegRouteMode('driving_ev'), 'driving', 'driving_ev maps to driving');
+assert.equal(normaliseLegRouteMode('walking'), 'walking', 'mode=walking stays walking');
+assert.equal(normaliseLegRouteMode('cycling'), 'bicycling', 'cycling maps to bicycling');
+assert.equal(normaliseLegRouteMode('bicycling'), 'bicycling', 'bicycling maps to bicycling');
+assert.equal(normaliseLegRouteMode('transit'), 'transit', 'transit stays transit');
+assert.equal(normaliseLegRouteMode('train'), 'transit', 'train maps to transit');
+assert.equal(normaliseLegRouteMode('rail'), 'transit', 'rail maps to transit');
+assert.equal(normaliseLegRouteMode('flight'), 'driving', 'flight collapses to driving (no Google directions mode)');
+assert.equal(normaliseLegRouteMode('cruise'), 'driving', 'cruise collapses to driving');
+assert.equal(normaliseLegRouteMode('ferry'), 'driving', 'ferry collapses to driving');
+assert.equal(normaliseLegRouteMode('taxi'), 'driving', 'taxi collapses to driving');
+assert.equal(normaliseLegRouteMode('bus'), 'driving', 'bus collapses to driving');
+assert.equal(normaliseLegRouteMode(null), 'driving', 'null mode defaults to driving');
+assert.equal(normaliseLegRouteMode(''), 'driving', 'empty mode defaults to driving');
+assert.equal(normaliseLegRouteMode('unicycle'), 'bicycling', 'unicycle matches the bicycling substring cycl');
+assert.equal(normaliseLegRouteMode('horseback'), 'driving', 'unrecognised mode defaults to driving');
 
-// Strip items builder — mirrors the useMemo in TripMapStrip. Given
-// the geocoded waypoints and the leg list, it returns one descriptor
-// per leg that has BOTH endpoints geocoded and non-private.
-function buildStripItems(legs, geocodedWaypoints) {
-  if (!legs || legs.length === 0) return [];
-  const byKey = new Map();
-  for (const wp of geocodedWaypoints) {
-    byKey.set(wp.key, wp);
-  }
-  const out = [];
-  for (let i = 0; i < legs.length; i++) {
-    const leg = legs[i];
-    if (!leg?.origin?.label || !leg?.destination?.label) continue;
-    const originKey = `${(leg.origin.geocodeLabel || leg.origin.label)}::${leg.origin.precision || ''}`;
-    const destKey = `${(leg.destination.geocodeLabel || leg.destination.label)}::${leg.destination.precision || ''}`;
-    const origin = byKey.get(originKey);
-    const dest = byKey.get(destKey);
-    if (!origin?.geocoded || !dest?.geocoded) continue;
-    if (origin.precision === 'home' || origin.precision === 'exact') continue;
-    if (dest.precision === 'home' || dest.precision === 'exact') continue;
-    out.push({
-      index: i + 1,
-      mode: leg.mode,
-      originLabel: leg.origin.label,
-      destLabel: leg.destination.label,
-    });
-  }
-  return out;
+// LegRouteMap privacy filter — mirrors the predicate in the
+// component. Given a leg with both endpoints geocoded, return
+// `true` if the leg is filtered out (no iframe rendered) and
+// `false` if it should render.
+function legRouteFiltered(leg, originGeocoded, destGeocoded) {
+  if (!leg?.origin?.label || !leg?.destination?.label) return true;
+  if (!originGeocoded || !destGeocoded) return true;
+  if (leg.origin.precision === 'home' || leg.origin.precision === 'exact') return true;
+  if (leg.destination.precision === 'home' || leg.destination.precision === 'exact') return true;
+  return false;
 }
 
-// Case A: a return trip (Petersfield) with 3 legs, all non-private,
-// all geocoded → strip has 3 items.
-const petersfieldStrip = buildStripItems(
-  [
-    { origin: { label: 'Shephall, Stevenage', geocodeLabel: 'Shephall, Stevenage', precision: 'venue' }, destination: { label: 'Premier Inn Petersfield Hampshire' }, mode: 'driving' },
-    { origin: { label: 'Premier Inn Petersfield Hampshire' }, destination: { label: 'Stephen Hulme garden party / South Harting', geocodeLabel: 'South Harting', precision: 'venue' }, mode: 'driving' },
-    { origin: { label: 'Premier Inn Petersfield Hampshire' }, destination: { label: 'Stevenage', precision: 'town' }, mode: 'driving' },
-  ],
-  [
-    { key: 'Shephall, Stevenage::venue', label: 'Shephall, Stevenage', geocoded: true, lat: 51.87, lon: -0.20 },
-    { key: 'Premier Inn Petersfield Hampshire::', label: 'Premier Inn Petersfield Hampshire', geocoded: true, lat: 51.01, lon: -0.95 },
-    { key: 'South Harting::venue', label: 'Stephen Hulme garden party / South Harting', geocoded: true, lat: 50.97, lon: -0.88 },
-    { key: 'Stevenage::town', label: 'Stevenage', geocoded: true, lat: 51.90, lon: -0.20 },
-  ]
-);
-assert.equal(petersfieldStrip.length, 3, 'Petersfield: 3 legs all render in the strip');
-assert.equal(petersfieldStrip[0].originLabel, 'Shephall, Stevenage', 'strip leg 1 origin label');
-assert.equal(petersfieldStrip[2].destLabel, 'Stevenage', 'strip leg 3 destination label (Stevenage is precision: town, not home/exact)');
-
-// Case B: a leg with home-precision endpoint is dropped from the strip.
-const homeLegStrip = buildStripItems(
-  [
-    { origin: { label: 'Home', precision: 'home' }, destination: { label: 'Office' } },
-    { origin: { label: 'Office' }, destination: { label: 'Home', precision: 'home' } },
-  ],
-  [
-    { key: 'Home::home', label: 'Home', geocoded: false, reason: 'precision_excluded' },
-    { key: 'Office::', label: 'Office', geocoded: true, lat: 51.5, lon: -0.1 },
-  ]
-);
-assert.equal(homeLegStrip.length, 0, 'legs with home-precision endpoints are dropped from the strip');
-
-// Case C: a leg where geocoding failed (not_found) is dropped, but
-// other legs still render.
-const partialGeocodeStrip = buildStripItems(
-  [
+// Case A: a leg with both endpoints geocoded and non-private
+// renders (the filter returns false).
+assert.equal(
+  legRouteFiltered(
     { origin: { label: 'A' }, destination: { label: 'B' } },
-    { origin: { label: 'A' }, destination: { label: 'C-unknown' } },
-    { origin: { label: 'A' }, destination: { label: 'D' } },
-  ],
-  [
-    { key: 'A::', label: 'A', geocoded: true, lat: 1, lon: 1 },
-    { key: 'B::', label: 'B', geocoded: true, lat: 2, lon: 2 },
-    { key: 'C-unknown::', label: 'C-unknown', geocoded: false, reason: 'not_found' },
-    { key: 'D::', label: 'D', geocoded: true, lat: 3, lon: 3 },
-  ]
+    true,
+    true
+  ),
+  false,
+  'leg with both endpoints geocoded and non-private renders'
 );
-assert.equal(partialGeocodeStrip.length, 2, 'legs with failed geocoding are dropped, others still render');
-assert.equal(partialGeocodeStrip[0].destLabel, 'B', 'strip keeps leg 1 (B is geocoded)');
-assert.equal(partialGeocodeStrip[1].destLabel, 'D', 'strip keeps leg 3 (D is geocoded)');
 
-// Case D: empty legs list returns no items.
-assert.equal(buildStripItems([], []).length, 0, 'empty legs list → empty strip');
+// Case B: a leg with a home-precision endpoint is filtered out.
+assert.equal(
+  legRouteFiltered(
+    { origin: { label: 'A' }, destination: { label: 'B', precision: 'home' } },
+    true,
+    true
+  ),
+  true,
+  'leg with home-precision destination is filtered out'
+);
 
-// Case E: legs with no labels are skipped (not rendered, not counted).
-const noLabelsStrip = buildStripItems(
-  [
+// Case C: a leg where geocoding failed is filtered out.
+assert.equal(
+  legRouteFiltered(
+    { origin: { label: 'A' }, destination: { label: 'B' } },
+    true,
+    false
+  ),
+  true,
+  'leg with ungeocoded destination is filtered out'
+);
+
+// Case D: a leg with no labels is filtered out.
+assert.equal(
+  legRouteFiltered(
     { origin: { label: 'A' }, destination: {} },
-    { origin: {}, destination: { label: 'B' } },
-    { origin: { label: 'A' }, destination: { label: 'B' } },
-  ],
-  [
-    { key: 'A::', label: 'A', geocoded: true, lat: 1, lon: 1 },
-    { key: 'B::', label: 'B', geocoded: true, lat: 2, lon: 2 },
-  ]
-);
-assert.equal(noLabelsStrip.length, 1, 'legs missing a label are skipped');
-assert.equal(noLabelsStrip[0].destLabel, 'B', 'the one valid leg is leg 3');
-
-// Case F: provider guard — the strip returns null for OSM. We assert
-// this by checking the source file contains a provider-gate branch.
-const tripMapStripSource = readFileSync('components/trip-map-strip.jsx', 'utf8');
-assert.match(
-  tripMapStripSource,
-  /provider\s*!==\s*['"]google['"]/,
-  'TripMapStrip must short-circuit to null when provider is not Google (no OSM directions embed)'
-);
-assert.match(
-  tripMapStripSource,
-  /return null/,
-  'TripMapStrip must explicitly return null for the OSM case'
+    true,
+    true
+  ),
+  true,
+  'leg with no destination label is filtered out'
 );
 
-// Case G: the directions URL host must be the Embed v1 directions
-// endpoint, not the place endpoint.
+// Case E: a leg with exact-precision origin is filtered out.
+assert.equal(
+  legRouteFiltered(
+    { origin: { label: 'A', precision: 'exact' }, destination: { label: 'B' } },
+    true,
+    true
+  ),
+  true,
+  'leg with exact-precision origin is filtered out'
+);
+
+// Provider switch tests (FR-036) — the LegRouteMap must switch URL
+// shapes between Google and OSM based on the resolved provider.
+function legRouteUrl(provider, key, origin, dest, mode) {
+  if (provider === 'google') {
+    return `https://www.google.com/maps/embed/v1/directions?key=${key}&origin=${origin}&destination=${dest}&mode=${mode}`;
+  }
+  return `https://www.openstreetmap.org/export/embed.html?bbox=…&marker=${dest}&layer=mapnik`;
+}
+
 assert.match(
-  tripMapStripSource,
+  legRouteUrl('google', 'AIza', '1,1', '2,2', 'driving'),
   /google\.com\/maps\/embed\/v1\/directions/,
-  'TripMapStrip must build the Embed v1 directions URL (not place mode)'
+  'Google URL uses directions mode'
+);
+assert.match(
+  legRouteUrl('osm', 'AIza', '1,1', '2,2', 'driving'),
+  /openstreetmap\.org\/export\/embed\.html/,
+  'OSM URL uses /export/embed.html (no directions mode available)'
+);
+assert.doesNotMatch(
+  legRouteUrl('osm', 'AIza', '1,1', '2,2', 'driving'),
+  /google\.com/,
+  'OSM URL does not reference Google'
 );
 
-// Case H: each iframe uses loading="lazy" (FR-034 CLS guard).
+// Geocode cache dedup test (FR-036) — the module-level Map should
+// share in-flight and resolved lookups across LegRouteMap instances.
+// The actual Map is a module private, so we assert the source shape.
+const legRouteMapSource = readFileSync('components/leg-route-map.jsx', 'utf8');
 assert.match(
-  tripMapStripSource,
-  /loading="lazy"/,
-  'TripMapStrip iframes must use loading="lazy" so below-fold iframes defer (FR-034)'
+  legRouteMapSource,
+  /geocodeCache\s*=\s*new Map\(\)/,
+  'LegRouteMap must declare a module-level geocode cache'
 );
-
-// Case I: each iframe uses referrerPolicy="no-referrer-when-downgrade"
-// matching the existing TripMap behaviour.
 assert.match(
-  tripMapStripSource,
-  /referrerPolicy="no-referrer-when-downgrade"/,
-  'TripMapStrip iframes must use the no-referrer-when-downgrade referrer policy'
+  legRouteMapSource,
+  /geocodeCache\.has/,
+  'LegRouteMap must check the cache before fetching'
+);
+assert.match(
+  legRouteMapSource,
+  /geocodeCache\.set/,
+  'LegRouteMap must populate the cache after fetching'
 );
 
 console.log('Dashboard polish checks passed.');

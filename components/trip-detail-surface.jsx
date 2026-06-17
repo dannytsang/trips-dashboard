@@ -8,8 +8,7 @@ import {
   formatStatusLabel,
   toDisplayLabel,
 } from '@/lib/display-labels.mjs';
-import { TripMap } from '@/components/trip-map';
-import { TripMapStrip } from '@/components/trip-map-strip';
+import { LegRouteMap } from '@/components/leg-route-map';
 
 const THEME_STORAGE_KEY = 'tsang-travel-theme';
 
@@ -132,6 +131,7 @@ function LegRow({ leg, index }) {
         {cju ? <ContactJourneyUpdateBlock cju={cju} /> : null}
         {notif ? <NotificationBlock notif={notif} /> : null}
         {review ? <PlanningReviewBlock review={review} /> : null}
+        <LegRouteMap leg={leg} />
       </div>
       {leg.flight ? (
         <div className="leg-detail-flight">
@@ -634,7 +634,6 @@ export function TripDetailSurface({
   const hasPlanningSection = hasAssumptions || hasMissing || hasQuestions;
   const hasNotesSection = hasNotes;
   const hasMonitoringSection = trip.monitoring?.enabled || trip.monitoring?.active || hasMonitoringChecks;
-  const hasMap = hasLegs && trip.legs.filter(l => l.origin || l.destination).length >= 2;
   const hasTransportDecision = trip.planning?.transportDecision && trip.planning.transportDecision.selectedMode;
   const hasNextAction = typeof trip.planning?.nextAction === 'string' && trip.planning.nextAction.trim().length > 0;
   const hasAccommodation = Boolean(trip.accommodation);
@@ -695,16 +694,6 @@ export function TripDetailSurface({
                 <LegRow key={`${trip.id}-leg-${i}`} leg={leg} index={i} />
               ))}
             </ol>
-            {hasMap ? (
-              <div className="leg-detail-map" aria-label="Trip map">
-                <h3 className="leg-detail-map-heading">Trip map</h3>
-                <TripMap legs={trip.legs} homeBase={trip.homeBase} />
-                <div className="leg-detail-map-strip" aria-label="Per-leg route directions">
-                  <h3 className="leg-detail-map-strip-heading">🧭 Per-leg route</h3>
-                  <TripMapStrip legs={trip.legs} homeBase={trip.homeBase} />
-                </div>
-              </div>
-            ) : null}
           </DetailSection>
         ) : null}
 
