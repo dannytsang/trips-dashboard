@@ -1,26 +1,39 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { buildViewport, projectBasemap, projectPlaces, projectPoint } from '@/lib/basemap-projection.mjs';
 
 const VIEWBOX_WIDTH = 600;
 const VIEWBOX_HEIGHT = 360;
-const PADDING = 36;
+
+const BASEMAP_URL = '/vectors/world-slim.json';
+const PLACES_URL = '/vectors/places-slim.json';
 
 /**
- * TripMap — renders a privacy-safe inline SVG of the trip's waypoints.
+ * TripMap — renders a privacy-safe inline SVG of the trip's waypoints
+ * over a simplified world basemap (country outlines + major populated
+ * places). The basemap data is loaded once per page from the dashboard's
+ * own /vectors/*.json static assets (Natural Earth, public domain).
  *
  * Behaviour:
  *   - Geocodes each unique leg origin/destination via /api/geocode.
  *   - Never geocodes labels with precision 'home' or 'exact'.
  *   - Falls back to a waypoint list when fewer than 2 waypoints resolve.
  *   - Falls back to a route list when no geocoding succeeds.
- *   - All rendering happens in-browser as inline SVG (no external image),
- *     so the map never depends on a third-party tile service being online.
+ *   - All rendering happens in-browser as inline SVG (no external image
+ *     or third-party tile service), so the map never depends on a
+ *     remote provider being online.
+ *   - The basemap is loaded lazily after geocoding resolves, so the
+ *     waypoint list is the first thing the user sees.
  */
 export function TripMap({ legs = [] }) {
   const [waypoints, setWaypoints] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [basemap, setBasemap] = useState(null);
+  const [places, setPlaces] = useState(null);
 
+  // Geocode the waypoints. This effect runs first; the basemap is loaded
+  // only after we know there are enough waypoints to render.
   useEffect(() => {
     if (!legs || legs.length === 0) {
       setLoading(false);
@@ -76,6 +89,28 @@ export function TripMap({ legs = [] }) {
     };
   }, [legs]);
 
+  const geocoded = waypoints.filter((w) => w.geocoded);
+
+  // Load the basemap + places JSON once we know we have enough waypoints
+  // to render. Both files are static and served from the dashboard's own
+  // public/vectors/ directory (Natural Earth, public domain).
+  useEffect(() => {
+    if (geocoded.length < 2) return;
+    if (basemap && places) return;
+    let cancelled = false;
+    Promise.all([
+      basemap ? Promise.resolve(null) : fetch(BASEMAP_URL).then((r) => r.json()),
+      places ? Promise.resolve(null) : fetch(PLACES_URL).then((r) => r.json()),
+    ]).then(([world, placeList]) => {
+      if (cancelled) return;
+      if (world && !basemap) setBasemap(world);
+      if (placeList && !places) setPlaces(placeList);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [geocoded.length, basemap, places]);
+
   if (loading) {
     return (
       <div className="trip-map-loading">
@@ -83,8 +118,6 @@ export function TripMap({ legs = [] }) {
       </div>
     );
   }
-
-  const geocoded = waypoints.filter((w) => w.geocoded);
 
   if (geocoded.length < 2) {
     return (
@@ -104,11 +137,32 @@ export function TripMap({ legs = [] }) {
     );
   }
 
-  // Build a private privacy-safe view: coarse for 'home' / 'exact' waypoints
-  // and exact for the rest. The waypoint matching below keeps the route line
-  // honest by picking the coarsest precision encountered for any single label.
-  const points = projectWaypoints(geocoded);
+  // Compute the viewport from the geocoded waypoints
+  const viewport = buildViewport(geocoded, {
+    width: VIEWBOX_WIDTH,
+    height: VIEWBOX_HEIGHT,
+    padding: 0.18,
+    minSpan: 0.5,
+  });
 
+  // Project the basemap and city labels into the viewport. Both are
+  // derived data — pure functions, safe to recompute on every render.
+  const basemapPaths = basemap ? projectBasemap(basemap, viewport) : [];
+  const cityLabels = places ? projectPlaces(places, viewport, 200000) : [];
+
+  // Project each waypoint to SVG coords
+  const points = geocoded.map((w, i) => {
+    const { x, y } = projectPoint(w, viewport);
+    return {
+      ...w,
+      x,
+      y,
+      labelOffsetY: i % 2 === 0 ? -22 : 28,
+    };
+  });
+
+  // Country labels: pick the most populous country inside the viewport
+  // (skipped for now — would need the country feature list, not just paths)
   return (
     <div className="trip-map-container" role="img" aria-label={`Map of ${geocoded.length} waypoints`}>
       <svg
@@ -132,6 +186,28 @@ export function TripMap({ legs = [] }) {
           rx="10"
           ry="10"
         />
+        {/* Basemap: simplified country outlines, drawn as one path per
+            polygon (each clipped to the viewport). The basemap CSS class
+            controls fill/stroke so the colour adapts to the theme. */}
+        <g className="trip-map-basemap">
+          {basemapPaths.map((d, i) => (
+            <path key={i} d={d} className="trip-map-country" />
+          ))}
+        </g>
+        {/* City labels: small dots + name for major populated places
+            inside the viewport. Helps orient the user when the route
+            is over a country they may not recognise by outline. */}
+        <g className="trip-map-places">
+          {cityLabels.map((c) => (
+            <g key={c.name} className="trip-map-place" transform={`translate(${c.x},${c.y})`}>
+              <circle className="trip-map-place-dot" r="1.5" />
+              <text className="trip-map-place-label" x="4" y="3">
+                {c.name}
+              </text>
+            </g>
+          ))}
+        </g>
+        {/* Route line connecting waypoints in sequence */}
         <polyline
           className="trip-map-route-line"
           points={points.map((p) => `${p.x},${p.y}`).join(' ')}
@@ -141,6 +217,7 @@ export function TripMap({ legs = [] }) {
           strokeLinecap="round"
           strokeLinejoin="round"
         />
+        {/* Waypoint markers on top */}
         {points.map((p, i) => (
           <g key={`${p.label}-${i}`} className="trip-map-waypoint" transform={`translate(${p.x},${p.y})`}>
             <circle className="trip-map-marker-ring" r="14" />
@@ -169,36 +246,6 @@ export function TripMap({ legs = [] }) {
       </ul>
     </div>
   );
-}
-
-function projectWaypoints(geocoded) {
-  const lons = geocoded.map((w) => w.lon);
-  const lats = geocoded.map((w) => w.lat);
-  const minLon = Math.min(...lons);
-  const maxLon = Math.max(...lons);
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const lonSpan = Math.max(maxLon - minLon, 1e-6);
-  const latSpan = Math.max(maxLat - minLat, 1e-6);
-  const usableWidth = VIEWBOX_WIDTH - PADDING * 2;
-  const usableHeight = VIEWBOX_HEIGHT - PADDING * 2;
-  const scaleX = usableWidth / lonSpan;
-  const scaleY = usableHeight / latSpan;
-  const scale = Math.min(scaleX, scaleY);
-  const offsetX = PADDING + (usableWidth - lonSpan * scale) / 2;
-  const offsetY = PADDING + (usableHeight - latSpan * scale) / 2;
-
-  return geocoded.map((w, i) => {
-    const x = offsetX + (w.lon - minLon) * scale;
-    // Latitude grows northward, but SVG y grows downward — flip.
-    const y = offsetY + (maxLat - w.lat) * scale;
-    return {
-      ...w,
-      x,
-      y,
-      labelOffsetY: i % 2 === 0 ? -22 : 28,
-    };
-  });
 }
 
 function truncate(value, max) {

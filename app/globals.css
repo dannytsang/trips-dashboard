@@ -979,6 +979,29 @@ p {
   stroke: var(--border-color);
   stroke-width: 1;
 }
+.trip-map-country {
+  /* Country outlines: very low contrast so the route line and markers
+     stay the visual focus. The fill is intentionally a translucent mix
+     of the surface background, so the basemap blends into the card
+     in both light and dark themes. */
+  fill: color-mix(in srgb, var(--bg-elevated), transparent 35%);
+  stroke: color-mix(in srgb, var(--text-primary), transparent 70%);
+  stroke-width: 0.6;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.trip-map-place-dot {
+  fill: color-mix(in srgb, var(--text-primary), transparent 55%);
+}
+.trip-map-place-label {
+  fill: color-mix(in srgb, var(--text-secondary), transparent 30%);
+  font-size: 8px;
+  font-weight: 500;
+  paint-order: stroke;
+  stroke: color-mix(in srgb, var(--bg-elevated), transparent 30%);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
 .trip-map-route-line {
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
 }

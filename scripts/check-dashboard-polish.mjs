@@ -47,6 +47,104 @@ assert.equal(formatLegModeEmoji('overnight_stay'), '🛏️');
 assert.equal(formatLegModeEmoji('mystery_mode'), '🛣️');
 assert.equal(formatNextActionLabel('confirm_train_eta'), 'Confirm train ETA');
 
+// Basemap projection — pure functions used by TripMap to draw the
+// country-outline background and populated-places labels.
+import {
+  buildViewport,
+  projectPoint,
+  projectBasemap,
+  projectPlaces,
+} from '../lib/basemap-projection.mjs';
+
+// buildViewport pads and re-balances the bbox to the SVG aspect ratio
+const vp = buildViewport(
+  [
+    { lon: -1.5, lat: 52.5 }, // Birmingham-ish
+    { lon: -0.13, lat: 51.5 }, // London-ish
+  ],
+  { width: 600, height: 360, padding: 0.18 }
+);
+assert.ok(vp.minLon < -1.5, 'viewport should pad left of leftmost point');
+assert.ok(vp.maxLon > -0.13, 'viewport should pad right of rightmost point');
+assert.ok(vp.maxLat > 52.5, 'viewport should pad above topmost point');
+assert.ok(vp.minLat < 51.5, 'viewport should pad below bottommost point');
+// Aspect ratio: width/height should be preserved when we re-balance
+const vpAspect = (vp.maxLon - vp.minLon) / (vp.maxLat - vp.minLat);
+const targetAspect = 600 / 360;
+assert.ok(Math.abs(vpAspect - targetAspect) < 0.05, `viewport aspect should match viewbox aspect (got ${vpAspect.toFixed(3)} expected ${targetAspect.toFixed(3)})`);
+
+// buildViewport clamps to global bounds
+const vpClamped = buildViewport(
+  [{ lon: 0, lat: 89.9 }, { lon: 0, lat: 89.95 }],
+  { width: 600, height: 360, padding: 0.18 }
+);
+assert.ok(vpClamped.maxLat <= 85, 'viewport maxLat clamps at 85 (polar flatten limit)');
+
+// buildViewport guarantees a minimum span for very close-together points
+const vpMinSpan = buildViewport(
+  [{ lon: 0.0, lat: 51.0 }, { lon: 0.01, lat: 51.01 }],
+  { width: 600, height: 360, padding: 0.18 }
+);
+assert.ok(vpMinSpan.maxLon - vpMinSpan.minLon >= 0.5, 'viewport enforces a minimum lon span of 0.5°');
+
+// projectPoint maps lon/lat to viewbox coords (top-left origin, y-down)
+const topLeft = projectPoint({ lon: vp.minLon, lat: vp.maxLat }, vp);
+assert.ok(Math.abs(topLeft.x) < 0.5, 'minLon projects to x≈0');
+assert.ok(Math.abs(topLeft.y) < 0.5, 'maxLat projects to y≈0 (top)');
+const bottomRight = projectPoint({ lon: vp.maxLon, lat: vp.minLat }, vp);
+assert.ok(Math.abs(bottomRight.x - 600) < 0.5, 'maxLon projects to x≈600');
+assert.ok(Math.abs(bottomRight.y - 360) < 0.5, 'minLat projects to y≈360 (bottom)');
+
+// projectBasemap: tiny world dataset (one square country) clips correctly
+const tinyWorld = {
+  type: 'FeatureCollection',
+  features: [
+    {
+      type: 'Feature',
+      properties: { name: 'Square' },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]]],
+      },
+    },
+  ],
+};
+// Viewport exactly on the square
+const vpExact = {
+  minLon: 0, maxLon: 10, minLat: 0, maxLat: 10, w: 100, h: 100,
+};
+const paths = projectBasemap(tinyWorld, vpExact);
+assert.equal(paths.length, 1, 'one country polygon, one path');
+assert.ok(paths[0].startsWith('M'), 'path data starts with M');
+assert.ok(paths[0].endsWith('Z'), 'path data closes with Z');
+// Viewport completely outside the square → no paths
+const vpOutside = {
+  minLon: 100, maxLon: 110, minLat: 0, maxLat: 10, w: 100, h: 100,
+};
+const pathsOutside = projectBasemap(tinyWorld, vpOutside);
+assert.equal(pathsOutside.length, 0, 'country entirely outside viewport is omitted');
+// Viewport partially covering the square → still emits a path
+const vpPartial = {
+  minLon: 5, maxLon: 15, minLat: 0, maxLat: 10, w: 100, h: 100,
+};
+const pathsPartial = projectBasemap(tinyWorld, vpPartial);
+assert.equal(pathsPartial.length, 1, 'country partially inside viewport is clipped to a path');
+
+// projectPlaces: filters by viewport and by minPop, projects to (x, y)
+const places = {
+  type: 'FeatureCollection',
+  features: [
+    { type: 'Feature', properties: { name: 'Big', pop: 1000000 }, geometry: { type: 'Point', coordinates: [0, 0] } },
+    { type: 'Feature', properties: { name: 'Small', pop: 50000 }, geometry: { type: 'Point', coordinates: [0, 0] } },
+    { type: 'Feature', properties: { name: 'Far', pop: 1000000 }, geometry: { type: 'Point', coordinates: [50, 50] } },
+  ],
+};
+const projected = projectPlaces(places, vpExact, 200000);
+assert.equal(projected.length, 1, 'only one place passes viewport + minPop filter');
+assert.equal(projected[0].name, 'Big', 'largest population wins');
+assert.equal(projected[0].x, 0, 'origin projects to x=0 (left edge)');
+assert.equal(projected[0].y, 100, 'origin projects to y=100 (bottom edge, since lat=0 is the south edge of the viewport)');
+
 assert.match(dashboardSurface, /THEME_STORAGE_KEY\s*=\s*'tsang-travel-theme'/, 'theme preference must use a stable localStorage key');
 assert.match(dashboardSurface, /window\.localStorage\.getItem\(THEME_STORAGE_KEY\)/, 'theme toggle must initialise from localStorage');
 assert.match(dashboardSurface, /prefers-color-scheme: light/, 'theme toggle must fall back to system preference');
