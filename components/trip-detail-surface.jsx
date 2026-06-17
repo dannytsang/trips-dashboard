@@ -4,6 +4,7 @@
 // default; expanded on click to show the full leg detail block,
 // notification block, review block, and per-leg map iframe.
 // Legs section outer SectionCollapsible is unchanged.
+// Nudge commit to fire Vercel rebuild (empty commits are skipped by vercel-ignore-build.sh).
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
