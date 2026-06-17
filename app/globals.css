@@ -759,6 +759,77 @@ p {
   letter-spacing: 0.06em;
 }
 
+/* Per-leg directions strip (Google Embed `directions` mode, spec 010
+   FR-032..035). Sits below the FR-027 single-pin map inside the same
+   leg-detail-map block. Each iframe is a fixed 4:3 aspect ratio so
+   the layout reserves space before the iframe loads (no CLS shift). */
+.leg-detail-map-strip {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+.leg-detail-map-strip-heading {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.trip-map-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.trip-map-strip-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.trip-map-strip-caption {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-color);
+}
+.trip-map-strip-caption .trip-map-strip-index {
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-right: 0.25rem;
+}
+.trip-map-strip-caption .trip-map-strip-emoji {
+  margin-right: 0.35rem;
+}
+.trip-map-strip-caption .trip-map-strip-route {
+  font-weight: 600;
+}
+.trip-map-strip-iframe {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-secondary, transparent);
+}
+.trip-map-strip-attribution {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+.trip-map-strip-loading,
+.trip-map-strip-fallback {
+  margin: 0;
+  padding: 0.5rem 0;
+}
+.leg-route-fallback-list {
+  list-style: none;
+  margin: 0.5rem 0 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--text-color);
+}
+
 .leg-detail-row {
   display: flex;
   align-items: flex-start;

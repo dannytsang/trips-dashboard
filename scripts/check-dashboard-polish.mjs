@@ -362,4 +362,187 @@ assert.equal(
   'env provider name is case-insensitive'
 );
 
+// TripMapStrip (spec 010 FR-032..035) — per-leg directions strip using
+// Google Maps Embed `directions` mode. The strip is provider-gated:
+// it only renders when the resolved provider is 'google'. The strip
+// renders one iframe per leg that has BOTH endpoints geocoded and
+// non-private. Mode is normalised to Google's accepted set.
+//
+// Mirrors the helpers in components/trip-map-strip.jsx — keep them in
+// sync.
+
+function normaliseStripMode(rawMode) {
+  const m = String(rawMode || '').toLowerCase();
+  if (m.includes('walk')) return 'walking';
+  if (m.includes('bike') || m.includes('cycl')) return 'bicycling';
+  if (m.includes('transit') || m.includes('rail') || m.includes('train')) return 'transit';
+  if (
+    m.includes('drive') ||
+    m.includes('car') ||
+    m.includes('taxi') ||
+    m.includes('bus') ||
+    m.includes('ferry') ||
+    m.includes('cruise') ||
+    m.includes('flight')
+  ) {
+    return 'driving';
+  }
+  return 'driving';
+}
+
+// Mode normalisation cases — covers the spec FR-034 mapping.
+assert.equal(normaliseStripMode('driving'), 'driving', 'mode=driving stays driving');
+assert.equal(normaliseStripMode('driving_ev'), 'driving', 'driving_ev maps to driving');
+assert.equal(normaliseStripMode('walking'), 'walking', 'mode=walking stays walking');
+assert.equal(normaliseStripMode('cycling'), 'bicycling', 'cycling maps to bicycling');
+assert.equal(normaliseStripMode('bicycling'), 'bicycling', 'bicycling maps to bicycling');
+assert.equal(normaliseStripMode('transit'), 'transit', 'transit stays transit');
+assert.equal(normaliseStripMode('train'), 'transit', 'train maps to transit');
+assert.equal(normaliseStripMode('rail'), 'transit', 'rail maps to transit');
+assert.equal(normaliseStripMode('flight'), 'driving', 'flight collapses to driving (no Google directions mode)');
+assert.equal(normaliseStripMode('cruise'), 'driving', 'cruise collapses to driving');
+assert.equal(normaliseStripMode('ferry'), 'driving', 'ferry collapses to driving');
+assert.equal(normaliseStripMode('taxi'), 'driving', 'taxi collapses to driving');
+assert.equal(normaliseStripMode('bus'), 'driving', 'bus collapses to driving');
+assert.equal(normaliseStripMode(null), 'driving', 'null mode defaults to driving');
+assert.equal(normaliseStripMode(''), 'driving', 'empty mode defaults to driving');
+assert.equal(normaliseStripMode('unicycle'), 'bicycling', 'unicycle matches the bicycling substring cycl');
+assert.equal(normaliseStripMode('horseback'), 'driving', 'unrecognised mode defaults to driving');
+
+// Strip items builder — mirrors the useMemo in TripMapStrip. Given
+// the geocoded waypoints and the leg list, it returns one descriptor
+// per leg that has BOTH endpoints geocoded and non-private.
+function buildStripItems(legs, geocodedWaypoints) {
+  if (!legs || legs.length === 0) return [];
+  const byKey = new Map();
+  for (const wp of geocodedWaypoints) {
+    byKey.set(wp.key, wp);
+  }
+  const out = [];
+  for (let i = 0; i < legs.length; i++) {
+    const leg = legs[i];
+    if (!leg?.origin?.label || !leg?.destination?.label) continue;
+    const originKey = `${(leg.origin.geocodeLabel || leg.origin.label)}::${leg.origin.precision || ''}`;
+    const destKey = `${(leg.destination.geocodeLabel || leg.destination.label)}::${leg.destination.precision || ''}`;
+    const origin = byKey.get(originKey);
+    const dest = byKey.get(destKey);
+    if (!origin?.geocoded || !dest?.geocoded) continue;
+    if (origin.precision === 'home' || origin.precision === 'exact') continue;
+    if (dest.precision === 'home' || dest.precision === 'exact') continue;
+    out.push({
+      index: i + 1,
+      mode: leg.mode,
+      originLabel: leg.origin.label,
+      destLabel: leg.destination.label,
+    });
+  }
+  return out;
+}
+
+// Case A: a return trip (Petersfield) with 3 legs, all non-private,
+// all geocoded → strip has 3 items.
+const petersfieldStrip = buildStripItems(
+  [
+    { origin: { label: 'Shephall, Stevenage', geocodeLabel: 'Shephall, Stevenage', precision: 'venue' }, destination: { label: 'Premier Inn Petersfield Hampshire' }, mode: 'driving' },
+    { origin: { label: 'Premier Inn Petersfield Hampshire' }, destination: { label: 'Stephen Hulme garden party / South Harting', geocodeLabel: 'South Harting', precision: 'venue' }, mode: 'driving' },
+    { origin: { label: 'Premier Inn Petersfield Hampshire' }, destination: { label: 'Stevenage', precision: 'town' }, mode: 'driving' },
+  ],
+  [
+    { key: 'Shephall, Stevenage::venue', label: 'Shephall, Stevenage', geocoded: true, lat: 51.87, lon: -0.20 },
+    { key: 'Premier Inn Petersfield Hampshire::', label: 'Premier Inn Petersfield Hampshire', geocoded: true, lat: 51.01, lon: -0.95 },
+    { key: 'South Harting::venue', label: 'Stephen Hulme garden party / South Harting', geocoded: true, lat: 50.97, lon: -0.88 },
+    { key: 'Stevenage::town', label: 'Stevenage', geocoded: true, lat: 51.90, lon: -0.20 },
+  ]
+);
+assert.equal(petersfieldStrip.length, 3, 'Petersfield: 3 legs all render in the strip');
+assert.equal(petersfieldStrip[0].originLabel, 'Shephall, Stevenage', 'strip leg 1 origin label');
+assert.equal(petersfieldStrip[2].destLabel, 'Stevenage', 'strip leg 3 destination label (Stevenage is precision: town, not home/exact)');
+
+// Case B: a leg with home-precision endpoint is dropped from the strip.
+const homeLegStrip = buildStripItems(
+  [
+    { origin: { label: 'Home', precision: 'home' }, destination: { label: 'Office' } },
+    { origin: { label: 'Office' }, destination: { label: 'Home', precision: 'home' } },
+  ],
+  [
+    { key: 'Home::home', label: 'Home', geocoded: false, reason: 'precision_excluded' },
+    { key: 'Office::', label: 'Office', geocoded: true, lat: 51.5, lon: -0.1 },
+  ]
+);
+assert.equal(homeLegStrip.length, 0, 'legs with home-precision endpoints are dropped from the strip');
+
+// Case C: a leg where geocoding failed (not_found) is dropped, but
+// other legs still render.
+const partialGeocodeStrip = buildStripItems(
+  [
+    { origin: { label: 'A' }, destination: { label: 'B' } },
+    { origin: { label: 'A' }, destination: { label: 'C-unknown' } },
+    { origin: { label: 'A' }, destination: { label: 'D' } },
+  ],
+  [
+    { key: 'A::', label: 'A', geocoded: true, lat: 1, lon: 1 },
+    { key: 'B::', label: 'B', geocoded: true, lat: 2, lon: 2 },
+    { key: 'C-unknown::', label: 'C-unknown', geocoded: false, reason: 'not_found' },
+    { key: 'D::', label: 'D', geocoded: true, lat: 3, lon: 3 },
+  ]
+);
+assert.equal(partialGeocodeStrip.length, 2, 'legs with failed geocoding are dropped, others still render');
+assert.equal(partialGeocodeStrip[0].destLabel, 'B', 'strip keeps leg 1 (B is geocoded)');
+assert.equal(partialGeocodeStrip[1].destLabel, 'D', 'strip keeps leg 3 (D is geocoded)');
+
+// Case D: empty legs list returns no items.
+assert.equal(buildStripItems([], []).length, 0, 'empty legs list → empty strip');
+
+// Case E: legs with no labels are skipped (not rendered, not counted).
+const noLabelsStrip = buildStripItems(
+  [
+    { origin: { label: 'A' }, destination: {} },
+    { origin: {}, destination: { label: 'B' } },
+    { origin: { label: 'A' }, destination: { label: 'B' } },
+  ],
+  [
+    { key: 'A::', label: 'A', geocoded: true, lat: 1, lon: 1 },
+    { key: 'B::', label: 'B', geocoded: true, lat: 2, lon: 2 },
+  ]
+);
+assert.equal(noLabelsStrip.length, 1, 'legs missing a label are skipped');
+assert.equal(noLabelsStrip[0].destLabel, 'B', 'the one valid leg is leg 3');
+
+// Case F: provider guard — the strip returns null for OSM. We assert
+// this by checking the source file contains a provider-gate branch.
+const tripMapStripSource = readFileSync('components/trip-map-strip.jsx', 'utf8');
+assert.match(
+  tripMapStripSource,
+  /provider\s*!==\s*['"]google['"]/,
+  'TripMapStrip must short-circuit to null when provider is not Google (no OSM directions embed)'
+);
+assert.match(
+  tripMapStripSource,
+  /return null/,
+  'TripMapStrip must explicitly return null for the OSM case'
+);
+
+// Case G: the directions URL host must be the Embed v1 directions
+// endpoint, not the place endpoint.
+assert.match(
+  tripMapStripSource,
+  /google\.com\/maps\/embed\/v1\/directions/,
+  'TripMapStrip must build the Embed v1 directions URL (not place mode)'
+);
+
+// Case H: each iframe uses loading="lazy" (FR-034 CLS guard).
+assert.match(
+  tripMapStripSource,
+  /loading="lazy"/,
+  'TripMapStrip iframes must use loading="lazy" so below-fold iframes defer (FR-034)'
+);
+
+// Case I: each iframe uses referrerPolicy="no-referrer-when-downgrade"
+// matching the existing TripMap behaviour.
+assert.match(
+  tripMapStripSource,
+  /referrerPolicy="no-referrer-when-downgrade"/,
+  'TripMapStrip iframes must use the no-referrer-when-downgrade referrer policy'
+);
+
 console.log('Dashboard polish checks passed.');
