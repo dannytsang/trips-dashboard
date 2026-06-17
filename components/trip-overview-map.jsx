@@ -3,12 +3,12 @@
 /**
  * TripOverviewMap — one Google Maps JavaScript API map showing all trip legs.
  * Uses @googlemaps/js-api-loader v2: setOptions() + importLibrary().
- * After importLibrary('maps') resolves, google.maps is available as a
- * global; we use it directly rather than relying on destructured exports.
+ * After importLibrary('maps') resolves, google.maps is available as a global.
  *
  * FR-042 Revised (JS API): one interactive map, all legs as coloured
  * Polylines + markers. Privacy contract unchanged (precision home/exact
- * excluded). Hydration-safe: phase='idle' renders null on first render.
+ * excluded). Hydration-safe: phase='idle' renders null on server and client
+ * first render; map renders only after client-only effects run.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -73,16 +73,16 @@ async function collectLegCoords(legs) {
 }
 
 const MODE_COLORS = {
-  driving:   { color: '#4285F4', weight: 4 },
-  walking:   { color: '#34A853', weight: 3 },
-  bicycling: { color: '#FBBC04', weight: 4 },
-  transit:   { color: '#EA4335', weight: 3 },
+  driving:   '#4285F4',
+  walking:   '#34A853',
+  bicycling: '#FBBC04',
+  transit:   '#EA4335',
 };
 
 function getModeColor(rawMode) {
   const m = String(rawMode || '').toLowerCase();
-  if (m.includes('walk'))   return MODE_COLORS.walking;
-  if (m.includes('bike'))   return MODE_COLORS.bicycling;
+  if (m.includes('walk'))  return MODE_COLORS.walking;
+  if (m.includes('bike'))  return MODE_COLORS.bicycling;
   if (m.includes('transit') || m.includes('rail') || m.includes('train')) return MODE_COLORS.transit;
   if (m.includes('drive') || m.includes('car') || m.includes('taxi') ||
       m.includes('bus') || m.includes('ferry') || m.includes('cruise') || m.includes('flight')) {
@@ -95,7 +95,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
   const mapDivRef = useRef(null);
 
   // phase: 'idle' | 'loading' | 'map' | 'error'
-  // 'idle' renders null on server and client first render → hydration-safe.
+  // 'idle' renders null on both server and client — hydration-safe.
   const [phase, setPhase] = useState('idle');
   const [legCoords, setLegCoords] = useState([]);
   const envKey = process.env.NEXT_PUBLIC_GMAPS_EMBED_KEY || '';
@@ -143,22 +143,27 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
     let cancelled = false;
 
     async function initMap() {
-      // Configure the loader with the API key.
       setOptions({ key: envKey, v: 'weekly' });
-
-      // After this resolves, google.maps is available as a global.
       await importLibrary('maps');
 
       if (cancelled || !mapDivRef.current) return;
 
       const google = window.google;
-      if (!google || !google.maps) {
-        console.error('TripOverviewMap: google.maps not available after importLibrary');
+      if (!google?.maps) {
+        console.error('TripOverviewMap: google.maps not available');
         setPhase('error');
         return;
       }
 
-      const { Map, Polyline, LatLngBounds, Marker, InfoWindow, SymbolPath, MapTypeId } = google.maps;
+      const { Map, Polyline, LatLngBounds, Marker, InfoWindow, MapTypeId } = google.maps;
+
+      // Build SVG data URIs for circle (origin) and square (destination) markers.
+      // SymbolPath.CIRCLE is numeric (0); Marker.setIcon({ path }) requires the
+      // string 'CIRCLE' or an SVG data URI. Using SVG data URIs avoids the mismatch.
+      const svgCircle = (color) =>
+        `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="${color}" stroke="#fff" stroke-width="2"/></svg>`)}`;
+      const svgSquare = (color) =>
+        `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><rect x="0.5" y="0.5" width="15" height="15" rx="1" fill="${color}" stroke="#fff" stroke-width="2"/></svg>`)}`;
 
       const bounds = new LatLngBounds();
       const infoWindow = new InfoWindow();
@@ -172,60 +177,47 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
 
       for (let i = 0; i < legCoords.length; i++) {
         const { leg, origin, dest } = legCoords[i];
-        const { color, weight } = getModeColor(leg.mode);
+        const color = getModeColor(leg.mode);
         const legNum = i + 1;
 
-        // Polyline: straight-line route segment, colour-coded by mode.
+        // Polyline: straight-line segment, colour-coded by mode.
         new Polyline({
           path: [
             { lat: origin.lat, lng: origin.lon },
             { lat: dest.lat,   lng: dest.lon },
           ],
           strokeColor: color,
-          strokeWeight: weight,
+          strokeWeight: 4,
           strokeOpacity: 0.85,
           map,
         });
 
-        // Circle marker at origin.
+        // Origin marker: circle icon with leg number label.
         const originMarker = new Marker({
           position: { lat: origin.lat, lng: origin.lon },
           map,
           label: { text: String(legNum), color: '#fff', fontWeight: 'bold', fontSize: '10px' },
-          icon: {
-            path: SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: color,
-            fillOpacity: 1,
-            strokeColor: '#fff',
-            strokeWeight: 2,
-          },
+          icon: { url: svgCircle(color) },
           title: leg.origin.label,
         });
 
         originMarker.addListener('click', () => {
-          infoWindow.setContent(`<strong>${leg.origin.label}</strong>`);
+          // InfoWindow.setContent takes a string, not JSX — use a plain text node.
+          infoWindow.setContent(leg.origin.label);
           infoWindow.open(map, originMarker);
         });
 
-        // Square marker at destination.
+        // Destination marker: square icon with leg number label.
         const destMarker = new Marker({
           position: { lat: dest.lat, lng: dest.lon },
           map,
           label: { text: String(legNum), color: '#fff', fontWeight: 'bold', fontSize: '10px' },
-          icon: {
-            path: SymbolPath.SQUARE,
-            scale: 8,
-            fillColor: color,
-            fillOpacity: 1,
-            strokeColor: '#fff',
-            strokeWeight: 2,
-          },
+          icon: { url: svgSquare(color) },
           title: leg.destination.label,
         });
 
         destMarker.addListener('click', () => {
-          infoWindow.setContent(`<strong>${leg.destination.label}</strong>`);
+          infoWindow.setContent(leg.destination.label);
           infoWindow.open(map, destMarker);
         });
 
