@@ -13,6 +13,7 @@
     "vercel:ignore-build": "bash scripts/vercel-ignore-build.sh"
   },
   "dependencies": {
+    "@googlemaps/js-api-loader": "^2.1.1",
     "@vercel/blob": "^2.4.0",
     "next": "15.5.19",
     "next-auth": "^4.24.14",

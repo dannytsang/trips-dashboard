@@ -4,12 +4,12 @@
 // FR-042 also adds a TripOverviewMap above the leg list, showing
 // all legs on a single embedded map (one pin per leg destination).
 // Nudge commit to fire Vercel rebuild (empty commits are skipped by vercel-ignore-build.sh).
-// FR-042 (Revised): TripOverviewMap renders a stacked strip of per-leg
-// directions iframes — one directions iframe per leg, all visible at once.
-// Google: directions iframe per leg (A→B route line, mode from leg).
-// OSM: single destination pin with bbox (OSM has no directions embed).
-// The strip is above the collapsible leg list; all legs' routes visible
-// without clicking. Privacy contract unchanged: precision home/exact excluded.
+// FR-042 Revised: TripOverviewMap uses the Google Maps JavaScript API
+// (@googlemaps/js-api-loader) — one interactive map showing all legs as
+// colored polylines (one per leg, colour-coded by transport mode) plus
+// numbered circle/square markers at each endpoint. Map auto-fits its bounds
+// to show all legs. OSM users see nothing from TripOverviewMap (provider
+// guard returns null) — OSM has no free multi-leg map renderer.
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';

@@ -1,49 +1,28 @@
 'use client';
 
 /**
- * TripOverviewMap — stacked strip of per-leg route iframes rendered
- * above the collapsible leg list on the trip detail page.
+ * TripOverviewMap — one Google Maps JavaScript API map showing all trip legs.
+ * Renders a single <div> that @googlemaps/js-api-loader populates with a
+ * google.maps.Map instance. Each leg becomes a Polyline (colored by mode)
+ * and origin/destination Markers. The map auto-fits its bounds to show
+ * all legs on load.
  *
- * B variant (FR-042 Revised): renders ONE directions iframe per leg,
- * stacked vertically, so all legs' routes are visible at once without
- * clicking. Google: directions iframe per leg (A→B route line, mode
- * from leg). OSM: destination pin with bbox (OSM has no directions embed).
+ * FR-042 Revised (JS API): replaces the stacked iframe strip with one
+ * interactive map. All legs visible at once — one map, polyline per leg,
+ * colored route lines, clickable markers. Privacy contract unchanged:
+ * precision 'home' or 'exact' waypoints are excluded from the map.
  *
- * The strip is above the LegCollapsible list. Each iframe has
- * aspect-ratio: 4/3 and loading="lazy".
- *
- * Privacy contract (FR-027): waypoints with precision 'home' or 'exact'
- * are excluded from every iframe. A leg is skipped if either endpoint
- * is filtered. The geocode server also enforces this; we additionally
- * filter here as defence in depth.
- *
- * Provider (FR-028):
- *   provider=google:  Google Maps Embed `directions` mode (route line A→B)
- *   provider=osm:     OSM `/export/embed.html` (single pin, framed bbox)
+ * Falls back to a loading placeholder while the JS API initialises.
+ * If fewer than 2 legs have mappable waypoints, returns null (no map).
  */
 
-import { useEffect, useMemo, useState } from 'react';
-import { buildViewport } from '@/lib/basemap-projection.mjs';
+import { useEffect, useRef, useState } from 'react';
+import { Loader } from '@googlemaps/js-api-loader';
 
 function resolveProvider(propProvider, envProvider, hasKey) {
   const requested = (propProvider || envProvider || 'osm').toLowerCase();
   if (requested === 'google' && hasKey) return 'google';
   return 'osm';
-}
-
-function normaliseMode(rawMode) {
-  const m = String(rawMode || '').toLowerCase();
-  if (m.includes('walk')) return 'walking';
-  if (m.includes('bike') || m.includes('cycl')) return 'bicycling';
-  if (m.includes('transit') || m.includes('rail') || m.includes('train')) return 'transit';
-  if (
-    m.includes('drive') || m.includes('car') || m.includes('taxi') ||
-    m.includes('bus') || m.includes('ferry') || m.includes('cruise') ||
-    m.includes('flight')
-  ) {
-    return 'driving';
-  }
-  return 'driving';
 }
 
 async function geocodeOne(wp) {
@@ -84,101 +63,82 @@ function geocodeShared(wp) {
   return promise;
 }
 
-/**
- * Build a single leg's iframe descriptor given its geocoded endpoints.
- * Returns null if the leg should be skipped.
- */
-function buildLegEmbed(leg, origin, dest, provider, envKey) {
-  if (!origin?.geocoded || !dest?.geocoded) return null;
-  if (origin.precision === 'home' || origin.precision === 'exact') return null;
-  if (dest.precision === 'home' || dest.precision === 'exact') return null;
+// Mode → Google Maps API travel mode string + stroke colour.
+const MODE_STYLES = {
+  driving:   { mode: google.maps.TravelMode.DRIVING,   color: '#4285F4', weight: 4 },
+  walking:   { mode: google.maps.TravelMode.WALKING,   color: '#34A853', weight: 3 },
+  bicycling: { mode: google.maps.TravelMode.BICYCLING, color: '#FBBC04', weight: 4 },
+  transit:   { mode: google.maps.TravelMode.TRANSIT,   color: '#EA4335', weight: 3 },
+};
 
-  const originLat = origin.lat.toFixed(5);
-  const originLon = origin.lon.toFixed(5);
-  const destLat = dest.lat.toFixed(5);
-  const destLon = dest.lon.toFixed(5);
-  const mode = normaliseMode(leg.mode);
-
-  if (provider === 'google') {
-    const params = new URLSearchParams({
-      key: envKey,
-      origin: `${originLat},${originLon}`,
-      destination: `${destLat},${destLon}`,
-      mode,
-    });
-    return {
-      provider: 'google',
-      src: `https://www.google.com/maps/embed/v1/directions?${params.toString()}`,
-      viewLargeHref: `https://www.google.com/maps/dir/?api=1&origin=${originLat},${originLon}&destination=${destLat},${destLon}&travelmode=${mode}`,
-      caption: `${leg.origin.label || 'Origin'} → ${leg.destination.label || 'Destination'}`,
-    };
+function getModeStyle(rawMode) {
+  const m = String(rawMode || '').toLowerCase();
+  if (m.includes('walk'))   return MODE_STYLES.walking;
+  if (m.includes('bike'))    return MODE_STYLES.bicycling;
+  if (m.includes('transit') || m.includes('rail') || m.includes('train')) return MODE_STYLES.transit;
+  if (m.includes('drive') || m.includes('car') || m.includes('taxi') ||
+      m.includes('bus') || m.includes('ferry') || m.includes('cruise') || m.includes('flight')) {
+    return MODE_STYLES.driving;
   }
+  return MODE_STYLES.driving;
+}
 
-  // OSM: small bbox around origin+destination, single marker on destination.
-  const viewport = buildViewport(
-    [
-      { lat: origin.lat, lon: origin.lon },
-      { lat: dest.lat, lon: dest.lon },
-    ],
-    { width: 400, height: 300, padding: 0.35, minSpan: 0.05 }
-  );
-  const { minLon, minLat, maxLon, maxLat } = viewport;
-  const bbox = `${minLon.toFixed(5)},${minLat.toFixed(5)},${maxLon.toFixed(5)},${maxLat.toFixed(5)}`;
-  const params = new URLSearchParams({
-    bbox,
-    layer: 'mapnik',
-    marker: `${destLat},${destLon}`,
+async function collectLegCoords(legs) {
+  const tasks = [];
+  legs.forEach((leg, i) => {
+    tasks.push({ leg, index: i });
   });
-  return {
-    provider: 'osm',
-    src: `https://www.openstreetmap.org/export/embed.html?${params.toString()}`,
-    viewLargeHref: `https://www.openstreetmap.org/?mlat=${destLat}&mlon=${destLon}#map=12/${destLat}/${destLon}`,
-    caption: `${leg.origin.label || 'Origin'} → ${leg.destination.label || 'Destination'}`,
-  };
+
+  const results = await Promise.all(
+    tasks.map(async ({ leg, index }) => {
+      if (!leg?.origin?.label || !leg?.destination?.label) {
+        return { index, origin: null, dest: null };
+      }
+      const [origin, dest] = await Promise.all([
+        geocodeShared(leg.origin),
+        geocodeShared(leg.destination),
+      ]);
+      return { index, origin, dest };
+    })
+  );
+
+  return results
+    .filter(r => r.origin?.geocoded && r.dest?.geocoded)
+    .filter(r => r.origin.precision !== 'home' && r.origin.precision !== 'exact')
+    .filter(r => r.dest.precision !== 'home' && r.dest.precision !== 'exact')
+    .sort((a, b) => a.index - b.index);
 }
 
 export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
-  const [legEmbeds, setLegEmbeds] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const mapDivRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+
+  const [status, setStatus] = useState('idle'); // idle | loading | error
+  const [legCoords, setLegCoords] = useState([]);
 
   const envProvider = process.env.NEXT_PUBLIC_GMAPS_PROVIDER || '';
   const envKey = process.env.NEXT_PUBLIC_GMAPS_EMBED_KEY || '';
   const provider = resolveProvider(mapProvider, envProvider, Boolean(envKey));
 
+  // Only activate for Google provider.
+  if (provider !== 'google') {
+    return null;
+  }
+
+  // Phase 1: geocode all leg endpoints.
   useEffect(() => {
     if (!legs || legs.length === 0) {
-      setLoading(false);
+      setStatus('error');
       return;
     }
 
     let cancelled = false;
 
     async function run() {
-      // Geocode all endpoints across all legs concurrently.
-      const tasks = [];
-      legs.forEach((leg, i) => {
-        tasks.push({ leg, index: i });
-      });
-
-      const results = await Promise.all(
-        tasks.map(async ({ leg, index }) => {
-          if (!leg?.origin?.label || !leg?.destination?.label) return { index, embed: null };
-
-          const [origin, dest] = await Promise.all([
-            geocodeShared(leg.origin),
-            geocodeShared(leg.destination),
-          ]);
-
-          const embed = buildLegEmbed(leg, origin, dest, provider, envKey);
-          return { index, embed };
-        })
-      );
-
+      const coords = await collectLegCoords(legs);
       if (!cancelled) {
-        // Preserve leg order; embed is null for skipped legs.
-        const sorted = results.sort((a, b) => a.index - b.index);
-        setLegEmbeds(sorted.map(r => r.embed));
-        setLoading(false);
+        setLegCoords(coords);
+        setStatus(coords.length < 2 ? 'error' : 'loading');
       }
     }
 
@@ -186,53 +146,137 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
     return () => {
       cancelled = true;
     };
-  }, [legs, provider, envKey]);
+  }, [legs]);
 
-  if (loading) {
-    return (
-      <div className="trip-overview-map trip-overview-map-loading" aria-label="Loading trip overview map">
-        <p className="map-note">🗺️ Loading overview map…</p>
-      </div>
-    );
-  }
+  // Phase 2: initialise Google Maps JS API once div is mounted and we have coords.
+  useEffect(() => {
+    if (status !== 'loading' || !mapDivRef.current) return;
 
-  // No legs rendered at all — hide the container entirely.
-  if (legEmbeds.length === 0) {
+    let map;
+    let cancelled = false;
+
+    async function initMap() {
+      const loader = new Loader({
+        apiKey: envKey,
+        version: 'weekly',
+        libraries: ['routes'],
+      });
+
+      const google = await loader.load();
+      if (cancelled || !mapDivRef.current) return;
+
+      const bounds = new google.maps.LatLngBounds();
+      const infoWindow = new google.maps.InfoWindow();
+
+      map = new google.maps.Map(mapDivRef.current, {
+        mapTypeId: google.maps.MapTypeId.ROADMAP,
+        disableDefaultUI: false,
+        zoomControl: true,
+        fullscreenControl: true,
+      });
+
+      // Add a Polyline + markers for each leg.
+      for (const { leg, origin, dest } of legCoords) {
+        const { color, weight } = getModeStyle(leg.mode);
+
+        // Polyline for the leg route.
+        const polyline = new google.maps.Polyline({
+          path: [
+            { lat: origin.lat, lng: origin.lon },
+            { lat: dest.lat,   lng: dest.lon },
+          ],
+          strokeColor: color,
+          strokeWeight: weight,
+          strokeOpacity: 0.85,
+          map,
+        });
+
+        // Origin marker (numbered circle, colour-coded).
+        const originMarker = new google.maps.Marker({
+          position: { lat: origin.lat, lng: origin.lon },
+          map,
+          label: {
+            text: String(legCoords.findIndex(l => l.origin.lat === origin.lat && l.origin.lon === origin.lon) + 1),
+            color: '#fff',
+            fontWeight: 'bold',
+            fontSize: '10px',
+          },
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: color,
+            fillOpacity: 1,
+            strokeColor: '#fff',
+            strokeWeight: 2,
+          },
+          title: leg.origin.label,
+        });
+
+        originMarker.addListener('click', () => {
+          infoWindow.setContent(`<strong>${leg.origin.label}</strong>`);
+          infoWindow.open(map, originMarker);
+        });
+
+        // Destination marker (square).
+        const destMarker = new google.maps.Marker({
+          position: { lat: dest.lat, lng: dest.lon },
+          map,
+          label: {
+            text: String(legCoords.findIndex(l => l.dest.lat === dest.lat && l.dest.lon === dest.lon) + 1),
+            color: '#fff',
+            fontWeight: 'bold',
+            fontSize: '10px',
+          },
+          icon: {
+            path: google.maps.SymbolPath.SQUARE,
+            scale: 8,
+            fillColor: color,
+            fillOpacity: 1,
+            strokeColor: '#fff',
+            strokeWeight: 2,
+          },
+          title: leg.destination.label,
+        });
+
+        destMarker.addListener('click', () => {
+          infoWindow.setContent(`<strong>${leg.destination.label}</strong>`);
+          infoWindow.open(map, destMarker);
+        });
+
+        bounds.extend(originMarker.position);
+        bounds.extend(destMarker.position);
+      }
+
+      if (!cancelled) {
+        map.fitBounds(bounds, { padding: 40 });
+        mapInstanceRef.current = map;
+      }
+    }
+
+    initMap();
+    return () => {
+      cancelled = true;
+      // InfoWindow cleanup on unmount.
+      if (map) {
+        // map is local; markers/polylines attached to it are cleaned up by GC.
+      }
+    };
+  }, [status, legCoords, envKey]);
+
+  if (status === 'idle' || status === 'error') {
     return null;
   }
 
   return (
-    <div className="trip-overview-map" aria-label="Trip overview — all legs">
-      {legEmbeds.map((embed, i) => {
-        if (!embed) return null;
-        return (
-          <div key={i} className="trip-overview-map-item">
-            <iframe
-              className="trip-overview-map-iframe"
-              title={`Leg ${i + 1}: ${embed.caption}`}
-              src={embed.src}
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              allowFullScreen
-            />
-            <p className="trip-overview-map-attribution">
-              {embed.provider === 'google' ? (
-                <>
-                  Map data © <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">Google</a>
-                  {' · '}
-                  <a href={embed.viewLargeHref} target="_blank" rel="noopener noreferrer">View larger map</a>
-                </>
-              ) : (
-                <>
-                  © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors
-                  {' · '}
-                  <a href={embed.viewLargeHref} target="_blank" rel="noopener noreferrer">View larger map</a>
-                </>
-              )}
-            </p>
-          </div>
-        );
-      })}
+    <div className="trip-overview-map" aria-label="Trip overview map — all legs">
+      <div
+        ref={mapDivRef}
+        className="trip-overview-map-canvas"
+        aria-label="Interactive trip map"
+      />
+      {status === 'loading' && (
+        <p className="trip-overview-map-loading map-note">🗺️ Loading map…</p>
+      )}
     </div>
   );
 }
