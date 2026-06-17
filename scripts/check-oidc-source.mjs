@@ -115,7 +115,16 @@ assert.doesNotMatch(
 // a URLSearchParams-composed value, so the iframe and the URL hostname
 // are on different lines. We assert on the element shape and the URL
 // shape separately, both within the same TripMap source file.
-assert.match(tripMap, /<iframe/, 'TripMap must use an <iframe> element');
+assert.match(
+  tripDetailSurface,
+  /<TripMap\s+legs=\{trip\.legs\}\s+homeBase=\{trip\.homeBase\}/,
+  'trip detail must pass homeBase to TripMap so the OSM marker avoids the home return waypoint (spec 010 FR-027 marker rule)'
+);
+assert.match(
+  tripMap,
+  /<iframe/,
+  'TripMap must use an <iframe> element'
+);
 assert.match(
   tripMap,
   /openstreetmap\.org\/export\/embed\.html/,
@@ -143,6 +152,16 @@ assert.match(
   tripMap,
   /w\.precision\s*!==\s*'home'\s*&&\s*w\.precision\s*!==\s*'exact'/,
   'TripMap must filter out home/exact precision waypoints from the iframe URL (spec 010 FR-027 privacy contract)'
+);
+assert.match(
+  tripMap,
+  /homeBase\?\.town|homeBase\?\?null|homeBase\s*=\s*null/,
+  'TripMap must read the home base town from props so the OSM marker avoids the home return (spec 010 FR-027 marker rule)'
+);
+assert.match(
+  tripMap,
+  /nonHomeVisible|nonHomeWaypoints|nonHome/,
+  'TripMap must select the marker as the last non-home visible waypoint (spec 010 FR-027 marker rule)'
 );
 assert.match(
   tripMap,

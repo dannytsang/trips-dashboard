@@ -120,6 +120,79 @@ const safeMidLat = (safeVp.minLat + safeVp.maxLat) / 2;
 assert.ok(safeMidLat < 52.0, `bbox centre must not include dropped private waypoints (got ${safeMidLat.toFixed(3)})`);
 assert.ok(safeMidLat > 50.5, `bbox centre must include the kept public waypoints (got ${safeMidLat.toFixed(3)})`);
 
+// Marker selection: the OSM marker must be the last non-home visible
+// waypoint, not just the last visible waypoint. For a return trip
+// (out → destination → home), the last visible waypoint is the home
+// return — but the meaningful pin is the destination, not home.
+// Mirrors the predicate TripMap uses.
+function selectMarker(visibleWaypoints, homeTown) {
+  const home = (homeTown || '').trim().toLowerCase();
+  const nonHome = home
+    ? visibleWaypoints.filter((w) => (w.label || '').trim().toLowerCase() !== home)
+    : visibleWaypoints;
+  return nonHome.length > 0
+    ? nonHome[nonHome.length - 1]
+    : visibleWaypoints[visibleWaypoints.length - 1];
+}
+// Case 1: return trip where the last waypoint IS home. The marker
+// must be the last non-home waypoint (e.g. the garden party for
+// Petersfield), not the home return.
+const petersfieldLike = [
+  { label: 'Shephall, Stevenage', lat: 51.87, lon: -0.20 },
+  { label: 'Premier Inn Petersfield Hampshire', lat: 51.01, lon: -0.95 },
+  { label: 'South Harting', lat: 50.97, lon: -0.88 },
+  { label: 'Stevenage', lat: 51.90, lon: -0.20 },
+];
+const petersfieldMarker = selectMarker(petersfieldLike, 'Stevenage');
+assert.equal(
+  petersfieldMarker.label,
+  'South Harting',
+  'Petersfield-style return trip: marker must be the last non-home waypoint (South Harting), not Stevenage'
+);
+
+// Case 2: one-way home-return trip. Every non-private waypoint is
+// home (e.g. a relocation trip ending at home). The marker falls
+// back to the last non-private waypoint.
+const oneWayHome = [
+  { label: 'Stevenage', lat: 51.5, lon: -0.13 },
+  { label: 'Stevenage', lat: 51.9, lon: -0.20 },
+];
+const oneWayMarker = selectMarker(oneWayHome, 'Stevenage');
+assert.equal(
+  oneWayMarker.label,
+  'Stevenage',
+  'one-way home-return trip: marker falls back to the last non-private waypoint (home)'
+);
+
+// Case 3: no homeBase info at all. The marker is the last visible
+// waypoint as before. (Defensive case: when homeBase.town is null
+// or empty, we don't filter.)
+const noHomeTrip = [
+  { label: 'Origin', lat: 51.5, lon: -0.13 },
+  { label: 'Destination', lat: 51.9, lon: -0.20 },
+];
+const noHomeMarker = selectMarker(noHomeTrip, null);
+assert.equal(
+  noHomeMarker.label,
+  'Destination',
+  'no homeBase: marker is the last visible waypoint (legacy behaviour)'
+);
+
+// Case 4: case-insensitive comparison. "STEVENAGE" in the home
+// field must still match "Stevenage" in the waypoint label.
+const mixedCaseTrip = [
+  { label: 'Shephall, Stevenage', lat: 51.87, lon: -0.20 },
+  { label: 'Premier Inn', lat: 51.01, lon: -0.95 },
+  { label: 'Garden party', lat: 50.97, lon: -0.88 },
+  { label: 'stevenage', lat: 51.90, lon: -0.20 },
+];
+const mixedCaseMarker = selectMarker(mixedCaseTrip, 'Stevenage');
+assert.equal(
+  mixedCaseMarker.label,
+  'Garden party',
+  'home town comparison is case-insensitive — "stevenage" matches "Stevenage"'
+);
+
 assert.match(dashboardSurface, /THEME_STORAGE_KEY\s*=\s*'tsang-travel-theme'/, 'theme preference must use a stable localStorage key');
 assert.match(dashboardSurface, /window\.localStorage\.getItem\(THEME_STORAGE_KEY\)/, 'theme toggle must initialise from localStorage');
 assert.match(dashboardSurface, /prefers-color-scheme: light/, 'theme toggle must fall back to system preference');

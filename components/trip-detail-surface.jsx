@@ -697,7 +697,7 @@ export function TripDetailSurface({
             {hasMap ? (
               <div className="leg-detail-map" aria-label="Trip map">
                 <h3 className="leg-detail-map-heading">Trip map</h3>
-                <TripMap legs={trip.legs} />
+                <TripMap legs={trip.legs} homeBase={trip.homeBase} />
               </div>
             ) : null}
           </DetailSection>

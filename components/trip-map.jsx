@@ -13,8 +13,11 @@ import { buildViewport } from '@/lib/basemap-projection.mjs';
  *     waypoints appear in the waypoint list only (never in the map URL).
  *   - Computes a bbox from the geocoded (non-private) waypoints using the
  *     same buildViewport() helper as before — preserves the route framing.
- *   - Picks the final leg's destination as the single marker (OSM
- *     /export/embed.html only supports one marker per iframe).
+ *   - Picks the marker as the **last non-private, non-home** waypoint.
+ *     For a return trip, this is the meaningful destination (e.g. the
+ *     garden party for Petersfield), not the home town the trip returns
+ *     to. Falls back to the last non-private waypoint when no non-home
+ *     waypoint exists (e.g. a one-way trip that ends at home).
  *   - Falls back to a route list when fewer than 2 waypoints geocode.
  *   - Always renders the structured waypoint list so the user sees the
  *     full set of stops regardless of map render quality.
@@ -24,8 +27,12 @@ import { buildViewport } from '@/lib/basemap-projection.mjs';
  *     precision is NOT 'home' or 'exact'. Private locations are excluded.
  *   - The /api/geocode server route already enforces this; we additionally
  *     filter here as a defence-in-depth check before composing the URL.
+ *   - The home base town (passed via `homeBase.town`) is also excluded
+ *     from the marker selection. The bbox still includes the home town
+ *     (so the visible map area frames the full trip), but the OSM pin
+ *     highlights the destination, not home.
  */
-export function TripMap({ legs = [] }) {
+export function TripMap({ legs = [], homeBase = null }) {
   const [waypoints, setWaypoints] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -114,10 +121,30 @@ export function TripMap({ legs = [] }) {
     const { minLon, minLat, maxLon, maxLat } = viewport;
     // OSM embed bbox order: minLon,minLat,maxLon,maxLat
     const bbox = `${minLon.toFixed(5)},${minLat.toFixed(5)},${maxLon.toFixed(5)},${maxLat.toFixed(5)}`;
-    // Marker: prefer the last visible waypoint (typically the destination
-    // / accommodation, which is always a public venue per FR-027).
+    // Marker: prefer the last **non-home** visible waypoint. For a
+    // round-trip (Petersfield: out → Premier Inn → garden party →
+    // home), the last waypoint is home, which is the wrong pin to
+    // highlight — the meaningful destination is the garden party.
+    //
+    // The home base town comes from the brief (trip.homeBase.town),
+    // which the brief builder populates from the YAML's
+    // `home_base.town` field. We compare waypoint labels against the
+    // home town (case-insensitive, whitespace-trimmed) and prefer the
+    // last visible waypoint whose label is NOT the home town.
+    //
+    // Fallback: if every visible waypoint IS the home town (one-way
+    // home return, e.g. a relocation trip), use the last visible
+    // waypoint as before.
+    const homeTown = (homeBase?.town || '').trim().toLowerCase();
+    const nonHomeVisible = homeTown
+      ? visible.filter(
+          (w) => (w.label || '').trim().toLowerCase() !== homeTown
+        )
+      : visible;
+    const markerWp = nonHomeVisible.length > 0
+      ? nonHomeVisible[nonHomeVisible.length - 1]
+      : visible[visible.length - 1];
     // OSM embed uses lat,lon order for the marker parameter.
-    const markerWp = visible[visible.length - 1];
     const markerLat = markerWp.lat.toFixed(5);
     const markerLon = markerWp.lon.toFixed(5);
     const params = new URLSearchParams({ bbox, layer: 'mapnik', marker: `${markerLat},${markerLon}` });
@@ -134,7 +161,7 @@ export function TripMap({ legs = [] }) {
       markerLabel: markerWp.label,
       viewLargeHref,
     };
-  }, [geocoded]);
+  }, [geocoded, homeBase]);
 
   if (loading) {
     return (
@@ -188,6 +215,21 @@ export function TripMap({ legs = [] }) {
         >
           View larger map
         </a>
+      </p>
+      <p className="trip-map-marker-note">
+        <span className="trip-map-marker-dot" aria-hidden="true">📍</span>
+        Pin: <strong>{embed.markerLabel}</strong>
+        <span className="text-muted">
+          {(() => {
+            const homeTown = (homeBase?.town || '').trim();
+            const isHome = homeTown && embed.markerLabel.trim() === homeTown;
+            return isHome
+              ? ' (home)'
+              : homeTown
+                ? ' · OSM marker on the last non-home waypoint'
+                : '';
+          })()}
+        </span>
       </p>
       <ul className="waypoint-list">
         {geocoded.map((wp, i) => (

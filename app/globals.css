@@ -993,6 +993,20 @@ p {
 .trip-map-attribution a:hover {
   color: var(--text-secondary);
 }
+.trip-map-marker-note {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+.trip-map-marker-note strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.trip-map-marker-dot {
+  font-size: 0.95rem;
+  margin-right: 0.15rem;
+}
 .trip-map-loading,
 .trip-map-fallback {
   text-align: center;
