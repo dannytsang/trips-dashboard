@@ -1,4 +1,9 @@
 'use client';
+// v5 expansion (spec 010 FR-038..FR-040): Travellers, Transport decision,
+// and Legs+Map render as SectionCollapsible with defaultOpen={true}.
+// All three are visible on first load; user can collapse/expand.
+// Other sections (Programme, Planning rationale, Monitoring, Notes,
+// Accommodation) are unchanged.
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
