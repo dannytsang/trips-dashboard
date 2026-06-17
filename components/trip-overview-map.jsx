@@ -3,12 +3,12 @@
 /**
  * TripOverviewMap — one Google Maps JavaScript API map showing all trip legs.
  * Uses @googlemaps/js-api-loader v2: setOptions() + importLibrary().
- * After importLibrary('maps') resolves, google.maps is available as a global.
+ * After importLibrary() resolves, google.maps is available as a global.
  *
  * FR-042 Revised (JS API): one interactive map, all legs as coloured
- * Polylines + markers. Privacy contract unchanged (precision home/exact
- * excluded). Hydration-safe: phase='idle' renders null on server and client
- * first render; map renders only after client-only effects run.
+ * Polylines + AdvancedMarkerElement markers. Privacy contract unchanged
+ * (precision home/exact excluded). Hydration-safe: phase='idle' renders
+ * null on server and client first render; map renders only after effects.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -91,6 +91,52 @@ function getModeColor(rawMode) {
   return MODE_COLORS.driving;
 }
 
+// Build a coloured circle HTML div for AdvancedMarkerElement (origin).
+function makeCircleHTMLElement(color, text, size = 28) {
+  const el = document.createElement('div');
+  el.style.cssText = [
+    `width:${size}px`,
+    `height:${size}px`,
+    `border-radius:50%`,
+    `background:${color}`,
+    `border:2px solid #fff`,
+    `display:flex`,
+    `align-items:center`,
+    `justify-content:center`,
+    `color:#fff`,
+    `font-size:10px`,
+    `font-weight:bold`,
+    `font-family:Roboto,Arial,sans-serif`,
+    `box-shadow: 0 1px 4px rgba(0,0,0,0.3)`,
+    `cursor:pointer`,
+  ].join(';');
+  el.textContent = text;
+  return el;
+}
+
+// Build a coloured square HTML div for AdvancedMarkerElement (destination).
+function makeSquareHTMLElement(color, text, size = 22) {
+  const el = document.createElement('div');
+  el.style.cssText = [
+    `width:${size}px`,
+    `height:${size}px`,
+    `border-radius:3px`,
+    `background:${color}`,
+    `border:2px solid #fff`,
+    `display:flex`,
+    `align-items:center`,
+    `justify-content:center`,
+    `color:#fff`,
+    `font-size:10px`,
+    `font-weight:bold`,
+    `font-family:Roboto,Arial,sans-serif`,
+    `box-shadow: 0 1px 4px rgba(0,0,0,0.3)`,
+    `cursor:pointer`,
+  ].join(';');
+  el.textContent = text;
+  return el;
+}
+
 export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
   const mapDivRef = useRef(null);
 
@@ -144,7 +190,18 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
 
     async function initMap() {
       setOptions({ key: envKey, v: 'weekly' });
-      await importLibrary('maps');
+
+      // Load both maps and marker libraries.
+      const mapsLib = await importLibrary('maps');
+
+      // AdvancedMarkerElement is in the 'marker' library.
+      // Load it separately; if it fails, fall back to basic Marker.
+      let markerLib;
+      try {
+        markerLib = await importLibrary('marker');
+      } catch {
+        markerLib = null;
+      }
 
       if (cancelled || !mapDivRef.current) return;
 
@@ -155,15 +212,8 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
         return;
       }
 
-      const { Map, Polyline, LatLngBounds, Marker, InfoWindow, MapTypeId } = google.maps;
-
-      // Build SVG data URIs for circle (origin) and square (destination) markers.
-      // SymbolPath.CIRCLE is numeric (0); Marker.setIcon({ path }) requires the
-      // string 'CIRCLE' or an SVG data URI. Using SVG data URIs avoids the mismatch.
-      const svgCircle = (color) =>
-        `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="${color}" stroke="#fff" stroke-width="2"/></svg>`)}`;
-      const svgSquare = (color) =>
-        `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><rect x="0.5" y="0.5" width="15" height="15" rx="1" fill="${color}" stroke="#fff" stroke-width="2"/></svg>`)}`;
+      const { Map, Polyline, LatLngBounds, InfoWindow, MapTypeId } = mapsLib;
+      const { AdvancedMarkerElement } = markerLib || {};
 
       const bounds = new LatLngBounds();
       const infoWindow = new InfoWindow();
@@ -192,37 +242,68 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
           map,
         });
 
-        // Origin marker: circle icon with leg number label.
-        const originMarker = new Marker({
-          position: { lat: origin.lat, lng: origin.lon },
-          map,
-          label: { text: String(legNum), color: '#fff', fontWeight: 'bold', fontSize: '10px' },
-          icon: { url: svgCircle(color) },
-          title: leg.origin.label,
-        });
+        // Origin marker — circle div, colour-coded.
+        const originEl = makeCircleHTMLElement(color, String(legNum));
+        const originPos = { lat: origin.lat, lng: origin.lon };
 
-        originMarker.addListener('click', () => {
-          // InfoWindow.setContent takes a string, not JSX — use a plain text node.
-          infoWindow.setContent(leg.origin.label);
-          infoWindow.open(map, originMarker);
-        });
+        if (AdvancedMarkerElement) {
+          const originMarker = new AdvancedMarkerElement({
+            position: originPos,
+            map,
+            content: originEl,
+            title: leg.origin.label,
+          });
+          originMarker.addListener('click', () => {
+            infoWindow.setContent(leg.origin.label);
+            infoWindow.open(map, { anchor: originMarker });
+          });
+          bounds.extend(originMarker.position);
+        } else {
+          // Fallback: basic Marker (deprecated but functional).
+          const { Marker } = google.maps;
+          const originMarker = new Marker({
+            position: originPos,
+            map,
+            label: { text: String(legNum), color: '#fff', fontWeight: 'bold', fontSize: '10px' },
+            title: leg.origin.label,
+          });
+          originMarker.addListener('click', () => {
+            infoWindow.setContent(leg.origin.label);
+            infoWindow.open(map, originMarker);
+          });
+          bounds.extend(originMarker.position);
+        }
 
-        // Destination marker: square icon with leg number label.
-        const destMarker = new Marker({
-          position: { lat: dest.lat, lng: dest.lon },
-          map,
-          label: { text: String(legNum), color: '#fff', fontWeight: 'bold', fontSize: '10px' },
-          icon: { url: svgSquare(color) },
-          title: leg.destination.label,
-        });
+        // Destination marker — square div, colour-coded.
+        const destEl = makeSquareHTMLElement(color, String(legNum));
+        const destPos = { lat: dest.lat, lng: dest.lon };
 
-        destMarker.addListener('click', () => {
-          infoWindow.setContent(leg.destination.label);
-          infoWindow.open(map, destMarker);
-        });
-
-        bounds.extend(originMarker.position);
-        bounds.extend(destMarker.position);
+        if (AdvancedMarkerElement) {
+          const destMarker = new AdvancedMarkerElement({
+            position: destPos,
+            map,
+            content: destEl,
+            title: leg.destination.label,
+          });
+          destMarker.addListener('click', () => {
+            infoWindow.setContent(leg.destination.label);
+            infoWindow.open(map, { anchor: destMarker });
+          });
+          bounds.extend(destMarker.position);
+        } else {
+          const { Marker } = google.maps;
+          const destMarker = new Marker({
+            position: destPos,
+            map,
+            label: { text: String(legNum), color: '#fff', fontWeight: 'bold', fontSize: '10px' },
+            title: leg.destination.label,
+          });
+          destMarker.addListener('click', () => {
+            infoWindow.setContent(leg.destination.label);
+            infoWindow.open(map, destMarker);
+          });
+          bounds.extend(destMarker.position);
+        }
       }
 
       if (!cancelled) {
