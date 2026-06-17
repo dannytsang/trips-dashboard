@@ -161,10 +161,10 @@ function LegCollapsible({ leg, index }) {
               {leg.flight.airline} {leg.flight.flightNumber}
               {leg.flight.departLocal ? (
                 <span className="leg-detail-time">
-                  {new Date(leg.flight.departLocal).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(leg.flight.departLocal).toLocaleTimeString('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' })}
                   {' → '}
                   {leg.flight.arriveLocal
-                    ? new Date(leg.flight.arriveLocal).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+                    ? new Date(leg.flight.arriveLocal).toLocaleTimeString('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' })
                     : '?'}
                 </span>
               ) : null}
@@ -374,7 +374,7 @@ function AccommodationSection({ accommodation }) {
 function formatDateTime(iso) {
   if (!iso) return null;
   try {
-    return new Date(iso).toLocaleString('en-GB', {
+    return new Date(iso).toLocaleString('en-GB', { timeZone: 'UTC',
       weekday: 'short',
       day: '2-digit',
       month: 'short',
@@ -461,7 +461,7 @@ function NotificationBlock({ notif }) {
     stateBits.push(
       <span key="js" className="leg-notif-detail">
         Journey start: {st.journeyStart.status}
-        {st.journeyStart.sentAt ? ` @ ${new Date(st.journeyStart.sentAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : ''}
+        {st.journeyStart.sentAt ? ` @ ${new Date(st.journeyStart.sentAt).toLocaleTimeString('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' })}` : ''}
       </span>
     );
   }
@@ -477,7 +477,7 @@ function NotificationBlock({ notif }) {
   if (st?.lastSentAt) {
     stateBits.push(
       <span key="lsa" className="leg-notif-detail">
-        Last: {new Date(st.lastSentAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+        Last: {new Date(st.lastSentAt).toLocaleString('en-GB', { timeZone: 'UTC', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
       </span>
     );
   }
@@ -522,14 +522,14 @@ function PlanningReviewBlock({ review }) {
   if (action?.shownAt) {
     bits.push(
       <span key="rs" className="leg-review-detail">
-        Shown: {new Date(action.shownAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+        Shown: {new Date(action.shownAt).toLocaleString('en-GB', { timeZone: 'UTC', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
       </span>
     );
   }
   if (action?.decidedAt) {
     bits.push(
       <span key="rd" className="leg-review-detail">
-        Decided: {new Date(action.decidedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+        Decided: {new Date(action.decidedAt).toLocaleString('en-GB', { timeZone: 'UTC', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
         {action.decidedBy ? ` by ${action.decidedBy}` : ''}
       </span>
     );

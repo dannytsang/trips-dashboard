@@ -267,7 +267,7 @@ export function DashboardSessionSurface({
 
             <div className={`portfolio-status ${portfolioStale ? 'status-warning' : 'status-ok'}`}>
               <span>{portfolioStale ? '⚠️ Portfolio stale' : '✅ Portfolio current'}</span>
-              {generatedAt ? <span>🕒 Generated {new Date(generatedAt).toLocaleString('en-GB')}</span> : <span>🕒 Not generated yet</span>}
+              {generatedAt ? <span>🕒 Generated {new Date(generatedAt).toLocaleString('en-GB', { timeZone: 'UTC', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })} UTC</span> : <span>🕒 Not generated yet</span>}
               {portfolioMessage ? <span>ℹ️ {portfolioMessage}</span> : null}
             </div>
 
