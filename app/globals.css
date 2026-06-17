@@ -829,6 +829,33 @@ p {
   color: var(--text-muted);
 }
 
+/* Trip overview map — single embedded map above the leg list (FR-042).
+   Shows all legs on one map; one pin per leg destination. */
+.trip-overview-map {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.trip-overview-map-loading {
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+.trip-overview-map-iframe {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-secondary, transparent);
+}
+.trip-overview-map-attribution {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
 /* Old non-collapsible row styles — kept for backwards compat, unused */
 .leg-detail-row {
   display: flex;

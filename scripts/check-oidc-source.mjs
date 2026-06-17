@@ -95,34 +95,16 @@ assert.match(
 // replaces the previous FR-027 single-pin map and the FR-032 strip;
 // the standalone leg-detail-map block is removed entirely.
 const legRouteMap = readFileSync('components/leg-route-map.jsx', 'utf8');
+const tripOverviewMap = readFileSync('components/trip-overview-map.jsx', 'utf8');
 assert.match(
   tripDetailSurface,
   /<LegRouteMap\s+leg=\{leg\}\s*\/>/,
   'trip detail must render LegRouteMap inline inside each leg row (spec 010 FR-036)'
 );
-assert.doesNotMatch(
+assert.match(
   tripDetailSurface,
-  /<SectionCollapsible\s+title="Map"/,
-  'trip detail must not render Map as its own collapsible section'
-);
-// Regression check (FR-036): the standalone trip map section is
-// removed. A future regression that re-adds the FR-027 single-pin
-// map or the FR-032 strip inside the Legs DetailSection would
-// re-introduce the overview map Danny asked to remove.
-assert.doesNotMatch(
-  tripDetailSurface,
-  /<TripMap\s/,
-  'trip detail must not render the standalone TripMap (FR-036 removes the FR-027 overview section)'
-);
-assert.doesNotMatch(
-  tripDetailSurface,
-  /<TripMapStrip\s/,
-  'trip detail must not render the standalone TripMapStrip (FR-036 removes the FR-032 strip)'
-);
-assert.doesNotMatch(
-  tripDetailSurface,
-  /leg-detail-map-strip/,
-  'trip detail must not reference the .leg-detail-map-strip container (removed by FR-036)'
+  /<TripOverviewMap\s+legs=\{trip\.legs\}\s+homeBase=\{trip\.homeBase\}\s*\/>/,
+  'trip detail must render TripOverviewMap above the leg list (FR-042)'
 );
 // v5 + v5.1 expansion (spec 010 FR-038..FR-040): Travellers, Transport
 // decision, Legs+Map, and Accommodation render as SectionCollapsible

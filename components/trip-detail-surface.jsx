@@ -1,9 +1,8 @@
 'use client';
-// v6 (spec 010 FR-041): each leg is a LegCollapsible — collapsed
-// to its header line (index + emoji + label + mode + chevron) by
-// default; expanded on click to show the full leg detail block,
-// notification block, review block, and per-leg map iframe.
-// Legs section outer SectionCollapsible is unchanged.
+// v6 (spec 010 FR-041 + FR-042): each leg is a LegCollapsible —
+// collapsed to its header line by default, expanded on click.
+// FR-042 also adds a TripOverviewMap above the leg list, showing
+// all legs on a single embedded map (one pin per leg destination).
 // Nudge commit to fire Vercel rebuild (empty commits are skipped by vercel-ignore-build.sh).
 
 import { useEffect, useMemo, useState } from 'react';
@@ -15,6 +14,7 @@ import {
   toDisplayLabel,
 } from '@/lib/display-labels.mjs';
 import { LegRouteMap } from '@/components/leg-route-map';
+import { TripOverviewMap } from '@/components/trip-overview-map';
 
 const THEME_STORAGE_KEY = 'tsang-travel-theme';
 
@@ -708,6 +708,7 @@ export function TripDetailSurface({
         {/* Legs (with map embedded) */}
         {hasLegs ? (
           <SectionCollapsible title="Legs" emoji="🛤️" defaultOpen={true}>
+            <TripOverviewMap legs={trip.legs} homeBase={trip.homeBase} />
             <ol className="leg-detail-list">
               {trip.legs.map((leg, i) => (
                 <LegCollapsible key={`${trip.id}-leg-${i}`} leg={leg} index={i} />
