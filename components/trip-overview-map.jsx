@@ -12,18 +12,14 @@
  * coloured route lines, clickable markers. Privacy contract unchanged:
  * precision 'home' or 'exact' waypoints are excluded from the map.
  *
- * Falls back to a loading placeholder while the JS API initialises.
- * If fewer than 2 legs have mappable waypoints, returns null (no map).
+ * Hydration safety: provider check is deferred to useEffect (client-only)
+ * so the server-rendered HTML matches the initial client render. Both render
+ * null on first render; the client re-renders with the real provider after
+ * the effect runs.
  */
 
 import { useEffect, useRef, useState } from 'react';
 import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
-
-function resolveProvider(propProvider, envProvider, hasKey) {
-  const requested = (propProvider || envProvider || 'osm').toLowerCase();
-  if (requested === 'google' && hasKey) return 'google';
-  return 'osm';
-}
 
 async function geocodeOne(wp) {
   if (wp.precision === 'home' || wp.precision === 'exact') {
@@ -64,13 +60,8 @@ function geocodeShared(wp) {
 }
 
 async function collectLegCoords(legs) {
-  const tasks = [];
-  legs.forEach((leg, i) => {
-    tasks.push({ leg, index: i });
-  });
-
   const results = await Promise.all(
-    tasks.map(async ({ leg, index }) => {
+    legs.map(async (leg, index) => {
       if (!leg?.origin?.label || !leg?.destination?.label) {
         return { index, origin: null, dest: null };
       }
@@ -89,7 +80,7 @@ async function collectLegCoords(legs) {
     .sort((a, b) => a.index - b.index);
 }
 
-// Mode → stroke colour (Google Maps travel mode determined at runtime after API loads).
+// Mode → stroke colour. TravelMode constants are resolved at runtime after API loads.
 const MODE_COLORS = {
   driving:   { color: '#4285F4', weight: 4 },
   walking:   { color: '#34A853', weight: 3 },
@@ -100,7 +91,7 @@ const MODE_COLORS = {
 function getModeColor(rawMode) {
   const m = String(rawMode || '').toLowerCase();
   if (m.includes('walk'))   return MODE_COLORS.walking;
-  if (m.includes('bike'))  return MODE_COLORS.bicycling;
+  if (m.includes('bike'))   return MODE_COLORS.bicycling;
   if (m.includes('transit') || m.includes('rail') || m.includes('train')) return MODE_COLORS.transit;
   if (m.includes('drive') || m.includes('car') || m.includes('taxi') ||
       m.includes('bus') || m.includes('ferry') || m.includes('cruise') || m.includes('flight')) {
@@ -112,22 +103,25 @@ function getModeColor(rawMode) {
 export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
   const mapDivRef = useRef(null);
 
-  const [status, setStatus] = useState('idle'); // idle | loading | error
+  // phase: 'idle' | 'loading' | 'map' | 'error'
+  // 'idle' renders null on both server and client (hydration-safe).
+  // Provider check is deferred to useEffect so first render is identical.
+  const [phase, setPhase] = useState('idle');
   const [legCoords, setLegCoords] = useState([]);
-
-  const envProvider = process.env.NEXT_PUBLIC_GMAPS_PROVIDER || '';
   const envKey = process.env.NEXT_PUBLIC_GMAPS_EMBED_KEY || '';
-  const provider = resolveProvider(mapProvider, envProvider, Boolean(envKey));
 
-  // Only activate for Google provider.
-  if (provider !== 'google') {
-    return null;
-  }
-
-  // Phase 1: geocode all leg endpoints.
   useEffect(() => {
     if (!legs || legs.length === 0) {
-      setStatus('error');
+      setPhase('error');
+      return;
+    }
+
+    // Resolve provider in the effect (client-only) to avoid hydration mismatch.
+    const requested = (mapProvider || process.env.NEXT_PUBLIC_GMAPS_PROVIDER || 'osm').toLowerCase();
+    const provider = (requested === 'google' && Boolean(envKey)) ? 'google' : 'osm';
+
+    if (provider !== 'google') {
+      setPhase('error');
       return;
     }
 
@@ -135,26 +129,30 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
 
     async function run() {
       const coords = await collectLegCoords(legs);
-      if (!cancelled) {
-        setLegCoords(coords);
-        setStatus(coords.length < 2 ? 'error' : 'loading');
+      if (cancelled) return;
+
+      if (coords.length < 2) {
+        setPhase('error');
+        return;
       }
+
+      setLegCoords(coords);
+      setPhase('loading'); // triggers re-render → map div is now in the DOM
     }
 
     run();
     return () => {
       cancelled = true;
     };
-  }, [legs]);
+  }, [legs, mapProvider, envKey]);
 
-  // Phase 2: initialise Google Maps JS API once div is mounted and we have coords.
+  // Phase 2: initialise Google Maps JS API once the map div is in the DOM.
   useEffect(() => {
-    if (status !== 'loading' || !mapDivRef.current) return;
+    if (phase !== 'loading' || !mapDivRef.current) return;
 
     let cancelled = false;
 
     async function initMap() {
-      // v2 functional API — setOptions then importLibrary.
       setOptions({
         key: envKey,
         v: 'weekly',
@@ -176,7 +174,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
       function getModeStyle(rawMode) {
         const m = String(rawMode || '').toLowerCase();
         if (m.includes('walk'))   return MODE_STYLES.walking;
-        if (m.includes('bike'))   return MODE_STYLES.bicycling;
+        if (m.includes('bike'))    return MODE_STYLES.bicycling;
         if (m.includes('transit') || m.includes('rail') || m.includes('train')) return MODE_STYLES.transit;
         if (m.includes('drive') || m.includes('car') || m.includes('taxi') ||
             m.includes('bus') || m.includes('ferry') || m.includes('cruise') || m.includes('flight')) {
@@ -195,11 +193,9 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
         fullscreenControl: true,
       });
 
-      // Add a Polyline + markers for each leg.
       for (const { leg, origin, dest } of legCoords) {
         const { color, weight } = getModeStyle(leg.mode);
 
-        // Polyline for the leg route.
         new Polyline({
           path: [
             { lat: origin.lat, lng: origin.lon },
@@ -211,12 +207,16 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
           map,
         });
 
-        // Origin marker (numbered circle, colour-coded).
+        const legIdx = (n) => String(legCoords.findIndex(l =>
+          (l.origin.lat === n.origin.lat && l.origin.lon === n.origin.lon) ||
+          (l.dest.lat === n.dest.lat && l.dest.lon === n.dest.lon)
+        ) + 1);
+
         const originMarker = new Marker({
           position: { lat: origin.lat, lng: origin.lon },
           map,
           label: {
-            text: String(legCoords.findIndex(l => l.origin.lat === origin.lat && l.origin.lon === origin.lon) + 1),
+            text: legIdx({ origin, dest }),
             color: '#fff',
             fontWeight: 'bold',
             fontSize: '10px',
@@ -237,12 +237,11 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
           infoWindow.open(map, originMarker);
         });
 
-        // Destination marker (square).
         const destMarker = new Marker({
           position: { lat: dest.lat, lng: dest.lon },
           map,
           label: {
-            text: String(legCoords.findIndex(l => l.dest.lat === dest.lat && l.dest.lon === dest.lon) + 1),
+            text: legIdx({ origin, dest }),
             color: '#fff',
             fontWeight: 'bold',
             fontSize: '10px',
@@ -269,6 +268,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
 
       if (!cancelled) {
         map.fitBounds(bounds, { padding: 40 });
+        setPhase('map'); // re-render to remove loading text
       }
     }
 
@@ -276,9 +276,9 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
     return () => {
       cancelled = true;
     };
-  }, [status, legCoords, envKey]);
+  }, [phase, legCoords, envKey]);
 
-  if (status === 'idle' || status === 'error') {
+  if (phase === 'idle' || phase === 'error') {
     return null;
   }
 
@@ -289,7 +289,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
         className="trip-overview-map-canvas"
         aria-label="Interactive trip map"
       />
-      {status === 'loading' && (
+      {phase === 'loading' && (
         <p className="trip-overview-map-loading map-note">🗺️ Loading map…</p>
       )}
     </div>
