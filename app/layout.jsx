@@ -22,10 +22,13 @@ const HYDRATION_DIAG = `
   if (window.__hydrationDiagInstalled) return;
   window.__hydrationDiagInstalled = true;
 
-  function dumpDOMAround(node, depth) {
+  function dumpDOMAround(node, depth, maxLen) {
     if (!node) return '[null node]';
     depth = depth || 0;
-    if (depth > 4) return '[truncated]';
+    maxLen = maxLen || 8000;
+    if (depth > 12) return '[truncated-depth]';
+    var indent = '  '.repeat(depth);
+    var out = '';
     var ownAttrs = '';
     if (node.attributes) {
       for (var i = 0; i < node.attributes.length; i++) {
@@ -33,16 +36,23 @@ const HYDRATION_DIAG = `
         ownAttrs += ' ' + a.name + '="' + (a.value || '').substring(0, 80) + '"';
       }
     }
-    var ownText = '';
+    out += indent + '<' + node.nodeName.toLowerCase() + ownAttrs + '>';
     if (node.childNodes && node.childNodes.length) {
-      for (var j = 0; j < node.childNodes.length && j < 8; j++) {
+      for (var j = 0; j < node.childNodes.length && j < 30; j++) {
         var c = node.childNodes[j];
-        if (c.nodeType === 3) ownText += '[text:"' + (c.nodeValue || '').substring(0, 200) + '"]';
-        else if (c.nodeType === 8) ownText += '[comment]';
-        else ownText += '<' + c.nodeName.toLowerCase() + '>';
+        if (c.nodeType === 3) {
+          var txt = (c.nodeValue || '').substring(0, 200);
+          if (txt.trim()) out += '\\n' + indent + '  [text:"' + txt + '"]';
+        } else if (c.nodeType === 8) {
+          out += '\\n' + indent + '  [comment]';
+        } else {
+          out += '\\n' + dumpDOMAround(c, depth + 1, maxLen);
+        }
       }
     }
-    return '<' + node.nodeName.toLowerCase() + ownAttrs + '>' + ownText;
+    out += '\\n' + indent + '</' + node.nodeName.toLowerCase() + '>';
+    if (out.length > maxLen) return out.substring(0, maxLen) + '...[truncated]';
+    return out;
   }
 
   function post(payload) {
