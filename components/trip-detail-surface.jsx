@@ -259,7 +259,7 @@ function AccommodationSection({ accommodation }) {
   const earlyLabel = accommodationStatusLabel(accommodation.early_check_in_status);
   const lateLabel = accommodationStatusLabel(accommodation.late_checkout_status);
   return (
-    <DetailSection title="Accommodation" emoji="🏨">
+    <SectionCollapsible title="Accommodation" emoji="🏨" defaultOpen={true}>
       <dl className="accommodation-detail-list">
         {accommodation.provider ? (
           <>
@@ -347,7 +347,7 @@ function AccommodationSection({ accommodation }) {
           </dl>
         </div>
       ) : null}
-    </DetailSection>
+    </SectionCollapsible>
   );
 }
 
