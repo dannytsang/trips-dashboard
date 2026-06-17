@@ -772,6 +772,64 @@ p {
   margin: 0.25rem 0 0 0;
 }
 
+/* Per-leg collapsible (spec 010 FR-041). Each leg is a collapsible
+   row: header line (index + emoji + label + mode + chevron) by default;
+   full leg detail block expands on click. */
+.leg-collapsible-row {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--border-color);
+}
+.leg-collapsible-row:last-child {
+  border-bottom: none;
+}
+
+.leg-collapsible-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0.5rem 0;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  text-align: left;
+}
+.leg-collapsible-header:hover .leg-detail-label {
+  text-decoration: underline;
+}
+
+.leg-collapsible-chevron {
+  margin-left: auto;
+  font-size: 0.7rem;
+  opacity: 0.6;
+}
+
+.leg-collapsible-body {
+  padding: 0 0 0.75rem 2rem; /* indent to align with header text */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Flight info inside the collapsible body */
+.leg-collapsible-body .leg-detail-flight {
+  padding: 0.375rem 0.625rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+.leg-collapsible-body .leg-detail-time {
+  margin-left: 0.5rem;
+  color: var(--text-muted);
+}
+
+/* Old non-collapsible row styles — kept for backwards compat, unused */
 .leg-detail-row {
   display: flex;
   align-items: flex-start;

@@ -1,9 +1,9 @@
 'use client';
-// v5 expansion (spec 010 FR-038..FR-040): Travellers, Transport decision,
-// and Legs+Map render as SectionCollapsible with defaultOpen={true}.
-// All three are visible on first load; user can collapse/expand.
-// Other sections (Programme, Planning rationale, Monitoring, Notes,
-// Accommodation) are unchanged.
+// v6 (spec 010 FR-041): each leg is a LegCollapsible — collapsed
+// to its header line (index + emoji + label + mode + chevron) by
+// default; expanded on click to show the full leg detail block,
+// notification block, review block, and per-leg map iframe.
+// Legs section outer SectionCollapsible is unchanged.
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -118,7 +118,8 @@ function DetailSection({ title, emoji, children }) {
   );
 }
 
-function LegRow({ leg, index }) {
+function LegCollapsible({ leg, index }) {
+  const [open, setOpen] = useState(false);
   const label = leg.label || 'Unknown leg';
   const mode = leg.mode || 'unknown';
   const cju = leg.contactJourneyUpdate;
@@ -126,32 +127,44 @@ function LegRow({ leg, index }) {
   const review = leg.planningReview;
 
   return (
-    <li className="leg-detail-row">
-      <span className="leg-detail-index">{index + 1}</span>
-      <span className="leg-detail-mode">{formatLegModeEmoji(mode)}</span>
-      <div className="leg-detail-content">
+    <li className="leg-collapsible-row">
+      <button
+        type="button"
+        className="leg-collapsible-header"
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+      >
+        <span className="leg-detail-index">{index + 1}</span>
+        <span className="leg-detail-mode">{formatLegModeEmoji(mode)}</span>
         <span className="leg-detail-label">{label}</span>
         <span className="leg-detail-sub">{formatLegModeLabel(mode)}</span>
-        <LegDetailBlock leg={leg} />
-        {cju ? <ContactJourneyUpdateBlock cju={cju} /> : null}
-        {notif ? <NotificationBlock notif={notif} /> : null}
-        {review ? <PlanningReviewBlock review={review} /> : null}
-        <LegRouteMap leg={leg} />
-      </div>
-      {leg.flight ? (
-        <div className="leg-detail-flight">
-          {leg.flight.airline} {leg.flight.flightNumber}
-          {leg.flight.departLocal ? (
-            <span className="leg-detail-time">
-              {new Date(leg.flight.departLocal).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-              {' → '}
-              {leg.flight.arriveLocal
-                ? new Date(leg.flight.arriveLocal).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-                : '?'}
-            </span>
+        <span className="leg-collapsible-chevron">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div className="leg-collapsible-body">
+          <div className="leg-detail-content">
+            <LegDetailBlock leg={leg} />
+            {cju ? <ContactJourneyUpdateBlock cju={cju} /> : null}
+            {notif ? <NotificationBlock notif={notif} /> : null}
+            {review ? <PlanningReviewBlock review={review} /> : null}
+            <LegRouteMap leg={leg} />
+          </div>
+          {leg.flight ? (
+            <div className="leg-detail-flight">
+              {leg.flight.airline} {leg.flight.flightNumber}
+              {leg.flight.departLocal ? (
+                <span className="leg-detail-time">
+                  {new Date(leg.flight.departLocal).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                  {' → '}
+                  {leg.flight.arriveLocal
+                    ? new Date(leg.flight.arriveLocal).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+                    : '?'}
+                </span>
+              ) : null}
+            </div>
           ) : null}
         </div>
-      ) : null}
+      )}
     </li>
   );
 }
@@ -696,7 +709,7 @@ export function TripDetailSurface({
           <SectionCollapsible title="Legs" emoji="🛤️" defaultOpen={true}>
             <ol className="leg-detail-list">
               {trip.legs.map((leg, i) => (
-                <LegRow key={`${trip.id}-leg-${i}`} leg={leg} index={i} />
+                <LegCollapsible key={`${trip.id}-leg-${i}`} leg={leg} index={i} />
               ))}
             </ol>
           </SectionCollapsible>

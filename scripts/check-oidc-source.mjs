@@ -174,6 +174,27 @@ assert.doesNotMatch(
 // SectionCollapsible, so a doesNotMatch assertion for that exact
 // DetailSection would fire legitimately on the current code.
 // The four positive-existence assertions above are the new contract.
+
+// v6 (spec 010 FR-041): each leg renders as LegCollapsible — a button
+// header showing index badge + emoji + label + mode + chevron by default,
+// expanded body shows the full leg detail block + notification block +
+// review block + per-leg map iframe. The Legs section outer
+// SectionCollapsible remains. defaultOpen is false (collapsed by default).
+assert.match(
+  tripDetailSurface,
+  /function LegCollapsible\(\{ leg, index \}\)/,
+  'trip detail must define LegCollapsible component (FR-041)'
+);
+assert.match(
+  tripDetailSurface,
+  /<LegCollapsible\b/,
+  'trip detail must render LegCollapsible for each leg (FR-041)'
+);
+assert.doesNotMatch(
+  tripDetailSurface,
+  /function LegRow\(/,
+  'trip detail must not render the old non-collapsible LegRow (FR-041)'
+);
 // LegRouteMap must build both provider iframe URLs (FR-036). We
 // assert on the source shape, not the final URL.
 assert.match(
