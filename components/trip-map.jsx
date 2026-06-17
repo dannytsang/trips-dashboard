@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { buildViewport } from '@/lib/basemap-projection.mjs';
 
 /**
- * TripMap — renders an embedded OpenStreetMap iframe for the trip's
- * waypoints, with a waypoint list below as a structured fallback.
+ * TripMap — renders an embedded map iframe (OpenStreetMap or Google Maps
+ * Embed API) for the trip's waypoints, with a waypoint list below as a
+ * structured fallback.
  *
  * Behaviour (spec 010 FR-009, FR-026, FR-027):
  *   - Geocodes each unique leg origin/destination via /api/geocode.
@@ -22,17 +23,42 @@ import { buildViewport } from '@/lib/basemap-projection.mjs';
  *   - Always renders the structured waypoint list so the user sees the
  *     full set of stops regardless of map render quality.
  *
+ * Provider selection (NEXT_PUBLIC_GMAPS_PROVIDER + NEXT_PUBLIC_GMAPS_EMBED_KEY):
+ *   - Default: 'osm' — zero API key, free, works on every preview deploy.
+ *   - 'google': only used when both NEXT_PUBLIC_GMAPS_PROVIDER='google'
+ *     AND NEXT_PUBLIC_GMAPS_EMBED_KEY is set. Otherwise falls back to OSM
+ *     silently (the key is required by Google's iframe URL contract).
+ *   - The `mapProvider` prop overrides the env var (used by tests).
+ *
+ * Google Maps Embed API:
+ *   - We use `place` mode, which displays a single map pin. Google Embed
+ *     has no native "multiple pins on one map" mode; that would require
+ *     the (billable) Maps JavaScript SDK. The OSM embed has the same
+ *     single-pin limitation, so this provider switch only changes the
+ *     pin style and the iframe host — not the number of pins.
+ *   - The key is referrer-restricted in Google Cloud Console
+ *     (tsang-travel.vercel.app/* + *.vercel.app/* for previews).
+ *
  * Privacy:
- *   - The OSM iframe URL is constructed in-browser from waypoints whose
+ *   - The iframe URL is constructed in-browser from waypoints whose
  *     precision is NOT 'home' or 'exact'. Private locations are excluded.
  *   - The /api/geocode server route already enforces this; we additionally
  *     filter here as a defence-in-depth check before composing the URL.
  *   - The home base town (passed via `homeBase.town`) is also excluded
  *     from the marker selection. The bbox still includes the home town
- *     (so the visible map area frames the full trip), but the OSM pin
+ *     (so the visible map area frames the full trip), but the pin
  *     highlights the destination, not home.
  */
-export function TripMap({ legs = [], homeBase = null }) {
+
+// Provider resolution order: explicit prop > NEXT_PUBLIC_GMAPS_PROVIDER > 'osm'.
+// The key check is the gate for 'google' — without a key, Google is not usable.
+function resolveProvider(propProvider, envProvider, hasKey) {
+  const requested = (propProvider || envProvider || 'osm').toLowerCase();
+  if (requested === 'google' && hasKey) return 'google';
+  return 'osm';
+}
+
+export function TripMap({ legs = [], homeBase = null, mapProvider = null }) {
   const [waypoints, setWaypoints] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -100,7 +126,7 @@ export function TripMap({ legs = [], homeBase = null }) {
     [waypoints]
   );
 
-  // Build the OSM embed URL once we have enough geocoded waypoints.
+  // Build the iframe URL once we have enough geocoded waypoints.
   // FR-027: only non-private (precision != 'home'/'exact') waypoints
   // contribute to the bbox and marker. Defence in depth — the server
   // geocoder also enforces this, but we filter again here so the URL is
@@ -144,24 +170,53 @@ export function TripMap({ legs = [], homeBase = null }) {
     const markerWp = nonHomeVisible.length > 0
       ? nonHomeVisible[nonHomeVisible.length - 1]
       : visible[visible.length - 1];
-    // OSM embed uses lat,lon order for the marker parameter.
+    // Shared lat/lon used by both providers — to five decimal places
+    // (~1.1 m precision, more than enough for a single-pin embed).
     const markerLat = markerWp.lat.toFixed(5);
     const markerLon = markerWp.lon.toFixed(5);
+    // Provider resolution: explicit prop > env var > 'osm' default.
+    // The Google gate is "provider=google AND a key is set" — without
+    // a key, we silently fall back to OSM so a missing key on a preview
+    // deploy doesn't break the page.
+    const envProvider = process.env.NEXT_PUBLIC_GMAPS_PROVIDER || '';
+    const envKey = process.env.NEXT_PUBLIC_GMAPS_EMBED_KEY || '';
+    const provider = resolveProvider(mapProvider, envProvider, Boolean(envKey));
+    if (provider === 'google') {
+      // Google Maps Embed API — `place` mode displays a single pin at
+      // `q=lat,lng`. The key is inlined into the URL; the key is
+      // referrer-restricted in Google Cloud Console so it can't be
+      // lifted and abused. `maptype=roadmap` keeps the visual style
+      // similar to OSM's default mapnik layer.
+      const params = new URLSearchParams({
+        key: envKey,
+        q: `${markerLat},${markerLon}`,
+        maptype: 'roadmap',
+      });
+      const viewLargeHref = `https://www.google.com/maps?q=${markerLat},${markerLon}&z=11`;
+      return {
+        provider: 'google',
+        src: `https://www.google.com/maps/embed/v1/place?${params.toString()}`,
+        markerLabel: markerWp.label,
+        viewLargeHref,
+      };
+    }
+    // OSM (default). Build a "View larger map" link to the public OSM
+    // site at the same marker and a sensible zoom (zoom 11 ≈ city
+    // scale for the bbox sizes we render). mlat/mlon order matches
+    // the embed URL convention.
     const params = new URLSearchParams({ bbox, layer: 'mapnik', marker: `${markerLat},${markerLon}` });
-    // Build a "View larger map" link to the public OSM site at the same
-    // marker and a sensible zoom (zoom 11 ≈ city scale for the bbox sizes
-    // we render). mlat/mlon order matches the embed URL convention.
     const viewLargeParams = new URLSearchParams({
       mlat: markerLat,
       mlon: markerLon,
     });
     const viewLargeHref = `https://www.openstreetmap.org/?${viewLargeParams.toString()}#map=11/${markerLat}/${markerLon}`;
     return {
+      provider: 'osm',
       src: `https://www.openstreetmap.org/export/embed.html?${params.toString()}`,
       markerLabel: markerWp.label,
       viewLargeHref,
     };
-  }, [geocoded, homeBase]);
+  }, [geocoded, homeBase, mapProvider]);
 
   if (loading) {
     return (
@@ -199,22 +254,45 @@ export function TripMap({ legs = [], homeBase = null }) {
         referrerPolicy="no-referrer-when-downgrade"
       />
       <p className="trip-map-attribution">
-        ©{' '}
-        <a
-          href="https://www.openstreetmap.org/copyright"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          OpenStreetMap
-        </a>{' '}
-        contributors ·{' '}
-        <a
-          href={embed.viewLargeHref}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          View larger map
-        </a>
+        {embed.provider === 'google' ? (
+          <>
+            Map data ©{' '}
+            <a
+              href="https://www.google.com/maps"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Google
+            </a>
+            {' · '}
+            <a
+              href={embed.viewLargeHref}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View larger map
+            </a>
+          </>
+        ) : (
+          <>
+            ©{' '}
+            <a
+              href="https://www.openstreetmap.org/copyright"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              OpenStreetMap
+            </a>{' '}
+            contributors ·{' '}
+            <a
+              href={embed.viewLargeHref}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View larger map
+            </a>
+          </>
+        )}
       </p>
       <p className="trip-map-marker-note">
         <span className="trip-map-marker-dot" aria-hidden="true">📍</span>
@@ -223,11 +301,13 @@ export function TripMap({ legs = [], homeBase = null }) {
           {(() => {
             const homeTown = (homeBase?.town || '').trim();
             const isHome = homeTown && embed.markerLabel.trim() === homeTown;
-            return isHome
+            const baseNote = isHome
               ? ' (home)'
               : homeTown
-                ? ' · OSM marker on the last non-home waypoint'
+                ? ' · pin on the last non-home waypoint'
                 : '';
+            const providerTag = embed.provider === 'google' ? ' · Google Maps Embed' : ' · OSM Embed';
+            return baseNote + providerTag;
           })()}
         </span>
       </p>

@@ -30,6 +30,26 @@ Set these in Vercel production/preview environments; never commit their values:
 - Vercel Blob storage for the latest brief, using either Vercel-managed Blob OIDC/store binding or `BLOB_READ_WRITE_TOKEN`
 - Optional `TRIPS_DASHBOARD_BLOB_PATH` override; defaults to `trips-dashboard/latest.json`
 
+### Map provider switch (optional)
+
+The trip detail map is embedded as an iframe. The default provider is **OpenStreetMap** (no key, free, no quota). You can switch to **Google Maps Embed API** by setting:
+
+| Name | Required | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_GMAPS_PROVIDER` | for Google | Set to `google` to use the Google Maps Embed API. Unset (or `osm`) keeps OSM. |
+| `NEXT_PUBLIC_GMAPS_EMBED_KEY` | for Google | Google Maps Platform API key with the **Maps Embed API** enabled. |
+
+`NEXT_PUBLIC_*` vars are inlined into the client bundle (Next.js default), so the key is visible to anyone who opens DevTools. **Restrict the key by HTTP referrer** in Google Cloud Console:
+
+- `tsang-travel.vercel.app/*` (production)
+- `*.vercel.app/*` (preview deploys)
+
+Referrer restriction stops the key from being lifted and used elsewhere. Vercel does **not** hot-reload env changes — set the vars in **Project → Settings → Environment Variables**, then redeploy.
+
+**Provider selection logic:** the map uses Google only when `NEXT_PUBLIC_GMAPS_PROVIDER=google` AND a key is set. Otherwise it silently falls back to OSM so a missing key on a preview deploy never breaks the page. See `.env.example` and the JSDoc on `resolveProvider` in `components/trip-map.jsx`.
+
+> **Note on Google Maps Embed API:** the Embed API has a hard single-pin limit. `place` mode shows one pin; `directions` mode supports only one origin/destination; there is no multi-pin embed mode. To show multiple POI pins on one map you would need the **Maps JavaScript API** (billable product — separate decision). Spec 010 FR-009.
+
 ## Privacy rule
 
 Trip data must not be stored in this public git repository, committed generated TypeScript/JSON, or exposed through public static assets. Dashboard data must be stored only in authenticated/private runtime services and served to authenticated users.
