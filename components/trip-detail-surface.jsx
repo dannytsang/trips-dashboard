@@ -4,6 +4,7 @@
 // FR-042 also adds a TripOverviewMap above the leg list, showing
 // all legs on a single embedded map (one pin per leg destination).
 // Nudge commit to fire Vercel rebuild (empty commits are skipped by vercel-ignore-build.sh).
+// FR-042: TripOverviewMap reuses buildViewport + shared geocode cache from LegRouteMap.
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
