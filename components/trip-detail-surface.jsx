@@ -660,6 +660,10 @@ export function TripDetailSurface({
           <Link href="/" className="back-link">
             ← Back to trip summary
           </Link>
+          <div className="detail-topbar-title" aria-label="Current trip">
+            <span className="detail-topbar-date">{formatDateRange(trip.start, trip.end)}</span>
+            <span className="detail-topbar-name">{trip.title || tripId}</span>
+          </div>
           <button
             type="button"
             className="secondary-action theme-toggle"
