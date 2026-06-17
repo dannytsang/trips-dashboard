@@ -3,13 +3,13 @@
 /**
  * TripOverviewMap — one Google Maps JavaScript API map showing all trip legs.
  * Renders a single <div> that @googlemaps/js-api-loader populates with a
- * google.maps.Map instance. Each leg becomes a Polyline (colored by mode)
+ * google.maps.Map instance. Each leg becomes a Polyline (coloured by mode)
  * and origin/destination Markers. The map auto-fits its bounds to show
  * all legs on load.
  *
  * FR-042 Revised (JS API): replaces the stacked iframe strip with one
  * interactive map. All legs visible at once — one map, polyline per leg,
- * colored route lines, clickable markers. Privacy contract unchanged:
+ * coloured route lines, clickable markers. Privacy contract unchanged:
  * precision 'home' or 'exact' waypoints are excluded from the map.
  *
  * Falls back to a loading placeholder while the JS API initialises.
@@ -63,26 +63,6 @@ function geocodeShared(wp) {
   return promise;
 }
 
-// Mode → Google Maps API travel mode string + stroke colour.
-const MODE_STYLES = {
-  driving:   { mode: google.maps.TravelMode.DRIVING,   color: '#4285F4', weight: 4 },
-  walking:   { mode: google.maps.TravelMode.WALKING,   color: '#34A853', weight: 3 },
-  bicycling: { mode: google.maps.TravelMode.BICYCLING, color: '#FBBC04', weight: 4 },
-  transit:   { mode: google.maps.TravelMode.TRANSIT,   color: '#EA4335', weight: 3 },
-};
-
-function getModeStyle(rawMode) {
-  const m = String(rawMode || '').toLowerCase();
-  if (m.includes('walk'))   return MODE_STYLES.walking;
-  if (m.includes('bike'))    return MODE_STYLES.bicycling;
-  if (m.includes('transit') || m.includes('rail') || m.includes('train')) return MODE_STYLES.transit;
-  if (m.includes('drive') || m.includes('car') || m.includes('taxi') ||
-      m.includes('bus') || m.includes('ferry') || m.includes('cruise') || m.includes('flight')) {
-    return MODE_STYLES.driving;
-  }
-  return MODE_STYLES.driving;
-}
-
 async function collectLegCoords(legs) {
   const tasks = [];
   legs.forEach((leg, i) => {
@@ -111,7 +91,6 @@ async function collectLegCoords(legs) {
 
 export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
   const mapDivRef = useRef(null);
-  const mapInstanceRef = useRef(null);
 
   const [status, setStatus] = useState('idle'); // idle | loading | error
   const [legCoords, setLegCoords] = useState([]);
@@ -152,7 +131,6 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
   useEffect(() => {
     if (status !== 'loading' || !mapDivRef.current) return;
 
-    let map;
     let cancelled = false;
 
     async function initMap() {
@@ -165,10 +143,32 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
       const google = await loader.load();
       if (cancelled || !mapDivRef.current) return;
 
+      // Mode → Google Maps API travel mode + stroke colour.
+      // These are looked up from the google object AFTER the API loads,
+      // not at module-parse time (which caused ReferenceError: google not defined).
+      const MODE_STYLES = {
+        driving:   { mode: google.maps.TravelMode.DRIVING,   color: '#4285F4', weight: 4 },
+        walking:   { mode: google.maps.TravelMode.WALKING,   color: '#34A853', weight: 3 },
+        bicycling: { mode: google.maps.TravelMode.BICYCLING, color: '#FBBC04', weight: 4 },
+        transit:   { mode: google.maps.TravelMode.TRANSIT,   color: '#EA4335', weight: 3 },
+      };
+
+      function getModeStyle(rawMode) {
+        const m = String(rawMode || '').toLowerCase();
+        if (m.includes('walk'))   return MODE_STYLES.walking;
+        if (m.includes('bike'))    return MODE_STYLES.bicycling;
+        if (m.includes('transit') || m.includes('rail') || m.includes('train')) return MODE_STYLES.transit;
+        if (m.includes('drive') || m.includes('car') || m.includes('taxi') ||
+            m.includes('bus') || m.includes('ferry') || m.includes('cruise') || m.includes('flight')) {
+          return MODE_STYLES.driving;
+        }
+        return MODE_STYLES.driving;
+      }
+
       const bounds = new google.maps.LatLngBounds();
       const infoWindow = new google.maps.InfoWindow();
 
-      map = new google.maps.Map(mapDivRef.current, {
+      const map = new google.maps.Map(mapDivRef.current, {
         mapTypeId: google.maps.MapTypeId.ROADMAP,
         disableDefaultUI: false,
         zoomControl: true,
@@ -180,7 +180,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
         const { color, weight } = getModeStyle(leg.mode);
 
         // Polyline for the leg route.
-        const polyline = new google.maps.Polyline({
+        new google.maps.Polyline({
           path: [
             { lat: origin.lat, lng: origin.lon },
             { lat: dest.lat,   lng: dest.lon },
@@ -249,17 +249,12 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
 
       if (!cancelled) {
         map.fitBounds(bounds, { padding: 40 });
-        mapInstanceRef.current = map;
       }
     }
 
     initMap();
     return () => {
       cancelled = true;
-      // InfoWindow cleanup on unmount.
-      if (map) {
-        // map is local; markers/polylines attached to it are cleaned up by GC.
-      }
     };
   }, [status, legCoords, envKey]);
 
