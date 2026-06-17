@@ -178,6 +178,32 @@ assert.match(
   /\.trip-map-attribution\s*\{/,
   '.trip-map-attribution must style the OSM copyright line'
 );
+// TripMap provider switch (spec 010 — optional Google Maps Embed support).
+// We do NOT require the Google path to be present — OSM is the default
+// and the dashboard must work on every preview deploy without a key.
+// The assertions below are positive existence checks for the wiring
+// (env-aware resolver + Google URL builder) so a future regression that
+// breaks the provider switch fails the build.
+assert.match(
+  tripMap,
+  /resolveProvider\(mapProvider,\s*envProvider/,
+  'TripMap must call resolveProvider with the prop, env var, and key gate'
+);
+assert.match(
+  tripMap,
+  /NEXT_PUBLIC_GMAPS_PROVIDER/,
+  'TripMap must read NEXT_PUBLIC_GMAPS_PROVIDER for the provider switch'
+);
+assert.match(
+  tripMap,
+  /NEXT_PUBLIC_GMAPS_EMBED_KEY/,
+  'TripMap must read NEXT_PUBLIC_GMAPS_EMBED_KEY for the Google Maps Embed key'
+);
+assert.match(
+  tripMap,
+  /google\.com\/maps\/embed\/v1\/place/,
+  'TripMap Google path must build the Maps Embed v1 place URL'
+);
 assert.match(
   globalCss,
   /\.leg-detail-map\s*\{/,

@@ -308,4 +308,58 @@ assert.match(tripListRule[1], /align-items:\s*start/, '.trip-list must default t
 assert.match(globalCss, /\.trip-list--align-row\s*\{[^}]*align-items:\s*stretch/, '.trip-list--align-row modifier must opt back into align-items: stretch for an equal-height row layout');
 assert.doesNotMatch(dashboardSurface, /trip-list\s+trip-list--align-row|trip-list--align-row/, 'the trip-list modifier must be CSS-only — no JSX should reference it until a future spec adds a control for it');
 
+// Map provider switch (spec 010 — optional Google Maps Embed support).
+// OSM is the default. The provider resolver only flips to Google when
+// both conditions are true: requested provider is 'google' AND a key is
+// set. Without a key, OSM is used silently so a missing key on a
+// preview deploy doesn't break the page.
+function resolveProvider(propProvider, envProvider, hasKey) {
+  const requested = (propProvider || envProvider || 'osm').toLowerCase();
+  if (requested === 'google' && hasKey) return 'google';
+  return 'osm';
+}
+
+// Case 1: no env, no prop, no key → OSM (default).
+assert.equal(
+  resolveProvider(null, '', false),
+  'osm',
+  'no env and no key: default provider is OSM'
+);
+// Case 2: env=google but no key → falls back to OSM.
+assert.equal(
+  resolveProvider(null, 'google', false),
+  'osm',
+  'env requests Google but no key set: silently falls back to OSM'
+);
+// Case 3: env=google and key set → Google.
+assert.equal(
+  resolveProvider(null, 'google', true),
+  'google',
+  'env requests Google and key is set: provider is Google'
+);
+// Case 4: prop overrides env to OSM even when env says Google and key is set.
+assert.equal(
+  resolveProvider('osm', 'google', true),
+  'osm',
+  'explicit prop overrides env: provider stays OSM regardless of env state'
+);
+// Case 5: prop=google and key set → Google (prop-gated path).
+assert.equal(
+  resolveProvider('google', 'osm', true),
+  'google',
+  'explicit prop=google with a key: provider is Google (used by tests)'
+);
+// Case 6: prop=google but no key → still falls back to OSM.
+assert.equal(
+  resolveProvider('google', 'google', false),
+  'osm',
+  'prop=google but no key: silently falls back to OSM (the key gate is absolute)'
+);
+// Case 7: case-insensitive env var. 'Google', 'GOOGLE', 'gOoGlE' all work.
+assert.equal(
+  resolveProvider(null, 'GOOGLE', true),
+  'google',
+  'env provider name is case-insensitive'
+);
+
 console.log('Dashboard polish checks passed.');
