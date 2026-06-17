@@ -9,6 +9,7 @@ import {
   toDisplayLabel,
 } from '@/lib/display-labels.mjs';
 import { TripMap } from '@/components/trip-map';
+import { TripMapStrip } from '@/components/trip-map-strip';
 
 const THEME_STORAGE_KEY = 'tsang-travel-theme';
 
@@ -698,6 +699,10 @@ export function TripDetailSurface({
               <div className="leg-detail-map" aria-label="Trip map">
                 <h3 className="leg-detail-map-heading">Trip map</h3>
                 <TripMap legs={trip.legs} homeBase={trip.homeBase} />
+                <div className="leg-detail-map-strip" aria-label="Per-leg route directions">
+                  <h3 className="leg-detail-map-strip-heading">🧭 Per-leg route</h3>
+                  <TripMapStrip legs={trip.legs} homeBase={trip.homeBase} />
+                </div>
               </div>
             ) : null}
           </DetailSection>

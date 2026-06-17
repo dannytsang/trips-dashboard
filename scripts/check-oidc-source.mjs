@@ -204,6 +204,44 @@ assert.match(
   /google\.com\/maps\/embed\/v1\/place/,
   'TripMap Google path must build the Maps Embed v1 place URL'
 );
+// TripMapStrip (spec 010 FR-032..035) — per-leg directions strip.
+// The trip detail surface must render BOTH TripMap and TripMapStrip
+// inside the same leg-detail-map block. The strip is a sibling of
+// TripMap, not a replacement. The TripMapStrip element must use the
+// camelCase tag (compiled from trip-map-strip.jsx) and must pass
+// `legs` and `homeBase` so the strip can apply the same privacy
+// contract.
+assert.match(
+  tripDetailSurface,
+  /<TripMapStrip\s+legs=\{trip\.legs\}\s+homeBase=\{trip\.homeBase\}\s*\/>/,
+  'trip detail must embed TripMapStrip with legs and homeBase inside the leg-detail-map block (spec 010 FR-032)'
+);
+assert.match(
+  tripDetailSurface,
+  /leg-detail-map-strip/,
+  'trip detail must wrap TripMapStrip in a .leg-detail-map-strip container so the strip has its own heading + border'
+);
+assert.match(
+  tripDetailSurface,
+  /leg-detail-map-strip-heading/,
+  'trip detail must render a heading for the directions strip (spec 010 FR-035)'
+);
+const tripMapStrip = readFileSync('components/trip-map-strip.jsx', 'utf8');
+assert.match(
+  tripMapStrip,
+  /google\.com\/maps\/embed\/v1\/directions/,
+  'TripMapStrip must build the Maps Embed v1 directions URL (not place mode)'
+);
+assert.match(
+  tripMapStrip,
+  /NEXT_PUBLIC_GMAPS_EMBED_KEY/,
+  'TripMapStrip must read NEXT_PUBLIC_GMAPS_EMBED_KEY for the directions iframe'
+);
+assert.match(
+  tripMapStrip,
+  /NEXT_PUBLIC_GMAPS_PROVIDER/,
+  'TripMapStrip must read NEXT_PUBLIC_GMAPS_PROVIDER for the provider gate'
+);
 assert.match(
   globalCss,
   /\.leg-detail-map\s*\{/,
