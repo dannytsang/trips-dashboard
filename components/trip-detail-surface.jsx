@@ -4,7 +4,12 @@
 // FR-042 also adds a TripOverviewMap above the leg list, showing
 // all legs on a single embedded map (one pin per leg destination).
 // Nudge commit to fire Vercel rebuild (empty commits are skipped by vercel-ignore-build.sh).
-// FR-042: TripOverviewMap reuses buildViewport + shared geocode cache from LegRouteMap.
+// FR-042 (Revised): TripOverviewMap renders a stacked strip of per-leg
+// directions iframes — one directions iframe per leg, all visible at once.
+// Google: directions iframe per leg (A→B route line, mode from leg).
+// OSM: single destination pin with bbox (OSM has no directions embed).
+// The strip is above the collapsible leg list; all legs' routes visible
+// without clicking. Privacy contract unchanged: precision home/exact excluded.
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';

@@ -1,29 +1,25 @@
 'use client';
 
 /**
- * TripOverviewMap — standalone overview map rendered at the top of the
- * Legs section, above the leg list. Shows all legs on a single map:
- * one pin per leg destination, framed in a bbox that encompasses all
- * legs' non-private waypoints.
+ * TripOverviewMap — stacked strip of per-leg route iframes rendered
+ * above the collapsible leg list on the trip detail page.
  *
- * This reinstates a variant of the FR-027 standalone map that FR-036
- * removed (FR-036 replaced it with per-leg inline maps only). The FR-042
- * overview map differs from FR-027 in one way: it renders ABOVE the leg
- * list (FR-027 rendered BELOW), and uses the same geocode cache as
- * LegRouteMap so concurrent geocoding is deduplicated.
+ * B variant (FR-042 Revised): renders ONE directions iframe per leg,
+ * stacked vertically, so all legs' routes are visible at once without
+ * clicking. Google: directions iframe per leg (A→B route line, mode
+ * from leg). OSM: destination pin with bbox (OSM has no directions embed).
  *
- * Provider (FR-028):
- *   provider=google:  single-pin `place` iframe at the trip's primary
- *                     destination (last non-private waypoint)
- *   provider=osm:     OSM `/export/embed.html` bbox around all waypoints,
- *                     single marker on the last non-private waypoint
+ * The strip is above the LegCollapsible list. Each iframe has
+ * aspect-ratio: 4/3 and loading="lazy".
  *
  * Privacy contract (FR-027): waypoints with precision 'home' or 'exact'
- * are excluded from the bbox and marker computation. The geocode server
- * also enforces this; we additionally filter here as defence in depth.
+ * are excluded from every iframe. A leg is skipped if either endpoint
+ * is filtered. The geocode server also enforces this; we additionally
+ * filter here as defence in depth.
  *
- * Fallback: if fewer than 2 non-private waypoints geocode successfully,
- * the component returns null (no iframe). The leg list still renders.
+ * Provider (FR-028):
+ *   provider=google:  Google Maps Embed `directions` mode (route line A→B)
+ *   provider=osm:     OSM `/export/embed.html` (single pin, framed bbox)
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -33,6 +29,21 @@ function resolveProvider(propProvider, envProvider, hasKey) {
   const requested = (propProvider || envProvider || 'osm').toLowerCase();
   if (requested === 'google' && hasKey) return 'google';
   return 'osm';
+}
+
+function normaliseMode(rawMode) {
+  const m = String(rawMode || '').toLowerCase();
+  if (m.includes('walk')) return 'walking';
+  if (m.includes('bike') || m.includes('cycl')) return 'bicycling';
+  if (m.includes('transit') || m.includes('rail') || m.includes('train')) return 'transit';
+  if (
+    m.includes('drive') || m.includes('car') || m.includes('taxi') ||
+    m.includes('bus') || m.includes('ferry') || m.includes('cruise') ||
+    m.includes('flight')
+  ) {
+    return 'driving';
+  }
+  return 'driving';
 }
 
 async function geocodeOne(wp) {
@@ -56,9 +67,7 @@ async function geocodeOne(wp) {
   }
 }
 
-// Module-level geocode cache shared with LegRouteMap. A waypoint that
-// appears in both the overview map and a per-leg iframe (e.g. a
-// destination that is also an origin of the next leg) is geocoded once.
+// Module-level geocode cache shared with LegRouteMap.
 const geocodeCache = new Map();
 
 function geocodeShared(wp) {
@@ -76,107 +85,108 @@ function geocodeShared(wp) {
 }
 
 /**
- * Collect all non-private, geocodable waypoints from all legs.
- * Returns an array of { wp, legIndex } for waypoints that passed
- * the privacy filter and geocoded successfully.
+ * Build a single leg's iframe descriptor given its geocoded endpoints.
+ * Returns null if the leg should be skipped.
  */
-async function collectWaypoints(legs) {
-  if (!legs || legs.length === 0) return [];
+function buildLegEmbed(leg, origin, dest, provider, envKey) {
+  if (!origin?.geocoded || !dest?.geocoded) return null;
+  if (origin.precision === 'home' || origin.precision === 'exact') return null;
+  if (dest.precision === 'home' || dest.precision === 'exact') return null;
 
-  // Gather all origin + destination waypoints, tagged with leg index
-  const tasks = [];
-  legs.forEach((leg, i) => {
-    if (leg?.origin?.label) tasks.push({ wp: leg.origin, legIndex: i, field: 'origin' });
-    if (leg?.destination?.label) tasks.push({ wp: leg.destination, legIndex: i, field: 'destination' });
+  const originLat = origin.lat.toFixed(5);
+  const originLon = origin.lon.toFixed(5);
+  const destLat = dest.lat.toFixed(5);
+  const destLon = dest.lon.toFixed(5);
+  const mode = normaliseMode(leg.mode);
+
+  if (provider === 'google') {
+    const params = new URLSearchParams({
+      key: envKey,
+      origin: `${originLat},${originLon}`,
+      destination: `${destLat},${destLon}`,
+      mode,
+    });
+    return {
+      provider: 'google',
+      src: `https://www.google.com/maps/embed/v1/directions?${params.toString()}`,
+      viewLargeHref: `https://www.google.com/maps/dir/?api=1&origin=${originLat},${originLon}&destination=${destLat},${destLon}&travelmode=${mode}`,
+      caption: `${leg.origin.label || 'Origin'} → ${leg.destination.label || 'Destination'}`,
+    };
+  }
+
+  // OSM: small bbox around origin+destination, single marker on destination.
+  const viewport = buildViewport(
+    [
+      { lat: origin.lat, lon: origin.lon },
+      { lat: dest.lat, lon: dest.lon },
+    ],
+    { width: 400, height: 300, padding: 0.35, minSpan: 0.05 }
+  );
+  const { minLon, minLat, maxLon, maxLat } = viewport;
+  const bbox = `${minLon.toFixed(5)},${minLat.toFixed(5)},${maxLon.toFixed(5)},${maxLat.toFixed(5)}`;
+  const params = new URLSearchParams({
+    bbox,
+    layer: 'mapnik',
+    marker: `${destLat},${destLon}`,
   });
-
-  const results = await Promise.all(tasks.map(t => geocodeShared(t.wp).then(res => ({ ...t, resolved: res }))));
-
-  return results
-    .filter(r => r.resolved.geocoded)
-    .filter(r => r.resolved.precision !== 'home' && r.resolved.precision !== 'exact');
-}
-
-/**
- * Pick the marker: the last non-private, non-home-base waypoint.
- * homeBase.town is used to skip the home town return marker (e.g.
- * for out-and-back trips the marker should be on the meaningful
- * destination, not on the home town).
- */
-function pickMarkerWaypoint(waypoints, homeBaseTown) {
-  const candidates = homeBaseTown
-    ? waypoints.filter(w => {
-        const label = (w.wp.geocodeLabel || w.wp.label || '').toLowerCase().trim();
-        return label !== homeBaseTown.toLowerCase().trim();
-      })
-    : waypoints;
-  return candidates.length > 0 ? candidates[candidates.length - 1] : waypoints[waypoints.length - 1];
+  return {
+    provider: 'osm',
+    src: `https://www.openstreetmap.org/export/embed.html?${params.toString()}`,
+    viewLargeHref: `https://www.openstreetmap.org/?mlat=${destLat}&mlon=${destLon}#map=12/${destLat}/${destLon}`,
+    caption: `${leg.origin.label || 'Origin'} → ${leg.destination.label || 'Destination'}`,
+  };
 }
 
 export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
-  const [waypoints, setWaypoints] = useState([]);
+  const [legEmbeds, setLegEmbeds] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function run() {
-      const collected = await collectWaypoints(legs);
-      if (!cancelled) {
-        setWaypoints(collected);
-        setLoading(false);
-      }
-    }
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [legs]);
 
   const envProvider = process.env.NEXT_PUBLIC_GMAPS_PROVIDER || '';
   const envKey = process.env.NEXT_PUBLIC_GMAPS_EMBED_KEY || '';
   const provider = resolveProvider(mapProvider, envProvider, Boolean(envKey));
 
-  const homeBaseTown = homeBase?.town || null;
-
-  const embed = useMemo(() => {
-    if (loading) return null;
-    if (waypoints.length < 2) return null;
-
-    const markerWp = pickMarkerWaypoint(waypoints, homeBaseTown);
-    const markerLat = markerWp.resolved.lat.toFixed(5);
-    const markerLon = markerWp.resolved.lon.toFixed(5);
-
-    if (provider === 'google') {
-      const params = new URLSearchParams({
-        key: envKey,
-        q: `${markerLat},${markerLon}`,
-        maptype: 'roadmap',
-      });
-      return {
-        provider: 'google',
-        src: `https://www.google.com/maps/embed/v1/place?${params.toString()}`,
-        viewLargeHref: `https://www.google.com/maps?ll=${markerLat},${markerLon}&q=${markerLat},${markerLon}`,
-      };
+  useEffect(() => {
+    if (!legs || legs.length === 0) {
+      setLoading(false);
+      return;
     }
 
-    // OSM: bbox around all geocoded waypoints, marker on the marker waypoint
-    const viewport = buildViewport(
-      waypoints.map(w => ({ lat: w.resolved.lat, lon: w.resolved.lon })),
-      { width: 600, height: 400, padding: 0.25, minSpan: 0.05 }
-    );
-    const { minLon, minLat, maxLon, maxLat } = viewport;
-    const bbox = `${minLon.toFixed(5)},${minLat.toFixed(5)},${maxLon.toFixed(5)},${maxLat.toFixed(5)}`;
-    const params = new URLSearchParams({
-      bbox,
-      layer: 'mapnik',
-      marker: `${markerLat},${markerLon}`,
-    });
-    return {
-      provider: 'osm',
-      src: `https://www.openstreetmap.org/export/embed.html?${params.toString()}`,
-      viewLargeHref: `https://www.openstreetmap.org/?mlat=${markerLat}&mlon=${markerLon}#map=12/${markerLat}/${markerLon}`,
+    let cancelled = false;
+
+    async function run() {
+      // Geocode all endpoints across all legs concurrently.
+      const tasks = [];
+      legs.forEach((leg, i) => {
+        tasks.push({ leg, index: i });
+      });
+
+      const results = await Promise.all(
+        tasks.map(async ({ leg, index }) => {
+          if (!leg?.origin?.label || !leg?.destination?.label) return { index, embed: null };
+
+          const [origin, dest] = await Promise.all([
+            geocodeShared(leg.origin),
+            geocodeShared(leg.destination),
+          ]);
+
+          const embed = buildLegEmbed(leg, origin, dest, provider, envKey);
+          return { index, embed };
+        })
+      );
+
+      if (!cancelled) {
+        // Preserve leg order; embed is null for skipped legs.
+        const sorted = results.sort((a, b) => a.index - b.index);
+        setLegEmbeds(sorted.map(r => r.embed));
+        setLoading(false);
+      }
+    }
+
+    run();
+    return () => {
+      cancelled = true;
     };
-  }, [loading, waypoints, homeBaseTown, provider, envKey]);
+  }, [legs, provider, envKey]);
 
   if (loading) {
     return (
@@ -186,36 +196,43 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
     );
   }
 
-  // Fewer than 2 geocoded waypoints — no map to render
-  if (waypoints.length < 2 || !embed) {
+  // No legs rendered at all — hide the container entirely.
+  if (legEmbeds.length === 0) {
     return null;
   }
 
   return (
-    <div className="trip-overview-map" aria-label="Trip overview map">
-      <iframe
-        className="trip-overview-map-iframe"
-        title="Trip overview map"
-        src={embed.src}
-        loading="lazy"
-        referrerPolicy="no-referrer-when-downgrade"
-        allowFullScreen
-      />
-      <p className="trip-overview-map-attribution">
-        {embed.provider === 'google' ? (
-          <>
-            Map data © <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">Google</a>
-            {' · '}
-            <a href={embed.viewLargeHref} target="_blank" rel="noopener noreferrer">View larger map</a>
-          </>
-        ) : (
-          <>
-            © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors
-            {' · '}
-            <a href={embed.viewLargeHref} target="_blank" rel="noopener noreferrer">View larger map</a>
-          </>
-        )}
-      </p>
+    <div className="trip-overview-map" aria-label="Trip overview — all legs">
+      {legEmbeds.map((embed, i) => {
+        if (!embed) return null;
+        return (
+          <div key={i} className="trip-overview-map-item">
+            <iframe
+              className="trip-overview-map-iframe"
+              title={`Leg ${i + 1}: ${embed.caption}`}
+              src={embed.src}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              allowFullScreen
+            />
+            <p className="trip-overview-map-attribution">
+              {embed.provider === 'google' ? (
+                <>
+                  Map data © <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">Google</a>
+                  {' · '}
+                  <a href={embed.viewLargeHref} target="_blank" rel="noopener noreferrer">View larger map</a>
+                </>
+              ) : (
+                <>
+                  © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors
+                  {' · '}
+                  <a href={embed.viewLargeHref} target="_blank" rel="noopener noreferrer">View larger map</a>
+                </>
+              )}
+            </p>
+          </div>
+        );
+      })}
     </div>
   );
 }
