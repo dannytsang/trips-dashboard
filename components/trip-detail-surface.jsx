@@ -21,6 +21,12 @@ import {
 } from '@/lib/display-labels.mjs';
 import { LegRouteMap } from '@/components/leg-route-map';
 import { TripOverviewMap } from '@/components/trip-overview-map';
+import {
+  formatUtcDateRange,
+  formatUtcWeekdayDateTime,
+  formatUtcDateTime,
+  formatUtcTime,
+} from '@/lib/format-utc.mjs';
 
 const THEME_STORAGE_KEY = 'tsang-travel-theme';
 
@@ -31,21 +37,9 @@ function getInitialTheme() {
   return window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
 }
 
+// "Fri 3 Jul" or "Fri 3 Jul → Sat 4 Jul"
 function formatDateRange(start, end) {
-  if (!start) return 'Date pending';
-  const startDate = new Date(start);
-  const endDate = end ? new Date(end) : null;
-  const formatter = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'UTC',
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-  if (!endDate || Number.isNaN(endDate.getTime())) {
-    return formatter.format(startDate);
-  }
-  return `${formatter.format(startDate)} → ${formatter.format(endDate)}`;
+  return formatUtcDateRange(start, end);
 }
 
 function statusLabel(trip) {
@@ -162,10 +156,10 @@ function LegCollapsible({ leg, index }) {
               {leg.flight.airline} {leg.flight.flightNumber}
               {leg.flight.departLocal ? (
                 <span className="leg-detail-time">
-                  {new Date(leg.flight.departLocal).toLocaleTimeString('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' })}
+                  {formatUtcTime(leg.flight.departLocal)}
                   {' → '}
                   {leg.flight.arriveLocal
-                    ? new Date(leg.flight.arriveLocal).toLocaleTimeString('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' })
+                    ? formatUtcTime(leg.flight.arriveLocal)
                     : '?'}
                 </span>
               ) : null}
@@ -375,13 +369,7 @@ function AccommodationSection({ accommodation }) {
 function formatDateTime(iso) {
   if (!iso) return null;
   try {
-    return new Date(iso).toLocaleString('en-GB', { timeZone: 'UTC',
-      weekday: 'short',
-      day: '2-digit',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatUtcWeekdayDateTime(iso);
   } catch (err) {
     return iso;
   }
@@ -462,7 +450,7 @@ function NotificationBlock({ notif }) {
     stateBits.push(
       <span key="js" className="leg-notif-detail">
         Journey start: {st.journeyStart.status}
-        {st.journeyStart.sentAt ? ` @ ${new Date(st.journeyStart.sentAt).toLocaleTimeString('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' })}` : ''}
+        {st.journeyStart.sentAt ? ` @ ${formatUtcTime(st.journeyStart.sentAt)}` : ''}
       </span>
     );
   }
@@ -478,7 +466,7 @@ function NotificationBlock({ notif }) {
   if (st?.lastSentAt) {
     stateBits.push(
       <span key="lsa" className="leg-notif-detail">
-        Last: {new Date(st.lastSentAt).toLocaleString('en-GB', { timeZone: 'UTC', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+        Last: {formatUtcDateTime(st.lastSentAt)}
       </span>
     );
   }
@@ -523,14 +511,14 @@ function PlanningReviewBlock({ review }) {
   if (action?.shownAt) {
     bits.push(
       <span key="rs" className="leg-review-detail">
-        Shown: {new Date(action.shownAt).toLocaleString('en-GB', { timeZone: 'UTC', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+        Shown: {formatUtcDateTime(action.shownAt)}
       </span>
     );
   }
   if (action?.decidedAt) {
     bits.push(
       <span key="rd" className="leg-review-detail">
-        Decided: {new Date(action.decidedAt).toLocaleString('en-GB', { timeZone: 'UTC', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+        Decided: {formatUtcDateTime(action.decidedAt)}
         {action.decidedBy ? ` by ${action.decidedBy}` : ''}
       </span>
     );
