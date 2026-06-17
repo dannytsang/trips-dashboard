@@ -46,10 +46,13 @@ export function TripMap({ legs = [] }) {
     for (const leg of legs) {
       for (const wp of [leg.origin, leg.destination]) {
         if (!wp?.label) continue;
-        const key = `${wp.label}::${wp.precision || ''}`;
+        // FR-026: geocodeLabel overrides the Nominatim input but the
+        // visible waypoint label on the page stays as `label`.
+        const geocodeInput = wp.geocodeLabel || wp.label;
+        const key = `${geocodeInput}::${wp.precision || ''}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        queue.push({ key, label: wp.label, precision: wp.precision });
+        queue.push({ key, label: wp.label, geocodeLabel: wp.geocodeLabel, precision: wp.precision });
       }
     }
 
@@ -64,11 +67,12 @@ export function TripMap({ legs = [] }) {
       if (wp.precision === 'home' || wp.precision === 'exact') {
         return { ...wp, geocoded: false, reason: 'precision_excluded' };
       }
+      const geocodeInput = wp.geocodeLabel || wp.label;
       try {
         const res = await fetch('/api/geocode', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ label: wp.label, precision: wp.precision }),
+          body: JSON.stringify({ label: geocodeInput, precision: wp.precision }),
         });
         const data = await res.json();
         if (data && data.lat != null && data.lon != null) {

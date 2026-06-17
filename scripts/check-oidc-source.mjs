@@ -115,6 +115,11 @@ assert.doesNotMatch(
   'TripMap must not depend on third-party static-tile endpoints that can rate-limit and silently fail'
 );
 assert.match(
+  tripMap,
+  /wp\.geocodeLabel\s*\|\|\s*wp\.label/,
+  'TripMap must prefer geocodeLabel over label for the Nominatim lookup (spec 010 FR-026)'
+);
+assert.match(
   globalCss,
   /\.trip-map-svg\s*\{/,
   '.trip-map-svg must have visible styling'
