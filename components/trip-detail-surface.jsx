@@ -11,7 +11,7 @@
 // to show all legs. OSM users see nothing from TripOverviewMap (provider
 // guard returns null) — OSM has no free multi-leg map renderer.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   formatLegModeEmoji,
@@ -572,6 +572,8 @@ export function TripDetailSurface({
   errorMessage,
 }) {
   const [theme, setTheme] = useState('dark');
+  const [showTopbarTitle, setShowTopbarTitle] = useState(false);
+  const headerRef = useRef(null);
 
   useEffect(() => {
     const initial = getInitialTheme();
@@ -582,6 +584,32 @@ export function TripDetailSurface({
     document.documentElement.dataset.theme = theme;
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
+
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return undefined;
+
+    if (typeof IntersectionObserver === 'undefined') {
+      const onScroll = () => {
+        const rect = header.getBoundingClientRect();
+        setShowTopbarTitle(rect.bottom <= 0);
+      };
+      onScroll();
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', onScroll);
+      return () => {
+        window.removeEventListener('scroll', onScroll);
+        window.removeEventListener('resize', onScroll);
+      };
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowTopbarTitle(!entry.isIntersecting),
+      { root: null, threshold: 0 }
+    );
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, [trip?.id]);
 
   const nextTheme = theme === 'dark' ? 'light' : 'dark';
 
@@ -660,7 +688,11 @@ export function TripDetailSurface({
           <Link href="/" className="back-link">
             ← Back to trip summary
           </Link>
-          <div className="detail-topbar-title" aria-label="Current trip">
+          <div
+            className={`detail-topbar-title ${showTopbarTitle ? 'detail-topbar-title-visible' : ''}`}
+            aria-label="Current trip"
+            aria-hidden={!showTopbarTitle}
+          >
             <span className="detail-topbar-date">{formatDateRange(trip.start, trip.end)}</span>
             <span className="detail-topbar-name">{trip.title || tripId}</span>
           </div>
@@ -675,7 +707,7 @@ export function TripDetailSurface({
         </div>
 
         {/* Header */}
-        <header className="detail-header">
+        <header ref={headerRef} className="detail-header">
           <div className="detail-header-body">
             <p className="trip-date">🗓️ {formatDateRange(trip.start, trip.end)}</p>
             <h1 className="detail-title">{trip.title || tripId}</h1>
