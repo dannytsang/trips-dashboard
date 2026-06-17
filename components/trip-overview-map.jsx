@@ -2,10 +2,10 @@
 
 /**
  * TripOverviewMap — one Google Maps JavaScript API map showing all trip legs.
- * Renders a single <div> that @googlemaps/js-api-loader populates with a
- * google.maps.Map instance. Each leg becomes a Polyline (coloured by mode)
- * and origin/destination Markers. The map auto-fits its bounds to show
- * all legs on load.
+ * Renders a single <div> that the @googlemaps/js-api-loader v2 functional API
+ * populates with a google.maps.Map instance. Each leg becomes a Polyline
+ * (coloured by mode) and origin/destination Markers. The map auto-fits its
+ * bounds to show all legs on load.
  *
  * FR-042 Revised (JS API): replaces the stacked iframe strip with one
  * interactive map. All legs visible at once — one map, polyline per leg,
@@ -17,7 +17,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { Loader } from '@googlemaps/js-api-loader';
+import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 
 function resolveProvider(propProvider, envProvider, hasKey) {
   const requested = (propProvider || envProvider || 'osm').toLowerCase();
@@ -89,6 +89,26 @@ async function collectLegCoords(legs) {
     .sort((a, b) => a.index - b.index);
 }
 
+// Mode → stroke colour (Google Maps travel mode determined at runtime after API loads).
+const MODE_COLORS = {
+  driving:   { color: '#4285F4', weight: 4 },
+  walking:   { color: '#34A853', weight: 3 },
+  bicycling: { color: '#FBBC04', weight: 4 },
+  transit:   { color: '#EA4335', weight: 3 },
+};
+
+function getModeColor(rawMode) {
+  const m = String(rawMode || '').toLowerCase();
+  if (m.includes('walk'))   return MODE_COLORS.walking;
+  if (m.includes('bike'))  return MODE_COLORS.bicycling;
+  if (m.includes('transit') || m.includes('rail') || m.includes('train')) return MODE_COLORS.transit;
+  if (m.includes('drive') || m.includes('car') || m.includes('taxi') ||
+      m.includes('bus') || m.includes('ferry') || m.includes('cruise') || m.includes('flight')) {
+    return MODE_COLORS.driving;
+  }
+  return MODE_COLORS.driving;
+}
+
 export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
   const mapDivRef = useRef(null);
 
@@ -134,29 +154,29 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
     let cancelled = false;
 
     async function initMap() {
-      const loader = new Loader({
-        apiKey: envKey,
-        version: 'weekly',
+      // v2 functional API — setOptions then importLibrary.
+      setOptions({
+        key: envKey,
+        v: 'weekly',
         libraries: ['routes'],
       });
 
-      const google = await loader.load();
+      const maps = await importLibrary('maps');
       if (cancelled || !mapDivRef.current) return;
 
-      // Mode → Google Maps API travel mode + stroke colour.
-      // These are looked up from the google object AFTER the API loads,
-      // not at module-parse time (which caused ReferenceError: google not defined).
+      const { Map, Polyline, LatLngBounds, Marker, InfoWindow, SymbolPath, TravelMode, MapTypeId } = maps;
+
       const MODE_STYLES = {
-        driving:   { mode: google.maps.TravelMode.DRIVING,   color: '#4285F4', weight: 4 },
-        walking:   { mode: google.maps.TravelMode.WALKING,   color: '#34A853', weight: 3 },
-        bicycling: { mode: google.maps.TravelMode.BICYCLING, color: '#FBBC04', weight: 4 },
-        transit:   { mode: google.maps.TravelMode.TRANSIT,   color: '#EA4335', weight: 3 },
+        driving:   { mode: TravelMode.DRIVING,   color: '#4285F4', weight: 4 },
+        walking:   { mode: TravelMode.WALKING,   color: '#34A853', weight: 3 },
+        bicycling: { mode: TravelMode.BICYCLING, color: '#FBBC04', weight: 4 },
+        transit:   { mode: TravelMode.TRANSIT,   color: '#EA4335', weight: 3 },
       };
 
       function getModeStyle(rawMode) {
         const m = String(rawMode || '').toLowerCase();
         if (m.includes('walk'))   return MODE_STYLES.walking;
-        if (m.includes('bike'))    return MODE_STYLES.bicycling;
+        if (m.includes('bike'))   return MODE_STYLES.bicycling;
         if (m.includes('transit') || m.includes('rail') || m.includes('train')) return MODE_STYLES.transit;
         if (m.includes('drive') || m.includes('car') || m.includes('taxi') ||
             m.includes('bus') || m.includes('ferry') || m.includes('cruise') || m.includes('flight')) {
@@ -165,11 +185,11 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
         return MODE_STYLES.driving;
       }
 
-      const bounds = new google.maps.LatLngBounds();
-      const infoWindow = new google.maps.InfoWindow();
+      const bounds = new LatLngBounds();
+      const infoWindow = new InfoWindow();
 
-      const map = new google.maps.Map(mapDivRef.current, {
-        mapTypeId: google.maps.MapTypeId.ROADMAP,
+      const map = new Map(mapDivRef.current, {
+        mapTypeId: MapTypeId.ROADMAP,
         disableDefaultUI: false,
         zoomControl: true,
         fullscreenControl: true,
@@ -180,7 +200,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
         const { color, weight } = getModeStyle(leg.mode);
 
         // Polyline for the leg route.
-        new google.maps.Polyline({
+        new Polyline({
           path: [
             { lat: origin.lat, lng: origin.lon },
             { lat: dest.lat,   lng: dest.lon },
@@ -192,7 +212,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
         });
 
         // Origin marker (numbered circle, colour-coded).
-        const originMarker = new google.maps.Marker({
+        const originMarker = new Marker({
           position: { lat: origin.lat, lng: origin.lon },
           map,
           label: {
@@ -202,7 +222,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
             fontSize: '10px',
           },
           icon: {
-            path: google.maps.SymbolPath.CIRCLE,
+            path: SymbolPath.CIRCLE,
             scale: 10,
             fillColor: color,
             fillOpacity: 1,
@@ -218,7 +238,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
         });
 
         // Destination marker (square).
-        const destMarker = new google.maps.Marker({
+        const destMarker = new Marker({
           position: { lat: dest.lat, lng: dest.lon },
           map,
           label: {
@@ -228,7 +248,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
             fontSize: '10px',
           },
           icon: {
-            path: google.maps.SymbolPath.SQUARE,
+            path: SymbolPath.SQUARE,
             scale: 8,
             fillColor: color,
             fillOpacity: 1,
