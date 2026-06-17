@@ -3,12 +3,15 @@
 /**
  * TripOverviewMap — one Google Maps JavaScript API map showing all trip legs.
  * Uses @googlemaps/js-api-loader v2: setOptions() + importLibrary().
- * After importLibrary() resolves, google.maps is available as a global.
  *
  * FR-042 Revised (JS API): one interactive map, all legs as coloured
  * Polylines + AdvancedMarkerElement markers. Privacy contract unchanged
- * (precision home/exact excluded). Hydration-safe: phase='idle' renders
- * null on server and client first render; map renders only after effects.
+ * (precision home/exact excluded).
+ *
+ * Hydration safety: 'mounted' state is initialised to false. Server renders
+ * null (matches first client render). After mount, effects run and setPhase
+ * to 'loading' then 'map' — content appears only after client effects,
+ * so no hydration path is shared and React error #418 is eliminated.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -91,47 +94,31 @@ function getModeColor(rawMode) {
   return MODE_COLORS.driving;
 }
 
-// Build a coloured circle HTML div for AdvancedMarkerElement (origin).
-function makeCircleHTMLElement(color, text, size = 28) {
+// Build a coloured circle HTML div for AdvancedMarkerElement (origin marker).
+function makeCircleHTMLElement(color, text) {
   const el = document.createElement('div');
   el.style.cssText = [
-    `width:${size}px`,
-    `height:${size}px`,
-    `border-radius:50%`,
-    `background:${color}`,
-    `border:2px solid #fff`,
-    `display:flex`,
-    `align-items:center`,
-    `justify-content:center`,
-    `color:#fff`,
-    `font-size:10px`,
-    `font-weight:bold`,
-    `font-family:Roboto,Arial,sans-serif`,
-    `box-shadow: 0 1px 4px rgba(0,0,0,0.3)`,
-    `cursor:pointer`,
+    'width:28px', 'height:28px', 'border-radius:50%',
+    `background:${color}`, 'border:2px solid #fff',
+    'display:flex', 'align-items:center', 'justify-content:center',
+    'color:#fff', 'font-size:10px', 'font-weight:bold',
+    'font-family:Roboto,Arial,sans-serif',
+    'box-shadow:0 1px 4px rgba(0,0,0,0.3)', 'cursor:pointer',
   ].join(';');
   el.textContent = text;
   return el;
 }
 
-// Build a coloured square HTML div for AdvancedMarkerElement (destination).
-function makeSquareHTMLElement(color, text, size = 22) {
+// Build a coloured square HTML div for AdvancedMarkerElement (destination marker).
+function makeSquareHTMLElement(color, text) {
   const el = document.createElement('div');
   el.style.cssText = [
-    `width:${size}px`,
-    `height:${size}px`,
-    `border-radius:3px`,
-    `background:${color}`,
-    `border:2px solid #fff`,
-    `display:flex`,
-    `align-items:center`,
-    `justify-content:center`,
-    `color:#fff`,
-    `font-size:10px`,
-    `font-weight:bold`,
-    `font-family:Roboto,Arial,sans-serif`,
-    `box-shadow: 0 1px 4px rgba(0,0,0,0.3)`,
-    `cursor:pointer`,
+    'width:22px', 'height:22px', 'border-radius:3px',
+    `background:${color}`, 'border:2px solid #fff',
+    'display:flex', 'align-items:center', 'justify-content:center',
+    'color:#fff', 'font-size:10px', 'font-weight:bold',
+    'font-family:Roboto,Arial,sans-serif',
+    'box-shadow:0 1px 4px rgba(0,0,0,0.3)', 'cursor:pointer',
   ].join(';');
   el.textContent = text;
   return el;
@@ -140,14 +127,18 @@ function makeSquareHTMLElement(color, text, size = 22) {
 export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
   const mapDivRef = useRef(null);
 
-  // phase: 'idle' | 'loading' | 'map' | 'error'
-  // 'idle' renders null on both server and client — hydration-safe.
-  const [phase, setPhase] = useState('idle');
+  // mounted: true only after the first client-side effect runs.
+  // Server renders null; initial client render is also null (mounted=false).
+  // Only after effects does content appear — no hydration path shared.
+  const [mounted, setMounted] = useState(false);
+  const [phase, setPhase] = useState('idle'); // idle | loading | map
   const [legCoords, setLegCoords] = useState([]);
   const envKey = process.env.NEXT_PUBLIC_GMAPS_EMBED_KEY || '';
 
-  // Phase 1: resolve provider and geocode (client-only).
+  // Phase 1: set mounted=true and geocode (client-only).
   useEffect(() => {
+    setMounted(true);
+
     if (!legs || legs.length === 0) {
       setPhase('error');
       return;
@@ -191,29 +182,30 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
     async function initMap() {
       setOptions({ key: envKey, v: 'weekly' });
 
-      // Load both maps and marker libraries.
-      const mapsLib = await importLibrary('maps');
+      // Load maps library (includes Map, Polyline, LatLngBounds, InfoWindow).
+      await importLibrary('maps');
 
-      // AdvancedMarkerElement is in the 'marker' library.
-      // Load it separately; if it fails, fall back to basic Marker.
-      let markerLib;
+      // Load marker library — this populates google.maps.marker namespace.
+      // Access AdvancedMarkerElement via window.google.maps.marker after load.
       try {
-        markerLib = await importLibrary('marker');
-      } catch {
-        markerLib = null;
+        await importLibrary('marker');
+      } catch (err) {
+        console.error('TripOverviewMap: failed to load marker library', err);
+        if (!cancelled) setPhase('error');
+        return;
       }
 
       if (cancelled || !mapDivRef.current) return;
 
       const google = window.google;
-      if (!google?.maps) {
-        console.error('TripOverviewMap: google.maps not available');
-        setPhase('error');
+      if (!google?.maps?.marker?.AdvancedMarkerElement) {
+        console.error('TripOverviewMap: AdvancedMarkerElement not available');
+        if (!cancelled) setPhase('error');
         return;
       }
 
-      const { Map, Polyline, LatLngBounds, InfoWindow, MapTypeId } = mapsLib;
-      const { AdvancedMarkerElement } = markerLib || {};
+      const { Map, Polyline, LatLngBounds, InfoWindow, MapTypeId } = google.maps;
+      const { AdvancedMarkerElement } = google.maps.marker;
 
       const bounds = new LatLngBounds();
       const infoWindow = new InfoWindow();
@@ -242,68 +234,34 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
           map,
         });
 
-        // Origin marker — circle div, colour-coded.
-        const originEl = makeCircleHTMLElement(color, String(legNum));
-        const originPos = { lat: origin.lat, lng: origin.lon };
+        // Origin marker — circle div.
+        const originMarker = new AdvancedMarkerElement({
+          position: { lat: origin.lat, lng: origin.lon },
+          map,
+          content: makeCircleHTMLElement(color, String(legNum)),
+          title: leg.origin.label,
+        });
 
-        if (AdvancedMarkerElement) {
-          const originMarker = new AdvancedMarkerElement({
-            position: originPos,
-            map,
-            content: originEl,
-            title: leg.origin.label,
-          });
-          originMarker.addListener('click', () => {
-            infoWindow.setContent(leg.origin.label);
-            infoWindow.open(map, { anchor: originMarker });
-          });
-          bounds.extend(originMarker.position);
-        } else {
-          // Fallback: basic Marker (deprecated but functional).
-          const { Marker } = google.maps;
-          const originMarker = new Marker({
-            position: originPos,
-            map,
-            label: { text: String(legNum), color: '#fff', fontWeight: 'bold', fontSize: '10px' },
-            title: leg.origin.label,
-          });
-          originMarker.addListener('click', () => {
-            infoWindow.setContent(leg.origin.label);
-            infoWindow.open(map, originMarker);
-          });
-          bounds.extend(originMarker.position);
-        }
+        originMarker.addListener('click', () => {
+          infoWindow.setContent(leg.origin.label);
+          infoWindow.open(map, { anchor: originMarker });
+        });
 
-        // Destination marker — square div, colour-coded.
-        const destEl = makeSquareHTMLElement(color, String(legNum));
-        const destPos = { lat: dest.lat, lng: dest.lon };
+        // Destination marker — square div.
+        const destMarker = new AdvancedMarkerElement({
+          position: { lat: dest.lat, lng: dest.lon },
+          map,
+          content: makeSquareHTMLElement(color, String(legNum)),
+          title: leg.destination.label,
+        });
 
-        if (AdvancedMarkerElement) {
-          const destMarker = new AdvancedMarkerElement({
-            position: destPos,
-            map,
-            content: destEl,
-            title: leg.destination.label,
-          });
-          destMarker.addListener('click', () => {
-            infoWindow.setContent(leg.destination.label);
-            infoWindow.open(map, { anchor: destMarker });
-          });
-          bounds.extend(destMarker.position);
-        } else {
-          const { Marker } = google.maps;
-          const destMarker = new Marker({
-            position: destPos,
-            map,
-            label: { text: String(legNum), color: '#fff', fontWeight: 'bold', fontSize: '10px' },
-            title: leg.destination.label,
-          });
-          destMarker.addListener('click', () => {
-            infoWindow.setContent(leg.destination.label);
-            infoWindow.open(map, destMarker);
-          });
-          bounds.extend(destMarker.position);
-        }
+        destMarker.addListener('click', () => {
+          infoWindow.setContent(leg.destination.label);
+          infoWindow.open(map, { anchor: destMarker });
+        });
+
+        bounds.extend(originMarker.position);
+        bounds.extend(destMarker.position);
       }
 
       if (!cancelled) {
@@ -318,7 +276,10 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
     };
   }, [phase, legCoords, envKey]);
 
-  if (phase === 'idle' || phase === 'error') {
+  // Never render anything on the server (phase=idle, null output).
+  // On the client first render, mounted=false so this also returns null.
+  // Real content appears only after the client effects have run.
+  if (!mounted || phase === 'idle' || phase === 'error') {
     return null;
   }
 
