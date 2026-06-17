@@ -571,7 +571,7 @@ p {
 /* ── Trip Detail ─────────────────────────────────── */
 
 .detail-panel {
-  max-width: 720px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 1.5rem 1rem 3rem;
 }
@@ -595,6 +595,14 @@ p {
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 1.25rem;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding: 0.5rem 0;
+  background: var(--bg-primary);
+  /* subtle background blur so content scrolls beneath without obscuring */
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 .detail-topbar .back-link {
   margin-bottom: 0;
