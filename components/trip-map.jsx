@@ -1,39 +1,34 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { buildViewport, projectBasemap, projectPlaces, projectPoint } from '@/lib/basemap-projection.mjs';
-
-const VIEWBOX_WIDTH = 600;
-const VIEWBOX_HEIGHT = 360;
-
-const BASEMAP_URL = '/vectors/world-slim.json';
-const PLACES_URL = '/vectors/places-slim.json';
+import { useEffect, useMemo, useState } from 'react';
+import { buildViewport } from '@/lib/basemap-projection.mjs';
 
 /**
- * TripMap — renders a privacy-safe inline SVG of the trip's waypoints
- * over a simplified world basemap (country outlines + major populated
- * places). The basemap data is loaded once per page from the dashboard's
- * own /vectors/*.json static assets (Natural Earth, public domain).
+ * TripMap — renders an embedded OpenStreetMap iframe for the trip's
+ * waypoints, with a waypoint list below as a structured fallback.
  *
- * Behaviour:
+ * Behaviour (spec 010 FR-009, FR-026, FR-027):
  *   - Geocodes each unique leg origin/destination via /api/geocode.
- *   - Never geocodes labels with precision 'home' or 'exact'.
- *   - Falls back to a waypoint list when fewer than 2 waypoints resolve.
- *   - Falls back to a route list when no geocoding succeeds.
- *   - All rendering happens in-browser as inline SVG (no external image
- *     or third-party tile service), so the map never depends on a
- *     remote provider being online.
- *   - The basemap is loaded lazily after geocoding resolves, so the
- *     waypoint list is the first thing the user sees.
+ *   - Never geocodes labels with precision 'home' or 'exact'; those
+ *     waypoints appear in the waypoint list only (never in the map URL).
+ *   - Computes a bbox from the geocoded (non-private) waypoints using the
+ *     same buildViewport() helper as before — preserves the route framing.
+ *   - Picks the final leg's destination as the single marker (OSM
+ *     /export/embed.html only supports one marker per iframe).
+ *   - Falls back to a route list when fewer than 2 waypoints geocode.
+ *   - Always renders the structured waypoint list so the user sees the
+ *     full set of stops regardless of map render quality.
+ *
+ * Privacy:
+ *   - The OSM iframe URL is constructed in-browser from waypoints whose
+ *     precision is NOT 'home' or 'exact'. Private locations are excluded.
+ *   - The /api/geocode server route already enforces this; we additionally
+ *     filter here as a defence-in-depth check before composing the URL.
  */
 export function TripMap({ legs = [] }) {
   const [waypoints, setWaypoints] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [basemap, setBasemap] = useState(null);
-  const [places, setPlaces] = useState(null);
 
-  // Geocode the waypoints. This effect runs first; the basemap is loaded
-  // only after we know there are enough waypoints to render.
   useEffect(() => {
     if (!legs || legs.length === 0) {
       setLoading(false);
@@ -93,27 +88,53 @@ export function TripMap({ legs = [] }) {
     };
   }, [legs]);
 
-  const geocoded = waypoints.filter((w) => w.geocoded);
+  const geocoded = useMemo(
+    () => waypoints.filter((w) => w.geocoded),
+    [waypoints]
+  );
 
-  // Load the basemap + places JSON once we know we have enough waypoints
-  // to render. Both files are static and served from the dashboard's own
-  // public/vectors/ directory (Natural Earth, public domain).
-  useEffect(() => {
-    if (geocoded.length < 2) return;
-    if (basemap && places) return;
-    let cancelled = false;
-    Promise.all([
-      basemap ? Promise.resolve(null) : fetch(BASEMAP_URL).then((r) => r.json()),
-      places ? Promise.resolve(null) : fetch(PLACES_URL).then((r) => r.json()),
-    ]).then(([world, placeList]) => {
-      if (cancelled) return;
-      if (world && !basemap) setBasemap(world);
-      if (placeList && !places) setPlaces(placeList);
+  // Build the OSM embed URL once we have enough geocoded waypoints.
+  // FR-027: only non-private (precision != 'home'/'exact') waypoints
+  // contribute to the bbox and marker. Defence in depth — the server
+  // geocoder also enforces this, but we filter again here so the URL is
+  // never composed from a private coord even if the server response is
+  // tampered with or a client-side code path is missed.
+  const embed = useMemo(() => {
+    if (geocoded.length < 2) return null;
+    const visible = geocoded.filter(
+      (w) => w.precision !== 'home' && w.precision !== 'exact'
+    );
+    if (visible.length < 2) return null;
+    const viewport = buildViewport(visible, {
+      width: 600,
+      height: 360,
+      padding: 0.18,
+      minSpan: 0.4,
     });
-    return () => {
-      cancelled = true;
+    const { minLon, minLat, maxLon, maxLat } = viewport;
+    // OSM embed bbox order: minLon,minLat,maxLon,maxLat
+    const bbox = `${minLon.toFixed(5)},${minLat.toFixed(5)},${maxLon.toFixed(5)},${maxLat.toFixed(5)}`;
+    // Marker: prefer the last visible waypoint (typically the destination
+    // / accommodation, which is always a public venue per FR-027).
+    // OSM embed uses lat,lon order for the marker parameter.
+    const markerWp = visible[visible.length - 1];
+    const markerLat = markerWp.lat.toFixed(5);
+    const markerLon = markerWp.lon.toFixed(5);
+    const params = new URLSearchParams({ bbox, layer: 'mapnik', marker: `${markerLat},${markerLon}` });
+    // Build a "View larger map" link to the public OSM site at the same
+    // marker and a sensible zoom (zoom 11 ≈ city scale for the bbox sizes
+    // we render). mlat/mlon order matches the embed URL convention.
+    const viewLargeParams = new URLSearchParams({
+      mlat: markerLat,
+      mlon: markerLon,
+    });
+    const viewLargeHref = `https://www.openstreetmap.org/?${viewLargeParams.toString()}#map=11/${markerLat}/${markerLon}`;
+    return {
+      src: `https://www.openstreetmap.org/export/embed.html?${params.toString()}`,
+      markerLabel: markerWp.label,
+      viewLargeHref,
     };
-  }, [geocoded.length, basemap, places]);
+  }, [geocoded]);
 
   if (loading) {
     return (
@@ -123,7 +144,7 @@ export function TripMap({ legs = [] }) {
     );
   }
 
-  if (geocoded.length < 2) {
+  if (!embed) {
     return (
       <div className="trip-map-fallback">
         <p className="map-note">🗺️ Map could not be generated for this trip.</p>
@@ -141,105 +162,33 @@ export function TripMap({ legs = [] }) {
     );
   }
 
-  // Compute the viewport from the geocoded waypoints
-  const viewport = buildViewport(geocoded, {
-    width: VIEWBOX_WIDTH,
-    height: VIEWBOX_HEIGHT,
-    padding: 0.18,
-    minSpan: 0.5,
-  });
-
-  // Project the basemap and city labels into the viewport. Both are
-  // derived data — pure functions, safe to recompute on every render.
-  const basemapPaths = basemap ? projectBasemap(basemap, viewport) : [];
-  const cityLabels = places ? projectPlaces(places, viewport, 200000) : [];
-
-  // Project each waypoint to SVG coords
-  const points = geocoded.map((w, i) => {
-    const { x, y } = projectPoint(w, viewport);
-    return {
-      ...w,
-      x,
-      y,
-      labelOffsetY: i % 2 === 0 ? -22 : 28,
-    };
-  });
-
-  // Country labels: pick the most populous country inside the viewport
-  // (skipped for now — would need the country feature list, not just paths)
   return (
-    <div className="trip-map-container" role="img" aria-label={`Map of ${geocoded.length} waypoints`}>
-      <svg
-        className="trip-map-svg"
-        viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
-        preserveAspectRatio="xMidYMid meet"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <defs>
-          <linearGradient id="trip-map-route" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="var(--accent-cyan)" stopOpacity="0.95" />
-            <stop offset="100%" stopColor="var(--accent-blue)" stopOpacity="0.95" />
-          </linearGradient>
-        </defs>
-        <rect
-          className="trip-map-canvas"
-          x="0"
-          y="0"
-          width={VIEWBOX_WIDTH}
-          height={VIEWBOX_HEIGHT}
-          rx="10"
-          ry="10"
-        />
-        {/* Basemap: simplified country outlines, drawn as one path per
-            polygon (each clipped to the viewport). The basemap CSS class
-            controls fill/stroke so the colour adapts to the theme. */}
-        <g className="trip-map-basemap">
-          {basemapPaths.map((d, i) => (
-            <path key={i} d={d} className="trip-map-country" />
-          ))}
-        </g>
-        {/* City labels: small dots + name for major populated places
-            inside the viewport. Helps orient the user when the route
-            is over a country they may not recognise by outline. */}
-        <g className="trip-map-places">
-          {cityLabels.map((c) => (
-            <g key={c.name} className="trip-map-place" transform={`translate(${c.x},${c.y})`}>
-              <circle className="trip-map-place-dot" r="1.5" />
-              <text className="trip-map-place-label" x="4" y="3">
-                {c.name}
-              </text>
-            </g>
-          ))}
-        </g>
-        {/* Route line connecting waypoints in sequence */}
-        <polyline
-          className="trip-map-route-line"
-          points={points.map((p) => `${p.x},${p.y}`).join(' ')}
-          fill="none"
-          stroke="url(#trip-map-route)"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        {/* Waypoint markers on top */}
-        {points.map((p, i) => (
-          <g key={`${p.label}-${i}`} className="trip-map-waypoint" transform={`translate(${p.x},${p.y})`}>
-            <circle className="trip-map-marker-ring" r="14" />
-            <circle className="trip-map-marker" r="9" />
-            <text className="trip-map-marker-label" y="4" textAnchor="middle">
-              {i + 1}
-            </text>
-            <text
-              className="trip-map-waypoint-label"
-              y={p.labelOffsetY}
-              x="0"
-              textAnchor="middle"
-            >
-              {truncate(p.label, 28)}
-            </text>
-          </g>
-        ))}
-      </svg>
+    <div className="trip-map-container" aria-label={`Map of ${geocoded.length} waypoints`}>
+      <iframe
+        className="trip-map-iframe"
+        title={`Trip map centred on ${embed.markerLabel}`}
+        src={embed.src}
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+      />
+      <p className="trip-map-attribution">
+        ©{' '}
+        <a
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          OpenStreetMap
+        </a>{' '}
+        contributors ·{' '}
+        <a
+          href={embed.viewLargeHref}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          View larger map
+        </a>
+      </p>
       <ul className="waypoint-list">
         {geocoded.map((wp, i) => (
           <li key={`${wp.key}-${i}`}>
@@ -250,9 +199,4 @@ export function TripMap({ legs = [] }) {
       </ul>
     </div>
   );
-}
-
-function truncate(value, max) {
-  if (!value) return '';
-  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
 }

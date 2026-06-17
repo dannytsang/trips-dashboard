@@ -967,61 +967,31 @@ p {
   flex-direction: column;
   gap: 0.5rem;
 }
-.trip-map-svg {
+.trip-map-iframe {
   width: 100%;
-  height: auto;
+  /* 5:3 aspect ratio matches the bbox the buildViewport helper produces
+     for European trip waypoint sets (≈600×360 SVG equivalent). Keeps the
+     iframe a comfortable landscape even on narrow viewports. */
+  aspect-ratio: 5 / 3;
   display: block;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--bg-tertiary), transparent 30%);
+  background: var(--bg-tertiary);
 }
-.trip-map-canvas {
-  fill: color-mix(in srgb, var(--bg-elevated), transparent 12%);
-  stroke: var(--border-color);
-  stroke-width: 1;
+.trip-map-attribution {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin: 0;
+  letter-spacing: 0.01em;
 }
-.trip-map-country {
-  /* Country outlines: very low contrast so the route line and markers
-     stay the visual focus. The fill is intentionally a translucent mix
-     of the surface background, so the basemap blends into the card
-     in both light and dark themes. */
-  fill: color-mix(in srgb, var(--bg-elevated), transparent 35%);
-  stroke: color-mix(in srgb, var(--text-primary), transparent 70%);
-  stroke-width: 0.6;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
+.trip-map-attribution a {
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
 }
-.trip-map-place-dot {
-  fill: color-mix(in srgb, var(--text-primary), transparent 55%);
-}
-.trip-map-place-label {
-  fill: color-mix(in srgb, var(--text-secondary), transparent 30%);
-  font-size: 8px;
-  font-weight: 500;
-  paint-order: stroke;
-  stroke: color-mix(in srgb, var(--bg-elevated), transparent 30%);
-  stroke-width: 2.5;
-  stroke-linejoin: round;
-}
-.trip-map-route-line {
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
-}
-.trip-map-marker-ring {
-  fill: var(--bg-secondary);
-  stroke: var(--accent-cyan);
-  stroke-width: 2;
-}
-.trip-map-marker {
-  fill: var(--accent-cyan);
-}
-.trip-map-marker-label {
-  fill: var(--bg-secondary);
-  font-size: 11px;
-  font-weight: 700;
-}
-.trip-map-waypoint-label {
-  fill: var(--text-primary);
-  font-size: 10px;
-  font-weight: 600;
+.trip-map-attribution a:hover {
+  color: var(--text-secondary);
 }
 .trip-map-loading,
 .trip-map-fallback {

@@ -104,15 +104,45 @@ assert.doesNotMatch(
   /<SectionCollapsible\s+title="Map"/,
   'trip detail must not render Map as its own collapsible section; it lives inside Legs'
 );
+// TripMap must use an embedded OpenStreetMap iframe (raster tiles at
+// street/city resolution). Real OSM tiles look dramatically better than
+// our previous simplified Natural Earth SVG basemap — the user flagged
+// that the SVG output looked like a data issue (markers spanning India
+// to UK). The iframe is the right primitive: zero API key, native zoom,
+// proper raster tiles. Spec 010 FR-009 + FR-027.
+//
+// The literal <iframe> JSX element uses src={embed.src} — embed.src is
+// a URLSearchParams-composed value, so the iframe and the URL hostname
+// are on different lines. We assert on the element shape and the URL
+// shape separately, both within the same TripMap source file.
+assert.match(tripMap, /<iframe/, 'TripMap must use an <iframe> element');
 assert.match(
   tripMap,
-  /<svg[\s\S]*?viewBox=/,
-  'TripMap must render an inline SVG with a viewBox rather than a remote image'
+  /openstreetmap\.org\/export\/embed\.html/,
+  'TripMap must build the OpenStreetMap /export/embed.html URL'
 );
-assert.doesNotMatch(
+// URLSearchParams is composed from named keys, not raw "key=value"
+// strings, so the assertions below match the JS shape rather than the
+// final encoded URL.
+assert.match(
   tripMap,
-  /staticmap\.openstreetmap\.de|api\.mapbox|googleapis\.com\/maps/,
-  'TripMap must not depend on third-party static-tile endpoints that can rate-limit and silently fail'
+  /URLSearchParams\(\s*\{\s*bbox/,
+  'TripMap iframe URL must include a bbox parameter (URLSearchParams key)'
+);
+assert.match(
+  tripMap,
+  /URLSearchParams\([\s\S]*?marker:/,
+  'TripMap iframe URL must include a marker parameter (URLSearchParams key)'
+);
+assert.match(
+  tripMap,
+  /layer:\s*'mapnik'/,
+  'TripMap iframe URL must pin layer=mapnik for consistent rendering'
+);
+assert.match(
+  tripMap,
+  /w\.precision\s*!==\s*'home'\s*&&\s*w\.precision\s*!==\s*'exact'/,
+  'TripMap must filter out home/exact precision waypoints from the iframe URL (spec 010 FR-027 privacy contract)'
 );
 assert.match(
   tripMap,
@@ -121,8 +151,13 @@ assert.match(
 );
 assert.match(
   globalCss,
-  /\.trip-map-svg\s*\{/,
-  '.trip-map-svg must have visible styling'
+  /\.trip-map-iframe\s*\{/,
+  '.trip-map-iframe must have visible styling'
+);
+assert.match(
+  globalCss,
+  /\.trip-map-attribution\s*\{/,
+  '.trip-map-attribution must style the OSM copyright line'
 );
 assert.match(
   globalCss,
