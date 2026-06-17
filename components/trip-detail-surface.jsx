@@ -36,6 +36,7 @@ function formatDateRange(start, end) {
   const startDate = new Date(start);
   const endDate = end ? new Date(end) : null;
   const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'UTC',
     weekday: 'short',
     day: 'numeric',
     month: 'short',
