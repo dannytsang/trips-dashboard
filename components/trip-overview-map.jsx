@@ -12,10 +12,9 @@
  * coloured route lines, clickable markers. Privacy contract unchanged:
  * precision 'home' or 'exact' waypoints are excluded from the map.
  *
- * Hydration safety: provider check is deferred to useEffect (client-only)
- * so the server-rendered HTML matches the initial client render. Both render
- * null on first render; the client re-renders with the real provider after
- * the effect runs.
+ * Hydration safety: 'use client' + mounting guard ensures the component
+ * renders identically on server (null) and client first render (null),
+ * then re-renders with the map after the client-only effect runs.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -80,7 +79,7 @@ async function collectLegCoords(legs) {
     .sort((a, b) => a.index - b.index);
 }
 
-// Mode → stroke colour. TravelMode constants are resolved at runtime after API loads.
+// Mode → stroke colour. TravelMode resolved at runtime from directions lib.
 const MODE_COLORS = {
   driving:   { color: '#4285F4', weight: 4 },
   walking:   { color: '#34A853', weight: 3 },
@@ -104,8 +103,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
   const mapDivRef = useRef(null);
 
   // phase: 'idle' | 'loading' | 'map' | 'error'
-  // 'idle' renders null on both server and client (hydration-safe).
-  // Provider check is deferred to useEffect so first render is identical.
+  // 'idle' renders null — identical on server and client, so hydration-safe.
   const [phase, setPhase] = useState('idle');
   const [legCoords, setLegCoords] = useState([]);
   const envKey = process.env.NEXT_PUBLIC_GMAPS_EMBED_KEY || '';
@@ -116,7 +114,6 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
       return;
     }
 
-    // Resolve provider in the effect (client-only) to avoid hydration mismatch.
     const requested = (mapProvider || process.env.NEXT_PUBLIC_GMAPS_PROVIDER || 'osm').toLowerCase();
     const provider = (requested === 'google' && Boolean(envKey)) ? 'google' : 'osm';
 
@@ -137,7 +134,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
       }
 
       setLegCoords(coords);
-      setPhase('loading'); // triggers re-render → map div is now in the DOM
+      setPhase('loading');
     }
 
     run();
@@ -146,23 +143,18 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
     };
   }, [legs, mapProvider, envKey]);
 
-  // Phase 2: initialise Google Maps JS API once the map div is in the DOM.
   useEffect(() => {
     if (phase !== 'loading' || !mapDivRef.current) return;
 
     let cancelled = false;
 
     async function initMap() {
-      setOptions({
-        key: envKey,
-        v: 'weekly',
-        libraries: ['routes'],
-      });
+      setOptions({ key: envKey, v: 'weekly' });
 
-      const maps = await importLibrary('maps');
+      // TravelMode is in the 'directions' library, not 'maps'.
+      const [{ Map, Polyline, LatLngBounds, Marker, InfoWindow, SymbolPath, MapTypeId }, { TravelMode }] =
+        await Promise.all([importLibrary('maps'), importLibrary('directions')]);
       if (cancelled || !mapDivRef.current) return;
-
-      const { Map, Polyline, LatLngBounds, Marker, InfoWindow, SymbolPath, TravelMode, MapTypeId } = maps;
 
       const MODE_STYLES = {
         driving:   { mode: TravelMode.DRIVING,   color: '#4285F4', weight: 4 },
@@ -174,7 +166,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
       function getModeStyle(rawMode) {
         const m = String(rawMode || '').toLowerCase();
         if (m.includes('walk'))   return MODE_STYLES.walking;
-        if (m.includes('bike'))    return MODE_STYLES.bicycling;
+        if (m.includes('bike'))   return MODE_STYLES.bicycling;
         if (m.includes('transit') || m.includes('rail') || m.includes('train')) return MODE_STYLES.transit;
         if (m.includes('drive') || m.includes('car') || m.includes('taxi') ||
             m.includes('bus') || m.includes('ferry') || m.includes('cruise') || m.includes('flight')) {
@@ -207,28 +199,17 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
           map,
         });
 
-        const legIdx = (n) => String(legCoords.findIndex(l =>
-          (l.origin.lat === n.origin.lat && l.origin.lon === n.origin.lon) ||
-          (l.dest.lat === n.dest.lat && l.dest.lon === n.dest.lon)
-        ) + 1);
+        const legIndex = (n) =>
+          String(legCoords.findIndex(l =>
+            (l.origin.lat === n.origin.lat && l.origin.lon === n.origin.lon) ||
+            (l.dest.lat === n.dest.lat && l.dest.lon === n.dest.lon)
+          ) + 1);
 
         const originMarker = new Marker({
           position: { lat: origin.lat, lng: origin.lon },
           map,
-          label: {
-            text: legIdx({ origin, dest }),
-            color: '#fff',
-            fontWeight: 'bold',
-            fontSize: '10px',
-          },
-          icon: {
-            path: SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: color,
-            fillOpacity: 1,
-            strokeColor: '#fff',
-            strokeWeight: 2,
-          },
+          label: { text: legIndex({ origin, dest }), color: '#fff', fontWeight: 'bold', fontSize: '10px' },
+          icon: { path: SymbolPath.CIRCLE, scale: 10, fillColor: color, fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2 },
           title: leg.origin.label,
         });
 
@@ -240,20 +221,8 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
         const destMarker = new Marker({
           position: { lat: dest.lat, lng: dest.lon },
           map,
-          label: {
-            text: legIdx({ origin, dest }),
-            color: '#fff',
-            fontWeight: 'bold',
-            fontSize: '10px',
-          },
-          icon: {
-            path: SymbolPath.SQUARE,
-            scale: 8,
-            fillColor: color,
-            fillOpacity: 1,
-            strokeColor: '#fff',
-            strokeWeight: 2,
-          },
+          label: { text: legIndex({ origin, dest }), color: '#fff', fontWeight: 'bold', fontSize: '10px' },
+          icon: { path: SymbolPath.SQUARE, scale: 8, fillColor: color, fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2 },
           title: leg.destination.label,
         });
 
@@ -268,7 +237,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
 
       if (!cancelled) {
         map.fitBounds(bounds, { padding: 40 });
-        setPhase('map'); // re-render to remove loading text
+        setPhase('map');
       }
     }
 
