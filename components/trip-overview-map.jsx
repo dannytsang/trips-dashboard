@@ -245,7 +245,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
           title: leg.origin.label,
         });
 
-        originMarker.addListener('click', () => {
+        originMarker.addEventListener('gmp-click', () => {
           infoWindow.setContent(leg.origin.label);
           infoWindow.open(map, { anchor: originMarker });
         });
@@ -258,7 +258,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
           title: leg.destination.label,
         });
 
-        destMarker.addListener('click', () => {
+        destMarker.addEventListener('gmp-click', () => {
           infoWindow.setContent(leg.destination.label);
           infoWindow.open(map, { anchor: destMarker });
         });
