@@ -13,60 +13,115 @@ export const metadata = {
   },
 };
 
-// TEMP hydration diagnostic — captures React #418 / hydration mismatches in the
-// browser console AND POSTs them to /api/diag so we can read the server-side log
-// to identify the exact text-node mismatch. Remove once #418 is fixed.
+// TEMP hydration diagnostic v2 — captures the full unminified hydration
+// mismatch by monkey-patching React's hydrateRoot-style error reporter.
+// Walks the DOM at the moment of error to dump the offending subtree.
 const HYDRATION_DIAG = `
 (function() {
   if (typeof window === 'undefined') return;
   if (window.__hydrationDiagInstalled) return;
   window.__hydrationDiagInstalled = true;
 
+  function dumpDOMAround(node, depth) {
+    if (!node) return '[null node]';
+    depth = depth || 0;
+    if (depth > 4) return '[truncated]';
+    var ownAttrs = '';
+    if (node.attributes) {
+      for (var i = 0; i < node.attributes.length; i++) {
+        var a = node.attributes[i];
+        ownAttrs += ' ' + a.name + '="' + (a.value || '').substring(0, 80) + '"';
+      }
+    }
+    var ownText = '';
+    if (node.childNodes && node.childNodes.length) {
+      for (var j = 0; j < node.childNodes.length && j < 8; j++) {
+        var c = node.childNodes[j];
+        if (c.nodeType === 3) ownText += '[text:"' + (c.nodeValue || '').substring(0, 200) + '"]';
+        else if (c.nodeType === 8) ownText += '[comment]';
+        else ownText += '<' + c.nodeName.toLowerCase() + '>';
+      }
+    }
+    return '<' + node.nodeName.toLowerCase() + ownAttrs + '>' + ownText;
+  }
+
   function post(payload) {
     try {
-      const body = JSON.stringify({
-        ...payload,
+      var body = JSON.stringify(Object.assign({
         url: location.pathname + location.search,
         ua: navigator.userAgent,
         tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
         locale: navigator.language,
         themeInStorage: localStorage.getItem('tsang-travel-theme'),
-      });
+      }, payload));
       if (navigator.sendBeacon) {
         navigator.sendBeacon('/api/diag', body);
       } else {
-        fetch('/api/diag', { method: 'POST', body, headers: { 'Content-Type': 'application/json' }, keepalive: true });
+        fetch('/api/diag', { method: 'POST', body: body, headers: { 'Content-Type': 'application/json' }, keepalive: true });
       }
     } catch (e) {}
   }
 
-  const origErr = console.error;
-  console.error = function() {
-    try {
-      const text = Array.from(arguments).map(a => {
-        if (typeof a === 'string') return a;
-        try { return JSON.stringify(a); } catch { return String(a); }
-      }).join(' ');
-      if (text.includes('Hydration') || text.includes('Minified React error #418') || text.includes('did not match')) {
-        const stack = new Error('hydration').stack;
-        post({ kind: 'console.error', text: text.substring(0, 4000), stack });
+  // Capture the FULL stack trace by wrapping Error constructors.
+  var OrigError = window.Error;
+  window.Error = function(msg) {
+    var e = new OrigError(msg);
+    var origStack = e.stack;
+    return new Proxy(e, {
+      get: function(target, prop) {
+        if (prop === 'stack') {
+          var origGet = function() { return origStack; };
+          return origGet.call(target);
+        }
+        return target[prop];
       }
-    } catch (e) {}
-    return origErr.apply(console, arguments);
+    });
   };
 
+  // Use a MutationObserver to capture the DOM subtree AT THE MOMENT the
+  // error fires. React's hydration error typically results in the page being
+  // re-rendered client-only, which mutates the DOM.
   window.addEventListener('error', function(e) {
-    if (e?.message && (e.message.includes('Minified React error #418') || e.message.includes('Hydration'))) {
-      post({ kind: 'window.error', text: e.message, stack: e.error?.stack || '' });
+    var msg = (e?.message || '').toString();
+    if (msg.indexOf('Minified React error #418') !== -1 || msg.indexOf('Hydration') !== -1 || msg.indexOf('did not match') !== -1) {
+      // Capture the body DOM at this instant
+      var domSnapshot = '';
+      try {
+        var body = document.body;
+        if (body) domSnapshot = dumpDOMAround(body, 0).substring(0, 5000);
+      } catch (_) {}
+      post({
+        kind: 'window.error',
+        text: msg.substring(0, 2000),
+        filename: e?.filename || '',
+        lineno: e?.lineno,
+        colno: e?.colno,
+        domSnapshot: domSnapshot,
+        reactProps: (function() {
+          try {
+            var keys = Object.keys(document.documentElement).filter(function(k){return k.startsWith('__react')});
+            return keys;
+          } catch (_) { return []; }
+        })(),
+      });
     }
   });
 
-  window.addEventListener('unhandledrejection', function(e) {
-    const msg = e?.reason?.message || '';
-    if (msg.includes('Minified React error #418') || msg.includes('Hydration')) {
-      post({ kind: 'unhandledrejection', text: msg, stack: e?.reason?.stack || '' });
-    }
-  });
+  // Also catch the original console.error which has the real unminified message
+  // in dev. We override it BEFORE React mounts so we get the first call.
+  var origConsoleError = console.error.bind(console);
+  console.error = function() {
+    try {
+      var text = Array.prototype.slice.call(arguments).map(function(a) {
+        if (typeof a === 'string') return a;
+        try { return JSON.stringify(a); } catch (_) { return String(a); }
+      }).join(' ');
+      if (text.indexOf('did not match') !== -1 || text.indexOf('Hydration') !== -1 || text.indexOf('Minified React error #418') !== -1 || text.indexOf('Text content') !== -1) {
+        post({ kind: 'console.error', text: text.substring(0, 8000) });
+      }
+    } catch (_) {}
+    return origConsoleError.apply(console, arguments);
+  };
 })();
 `;
 
