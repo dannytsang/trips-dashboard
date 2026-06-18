@@ -258,7 +258,18 @@ export function DashboardSessionSurface({
               type="button"
               onClick={handleSessionMenuToggle}
             >
-              <span>{isHeaderCompact ? userName : `👤 Welcome, ${userName}`}</span>
+              <span className="session-user-labels" aria-hidden="true">
+                <span
+                  className={`session-user-label session-user-label--full ${isHeaderCompact ? 'session-user-label--hidden' : ''}`}
+                >
+                  👤 Welcome,
+                </span>
+                <span
+                  className={`session-user-label session-user-label--compact ${isHeaderCompact ? 'session-user-label--visible' : ''}`}
+                >
+                  {userName}
+                </span>
+              </span>
               <span className="session-user-caret" aria-hidden="true">▾</span>
             </button>
             {isSessionMenuOpen ? (
