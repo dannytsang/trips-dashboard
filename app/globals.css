@@ -283,17 +283,83 @@ p {
   transform: translateY(-0.35rem);
   margin-top: 0;
 }
-
 .session-actions {
   display: flex;
   align-items: center;
   gap: 0.8rem;
   flex-wrap: wrap;
   justify-content: flex-end;
+  position: relative;
 }
 
 .session-user {
+  color: var(--text-secondary);
   font-size: 0.88rem;
+}
+
+.session-user-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-secondary), white 8%);
+  color: var(--text-primary);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  padding: 0.7rem 0.95rem;
+  white-space: nowrap;
+  transition:
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease,
+    background-color 180ms ease;
+}
+
+.session-user-trigger:hover,
+.session-user-trigger:focus-visible {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  transform: translateY(-1px);
+}
+
+.session-user-caret {
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+.session-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 10;
+  display: grid;
+  gap: 0.45rem;
+  min-width: 15rem;
+  padding: 0.65rem;
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--bg-elevated), var(--bg-secondary) 12%);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+}
+
+.session-menu-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.65rem;
+  width: 100%;
+  text-align: left;
+}
+
+.session-menu-item-icon {
+  width: 1.4em;
+  text-align: center;
+}
+
+.session-menu-item-label {
+  flex: 1;
 }
 
 .secondary-action {
@@ -316,7 +382,7 @@ p {
 
 .theme-toggle {
   flex: 0 0 auto;
-  align-self: flex-start;
+  align-self: stretch;
   min-width: 0;
   width: auto;
   margin-top: 0;

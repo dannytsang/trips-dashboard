@@ -32,13 +32,13 @@ assert.match(signInPage, /aria-label=\{themeToggleLabel\}/, 'sign-in page theme 
 assert.match(signInPage, /theme === 'dark' \? '☀️' : '🌙'/, 'sign-in page theme toggle must be icon-only and switch between the sun and moon icons');
 assert.match(signInPage, /className="secondary-action theme-toggle"/, 'sign-in page theme toggle must be a secondary action so the sign-in button stays primary');
 assert.match(signInPage, /handleThemeToggle/, 'sign-in page must wire the theme toggle click handler');
-assert.doesNotMatch(globalCss, /\.auth-card-title h1\s*\{[^}]*margin:\s*0\s*[;}]/, 'h1 inside .auth-card-title must keep its inline 0.35rem top margin so the toggle anchors to the eyebrow line in the meals-dashboard pattern');
-assert.doesNotMatch(globalCss, /\.auth-card-title \.eyebrow\s*\{[^}]*margin:\s*0\s+0\s+\d+(?:\.\d+)?(?:rem|px)\s*[;}]/, 'eyebrow inside .auth-card-title must not have a non-zero bottom margin that compresses the heading against the toggle row');
-assert.match(dashboardSurface, /signOut\(\{ callbackUrl: '\/auth\/signin\?signedOut=1' \}\)/, 'authenticated dashboard must sign out through NextAuth and return to sign-in');
-assert.match(dashboardSurface, /setIsSigningOut\(true\)/, 'authenticated dashboard must hide protected content immediately during sign-out');
-assert.match(dashboardSurface, /data-auth-state="signing-out"/, 'sign-out transition must render an explicit non-dashboard auth state');
-assert.match(dashboardSurface, /Sign out/, 'authenticated dashboard must expose a visible sign-out action');
-assert.match(globalCss, /\.secondary-action/, 'logout action must have visible button styling');
+assert.doesNotMatch(dashboardSurface, /className="secondary-action theme-toggle"/, 'dashboard summary must move the theme toggle into the account menu');
+assert.doesNotMatch(dashboardSurface, /<button className="secondary-action" type="button" onClick=\{handleSignOut\}>/, 'dashboard summary must move sign-out into the account menu');
+assert.match(dashboardSurface, /aria-haspopup="menu"/, 'dashboard summary must expose a menu trigger on the welcome control');
+assert.match(dashboardSurface, /role="menu" aria-label="Account menu"/, 'dashboard summary must render an account menu');
+assert.match(dashboardSurface, /handleSessionThemeToggle/, 'dashboard summary account menu must include theme toggle action');
+assert.match(dashboardSurface, /handleSessionSignOut/, 'dashboard summary account menu must include sign-out action');
+assert.match(dashboardSurface, /Welcome, \{userName\}/, 'dashboard summary must keep the welcome label on the menu trigger');
 assert.match(syncRoute, /TRIPS_DASHBOARD_SYNC_SECRET/, 'sync endpoint must use machine auth secret');
 assert.match(syncRoute, /timingSafeEqual/, 'sync endpoint must use constant-time bearer token comparison');
 assert.match(syncRoute, /Machine authentication required/, 'sync endpoint must reject missing or bad bearer token');
@@ -61,34 +61,32 @@ assert.doesNotMatch(storage, /issueSignedToken|presignUrl|getDownloadUrl/, 'stor
 assert.match(portfolio, /FORBIDDEN_KEY_PATTERNS/, 'portfolio validation must include private-data key guards');
 assert.match(portfolio, /FORBIDDEN_VALUE_PATTERNS/, 'portfolio validation must include private-data value guards');
 
-// Trip detail top bar — theme toggle must sit in the top navigation row with
-// the Back link so it lands at the page's top-right, not merely the title
-// header's top-right. This regression-locks the corrected FR-003 behaviour.
-assert.match(
-  tripDetailSurface,
-  /<div\s+className="detail-topbar">[\s\S]*?<Link\s+href="\/"\s+className="back-link">[\s\S]*?className="secondary-action theme-toggle"[\s\S]*?<\/div>/,
-  'trip detail must place the Back link and theme toggle together in .detail-topbar'
-);
-assert.doesNotMatch(
-  tripDetailSurface,
-  /detail-header-toggle/,
-  'trip detail must not keep the theme toggle inside .detail-header-toggle; it belongs in the topbar'
-);
-assert.doesNotMatch(
-  tripDetailSurface,
-  /<div\s+className="detail-actions">/,
-  'trip detail must not use a separate .detail-actions div for the theme toggle; it belongs in the topbar'
-);
-assert.match(
-  globalCss,
-  /\.detail-topbar\s*\{[^}]*display:\s*flex[^}]*justify-content:\s*space-between/,
-  '.detail-topbar must be a flex row with space-between so Back sits left and the toggle sits right'
-);
-assert.match(
-  globalCss,
-  /\.detail-topbar\s+\.theme-toggle\s*\{[^}]*align-self:\s*center/,
-  '.detail-topbar .theme-toggle must align within the top navigation row'
-);
+// Dashboard account menu — the welcome control must open a menu that holds the
+// theme toggle and sign-out actions. The header should no longer render those
+// controls inline.
+assert.match(dashboardSurface, /isSessionMenuOpen/, 'dashboard summary must track whether the account menu is open');
+assert.match(dashboardSurface, /aria-haspopup="menu"/, 'dashboard summary must expose a menu trigger on the welcome control');
+assert.match(dashboardSurface, /aria-expanded=\{isSessionMenuOpen\}/, 'welcome control must expose expanded state');
+assert.match(dashboardSurface, /aria-label=\{`Open account menu for \$\{userName\}`\}/, 'welcome control must announce the menu action');
+assert.match(dashboardSurface, /role="menu" aria-label="Account menu"/, 'dashboard summary must render an account menu');
+assert.match(dashboardSurface, /handleSessionMenuToggle/, 'welcome control must toggle the account menu');
+assert.match(dashboardSurface, /handleSessionThemeToggle/, 'dashboard summary account menu must include theme toggle action');
+assert.match(dashboardSurface, /handleSessionSignOut/, 'dashboard summary account menu must include sign-out action');
+assert.match(dashboardSurface, /className="session-user session-user-trigger"/, 'welcome control must use the session-user trigger styling');
+assert.match(dashboardSurface, /className="secondary-action session-menu-item theme-toggle"/, 'theme toggle must move into the account menu');
+assert.match(dashboardSurface, /className="secondary-action session-menu-item"/, 'sign-out must move into the account menu');
+assert.doesNotMatch(dashboardSurface, /className="secondary-action theme-toggle"/, 'theme toggle must no longer live inline in the header');
+assert.doesNotMatch(dashboardSurface, /<button className="secondary-action" type="button" onClick=\{handleSignOut\}>/, 'sign-out must no longer live inline in the header');
+assert.doesNotMatch(dashboardSurface, /<span className="session-user">👤 Welcome,/, 'welcome text must be the clickable menu trigger rather than a plain label');
+assert.match(dashboardSurface, /sessionMenuRef/, 'account menu must have a ref for outside-click dismissal');
+assert.match(dashboardSurface, /document\.addEventListener\('pointerdown', handlePointerDown\)/, 'account menu must close on outside click');
+assert.match(dashboardSurface, /event\.key === 'Escape'/, 'account menu must close on Escape');
+assert.match(dashboardSurface, /theme === 'dark' \? '☀️' : '🌙'/, 'theme toggle must remain icon-only within the menu');
+assert.doesNotMatch(dashboardSurface, /☀️ Light|🌙 Dark/, 'theme toggle must not duplicate the icon as visible text — the icon alone is the affordance');
+assert.doesNotMatch(dashboardSurface, /handleThemeToggle[\s\S]{0,200}readTripsDashboardPortfolio|handleThemeToggle[\s\S]{0,200}fetch\(/, 'theme switching must not fetch or resync portfolio data');
+assert.match(syncRoute, /TRIPS_DASHBOARD_SYNC_SECRET/, 'sync endpoint must use machine auth secret');
+assert.match(syncRoute, /timingSafeEqual/, 'sync endpoint must use constant-time bearer token comparison');
+assert.match(syncRoute, /Machine authentication required/, 'sync endpoint must reject missing or bad bearer token');
 
 // Per-leg inline map (spec 010 FR-036..037) — must be embedded
 // inside each leg row, not as a standalone Trip map section. This

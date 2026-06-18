@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import {
@@ -100,6 +100,8 @@ export function DashboardSessionSurface({
   const [activeFilter, setActiveFilter] = useState(null);
   const [expandedTripLegs, setExpandedTripLegs] = useState({});
   const [isHeaderCompact, setIsHeaderCompact] = useState(false);
+  const [isSessionMenuOpen, setIsSessionMenuOpen] = useState(false);
+  const sessionMenuRef = useRef(null);
 
   useEffect(() => {
     const initialTheme = getInitialTheme();
@@ -159,6 +161,47 @@ export function DashboardSessionSurface({
     void signOut({ callbackUrl: '/auth/signin?signedOut=1' });
   }
 
+  function handleSessionMenuToggle() {
+    setIsSessionMenuOpen(open => !open);
+  }
+
+  function handleSessionMenuClose() {
+    setIsSessionMenuOpen(false);
+  }
+
+  function handleSessionThemeToggle() {
+    handleThemeToggle();
+    handleSessionMenuClose();
+  }
+
+  function handleSessionSignOut() {
+    handleSessionMenuClose();
+    handleSignOut();
+  }
+
+  useEffect(() => {
+    function handlePointerDown(event) {
+      if (!sessionMenuRef.current) return;
+      if (!sessionMenuRef.current.contains(event.target)) {
+        setIsSessionMenuOpen(false);
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        setIsSessionMenuOpen(false);
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   function handleFilterToggle(filter) {
     const nextFilter = activeFilter === filter ? null : filter;
     setActiveFilter(nextFilter);
@@ -206,19 +249,42 @@ export function DashboardSessionSurface({
               Upcoming and active trips from the private travel-planner portfolio.
             </p>
           </div>
-          <div className="session-actions">
-            <span className="session-user">👤 Welcome, {userName}</span>
+          <div className="session-actions" ref={sessionMenuRef}>
             <button
-              aria-label={themeToggleLabel}
-              className="secondary-action theme-toggle"
+              aria-expanded={isSessionMenuOpen}
+              aria-haspopup="menu"
+              aria-label={`Open account menu for ${userName}`}
+              className="session-user session-user-trigger"
               type="button"
-              onClick={handleThemeToggle}
+              onClick={handleSessionMenuToggle}
             >
-              {theme === 'dark' ? '☀️' : '🌙'}
+              <span>👤 Welcome, {userName}</span>
+              <span className="session-user-caret" aria-hidden="true">▾</span>
             </button>
-            <button className="secondary-action" type="button" onClick={handleSignOut}>
-              🔐 Sign out
-            </button>
+            {isSessionMenuOpen ? (
+              <div className="session-menu" role="menu" aria-label="Account menu">
+                <button
+                  aria-label={themeToggleLabel}
+                  className="secondary-action session-menu-item theme-toggle"
+                  type="button"
+                  role="menuitem"
+                  onClick={handleSessionThemeToggle}
+                >
+                  <span className="session-menu-item-icon" aria-hidden="true">
+                    {theme === 'dark' ? '☀️' : '🌙'}
+                  </span>
+                  <span className="session-menu-item-label">{themeToggleLabel}</span>
+                </button>
+                <button
+                  className="secondary-action session-menu-item"
+                  type="button"
+                  role="menuitem"
+                  onClick={handleSessionSignOut}
+                >
+                  🔐 Sign out
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
 
