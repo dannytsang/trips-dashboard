@@ -4,8 +4,8 @@
  * TripOverviewMap — one Google Maps JavaScript API map showing all trip legs.
  * Uses @googlemaps/js-api-loader v2: setOptions() + importLibrary().
  *
- * FR-042 Revised (JS API): one interactive map, all legs as coloured
- * Polylines + AdvancedMarkerElement markers. Privacy contract unchanged
+ * FR-042 Revised (route geometry): one interactive map, all legs as routed paths +
+ * AdvancedMarkerElement markers. Privacy contract unchanged
  * (precision home/exact excluded).
  *
  * Hydration safety: 'mounted' state is initialised to false. Server renders
@@ -94,6 +94,104 @@ function getModeColor(rawMode) {
   return MODE_COLORS.driving;
 }
 
+function getTravelMode(rawMode) {
+  const m = String(rawMode || '').toLowerCase();
+  if (m.includes('walk')) return 'WALKING';
+  if (m.includes('bike')) return 'BICYCLING';
+  if (m.includes('transit') || m.includes('rail') || m.includes('train') || m.includes('bus')) return 'TRANSIT';
+  return 'DRIVING';
+}
+
+function getRouteProfile(rawMode) {
+  const m = String(rawMode || '').toLowerCase();
+  if (m.includes('walk')) return 'walking';
+  if (m.includes('bike')) return 'cycling';
+  return 'driving';
+}
+
+// Module-level route cache shared by the main map so repeated renders
+// of the same leg do not spam the public router endpoint.
+const routeCache = new Map();
+
+function getPointLon(point) {
+  return point?.lon ?? point?.lng;
+}
+
+function routeCacheKey(origin, dest, rawMode) {
+  const originLon = getPointLon(origin);
+  const destLon = getPointLon(dest);
+  return [
+    getRouteProfile(rawMode),
+    origin.lat.toFixed(5),
+    originLon.toFixed(5),
+    dest.lat.toFixed(5),
+    destLon.toFixed(5),
+  ].join('::');
+}
+
+async function fetchRoutePath(origin, dest, rawMode) {
+  const profile = getRouteProfile(rawMode);
+  const originLon = getPointLon(origin);
+  const destLon = getPointLon(dest);
+  const url = new URL(`https://router.project-osrm.org/route/v1/${profile}/${originLon},${origin.lat};${destLon},${dest.lat}`);
+  url.searchParams.set('overview', 'full');
+  url.searchParams.set('geometries', 'geojson');
+  url.searchParams.set('steps', 'false');
+
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    throw new Error(`OSRM_${response.status}`);
+  }
+  const data = await response.json();
+  const coords = data?.routes?.[0]?.geometry?.coordinates;
+  if (!Array.isArray(coords) || coords.length < 2) {
+    throw new Error('OSRM_NO_ROUTE');
+  }
+  return coords.map(([lon, lat]) => ({ lat, lng: lon }));
+}
+
+function routeShared(origin, dest, rawMode) {
+  const key = routeCacheKey(origin, dest, rawMode);
+  if (routeCache.has(key)) {
+    return routeCache.get(key);
+  }
+
+  const promise = fetchRoutePath(origin, dest, rawMode).catch(async (err) => {
+    console.warn('TripOverviewMap: OSRM routing failed, falling back to Google directions', err);
+    try {
+      const google = window.google;
+      if (!google?.maps?.DirectionsService) {
+        throw err;
+      }
+      const directionsService = new google.maps.DirectionsService();
+      const directions = await routeDirections(directionsService, {
+        origin,
+        destination: dest,
+        travelMode: getTravelMode(rawMode),
+        provideRouteAlternatives: false,
+      });
+      const path = directions.routes?.[0]?.overview_path;
+      if (!Array.isArray(path) || path.length < 2) {
+        throw new Error('GOOGLE_NO_ROUTE');
+      }
+      return path.map((point) => ({ lat: point.lat(), lng: point.lng() }));
+    } catch (fallbackErr) {
+      console.warn('TripOverviewMap: Google directions fallback failed', fallbackErr);
+      return null;
+    }
+  });
+
+  const cachedPromise = promise.then((result) => {
+    if (!result) {
+      routeCache.delete(key);
+    }
+    return result;
+  });
+
+  routeCache.set(key, cachedPromise);
+  return cachedPromise;
+}
+
 // Build a coloured circle HTML div for AdvancedMarkerElement (origin marker).
 function makeCircleHTMLElement(color, text) {
   const el = document.createElement('div');
@@ -122,6 +220,18 @@ function makeSquareHTMLElement(color, text) {
   ].join(';');
   el.textContent = text;
   return el;
+}
+
+function routeDirections(directionsService, request) {
+  return new Promise((resolve, reject) => {
+    directionsService.route(request, (result, status) => {
+      if (status === 'OK' && result) {
+        resolve(result);
+      } else {
+        reject(new Error(status || 'DIRECTIONS_ERROR'));
+      }
+    });
+  });
 }
 
 export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
@@ -182,7 +292,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
     async function initMap() {
       setOptions({ key: envKey, v: 'weekly' });
 
-      // Load maps library (includes Map, Polyline, LatLngBounds, InfoWindow).
+      // Load maps library (Map, LatLngBounds, InfoWindow, Polyline).
       await importLibrary('maps');
 
       // Load marker library — this populates google.maps.marker namespace.
@@ -224,22 +334,12 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
         const { leg, origin, dest } = legCoords[i];
         const color = getModeColor(leg.mode);
         const legNum = i + 1;
-
-        // Polyline: straight-line segment, colour-coded by mode.
-        new Polyline({
-          path: [
-            { lat: origin.lat, lng: origin.lon },
-            { lat: dest.lat,   lng: dest.lon },
-          ],
-          strokeColor: color,
-          strokeWeight: 4,
-          strokeOpacity: 0.85,
-          map,
-        });
+        const originPoint = { lat: origin.lat, lng: origin.lon };
+        const destPoint = { lat: dest.lat, lng: dest.lon };
 
         // Origin marker — circle div.
         const originMarker = new AdvancedMarkerElement({
-          position: { lat: origin.lat, lng: origin.lon },
+          position: originPoint,
           map,
           content: makeCircleHTMLElement(color, String(legNum)),
           title: leg.origin.label,
@@ -252,7 +352,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
 
         // Destination marker — square div.
         const destMarker = new AdvancedMarkerElement({
-          position: { lat: dest.lat, lng: dest.lon },
+          position: destPoint,
           map,
           content: makeSquareHTMLElement(color, String(legNum)),
           title: leg.destination.label,
@@ -265,6 +365,31 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
 
         bounds.extend(originMarker.position);
         bounds.extend(destMarker.position);
+
+        const routePath = await routeShared(originPoint, destPoint, leg.mode);
+        if (routePath && routePath.length >= 2) {
+          const routeBounds = new LatLngBounds();
+          routePath.forEach((point) => routeBounds.extend(point));
+          bounds.union(routeBounds);
+          new Polyline({
+            path: routePath,
+            strokeColor: color,
+            strokeWeight: 4,
+            strokeOpacity: 0.85,
+            geodesic: false,
+            map,
+          });
+        } else {
+          console.warn('TripOverviewMap: no routed path available, falling back to straight segment');
+          new Polyline({
+            path: [originPoint, destPoint],
+            strokeColor: color,
+            strokeWeight: 4,
+            strokeOpacity: 0.85,
+            geodesic: false,
+            map,
+          });
+        }
       }
 
       if (!cancelled) {

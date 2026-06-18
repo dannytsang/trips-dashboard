@@ -231,11 +231,39 @@ p {
   z-index: 2;
   padding-bottom: 1rem;
   background: linear-gradient(var(--bg-secondary), color-mix(in srgb, var(--bg-secondary), transparent 8%));
+  transition: padding-bottom 0.18s ease, gap 0.18s ease;
+}
+
+.session-header--compact {
+  gap: 0.75rem;
+  padding-bottom: 0.45rem;
+}
+
+.session-brand {
+  min-width: 0;
+}
+
+.dashboard-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  transition: font-size 0.18s ease, gap 0.18s ease;
+}
+
+.session-header--compact .dashboard-title {
+  font-size: clamp(1.45rem, 4vw, 2.15rem);
+  gap: 0.3rem;
 }
 
 .dashboard-subtitle,
 .session-user {
   color: var(--text-secondary);
+}
+
+.session-header--compact .dashboard-subtitle {
+  display: none;
 }
 
 .session-actions {
@@ -570,10 +598,17 @@ p {
 
 /* ── Trip Detail ─────────────────────────────────── */
 
+.detail-panel > section {
+  width: 100%;
+  max-width: none;
+}
+
 .detail-panel {
-  max-width: 720px;
+  --detail-panel-inline-pad: 1rem;
+  width: min(100%, 1400px);
+  max-width: none;
   margin: 0 auto;
-  padding: 1.5rem 1rem 3rem;
+  padding: 0 var(--detail-panel-inline-pad) 3rem;
 }
 
 .back-link {
@@ -594,10 +629,57 @@ p {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.25rem;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  width: calc(100% + (var(--detail-panel-inline-pad) * 2));
+  margin: 0 calc(-1 * var(--detail-panel-inline-pad)) 1rem;
+  padding: 1rem var(--detail-panel-inline-pad) 0.9rem;
+  background: color-mix(in srgb, var(--bg-secondary), transparent 2%);
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-color), transparent 10%);
+  border-radius: 1rem 1rem 0 0;
+  box-shadow: none;
+  /* subtle background blur so content scrolls beneath without obscuring */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .detail-topbar .back-link {
   margin-bottom: 0;
+  flex: 0 0 auto;
+}
+.detail-topbar-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  opacity: 0;
+  transform: translateY(-0.35rem);
+  pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+.detail-topbar-title-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.detail-topbar-date {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.detail-topbar-name {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .detail-topbar .theme-toggle {
   flex: 0 0 auto;
@@ -1398,7 +1480,8 @@ p {
 /* Responsive */
 @media (max-width: 600px) {
   .detail-panel {
-    padding: 1rem 0.75rem 2.5rem;
+    --detail-panel-inline-pad: 0.75rem;
+    padding: 0 var(--detail-panel-inline-pad) 2.5rem;
   }
   .leg-detail-flight {
     display: none;

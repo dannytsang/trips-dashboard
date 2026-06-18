@@ -154,8 +154,88 @@ assert.equal(storedRead.storage.url, undefined, 'storage metadata must not expos
 assert.equal(storedRead.portfolio.trips[0].title, 'Eastbourne fixture');
 assert.equal(storedRead.portfolio.trips[1].title, 'Birmingham fixture');
 
-const putCalls = [];
+const futureTrip = {
+  ...tripA,
+  id: 'trip-future',
+  title: 'Future fixture',
+  start: '2026-06-20T09:00:00.000Z',
+  end: '2026-06-20T18:00:00.000Z',
+};
+const futureChecksum = sha256ForObject(futureTrip);
+const futureRead = await readTripsDashboardPortfolio({
+  env: { BLOB_READ_WRITE_TOKEN: 'test-token' },
+  now: new Date('2026-06-18T00:00:00.000Z'),
+  blobGet: async pathname => {
+    if (pathname === DEFAULT_TRIPS_MANIFEST_PATH) {
+      return blobResult(pathname, {
+        schemaVersion: 1,
+        generatedAt: '2026-06-01T00:00:00.000Z',
+        staleAfterMinutes: 1,
+        tripCount: 1,
+        stale: false,
+        lastSync: { status: 'ok', message: null },
+        trips: [
+          {
+            id: 'trip-future',
+            path: 'trips-dashboard/trips/trip-future.json',
+            sha256: futureChecksum,
+            sidecarPath: 'trips-dashboard/trips/trip-future.sha256',
+            sortStart: futureTrip.start,
+            status: futureTrip.status,
+            title: futureTrip.title,
+            destinationLabel: futureTrip.destinationLabel,
+          },
+        ],
+      });
+    }
+    if (pathname === 'trips-dashboard/trips/trip-future.json') return blobResult(pathname, futureTrip);
+    return null;
+  },
+});
+assert.equal(futureRead.stale, false, 'a future trip should keep the portfolio current until that trip starts');
+
+const activeTrip = {
+  ...tripA,
+  id: 'trip-active',
+  title: 'Active fixture',
+  start: '2026-06-18T09:00:00.000Z',
+  end: '2026-06-18T18:00:00.000Z',
+};
+const activeChecksum = sha256ForObject(activeTrip);
+const activeRead = await readTripsDashboardPortfolio({
+  env: { BLOB_READ_WRITE_TOKEN: 'test-token' },
+  now: new Date('2026-06-18T12:00:00.000Z'),
+  blobGet: async pathname => {
+    if (pathname === DEFAULT_TRIPS_MANIFEST_PATH) {
+      return blobResult(pathname, {
+        schemaVersion: 1,
+        generatedAt: '2026-06-01T00:00:00.000Z',
+        staleAfterMinutes: 1,
+        tripCount: 1,
+        stale: false,
+        lastSync: { status: 'ok', message: null },
+        trips: [
+          {
+            id: 'trip-active',
+            path: 'trips-dashboard/trips/trip-active.json',
+            sha256: activeChecksum,
+            sidecarPath: 'trips-dashboard/trips/trip-active.sha256',
+            sortStart: activeTrip.start,
+            status: activeTrip.status,
+            title: activeTrip.title,
+            destinationLabel: activeTrip.destinationLabel,
+          },
+        ],
+      });
+    }
+    if (pathname === 'trips-dashboard/trips/trip-active.json') return blobResult(pathname, activeTrip);
+    return null;
+  },
+});
+assert.equal(activeRead.stale, false, 'an in-progress trip should keep the portfolio current until that trip ends');
+
 const delCalls = [];
+const putCalls = [];
 const writeResult = await writeTripsDashboardPortfolio(splitEnvelope, {
   env: { BLOB_READ_WRITE_TOKEN: 'test-token' },
   now: '2026-06-14T20:03:00.000Z',

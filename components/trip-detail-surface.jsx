@@ -11,7 +11,7 @@
 // to show all legs. OSM users see nothing from TripOverviewMap (provider
 // guard returns null) — OSM has no free multi-leg map renderer.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   formatLegModeEmoji,
@@ -572,6 +572,9 @@ export function TripDetailSurface({
   errorMessage,
 }) {
   const [theme, setTheme] = useState('dark');
+  const [showTopbarTitle, setShowTopbarTitle] = useState(false);
+  const topbarRef = useRef(null);
+  const headerRef = useRef(null);
 
   useEffect(() => {
     const initial = getInitialTheme();
@@ -582,6 +585,35 @@ export function TripDetailSurface({
     document.documentElement.dataset.theme = theme;
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
+
+  useEffect(() => {
+    const topbar = topbarRef.current;
+    const header = headerRef.current;
+    if (!topbar || !header) return undefined;
+
+    let frame = 0;
+    const updateTopbarTitle = () => {
+      frame = 0;
+      const topbarRect = topbar.getBoundingClientRect();
+      const headerRect = header.getBoundingClientRect();
+      // Show the compact title as soon as the full header starts sliding
+      // behind the sticky topbar, not only after the whole header disappears.
+      setShowTopbarTitle(headerRect.top <= topbarRect.bottom + 2);
+    };
+    const scheduleUpdate = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(updateTopbarTitle);
+    };
+
+    updateTopbarTitle();
+    window.addEventListener('scroll', scheduleUpdate, { passive: true });
+    window.addEventListener('resize', scheduleUpdate);
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', scheduleUpdate);
+      window.removeEventListener('resize', scheduleUpdate);
+    };
+  }, [trip?.id]);
 
   const nextTheme = theme === 'dark' ? 'light' : 'dark';
 
@@ -656,10 +688,18 @@ export function TripDetailSurface({
     <main className="dashboard-shell" data-theme={theme}>
       <section className="detail-panel" aria-label={`Trip detail: ${trip.title}`}>
         {/* Top navigation */}
-        <div className="detail-topbar">
+        <div ref={topbarRef} className="detail-topbar">
           <Link href="/" className="back-link">
             ← Back to trip summary
           </Link>
+          <div
+            className={`detail-topbar-title ${showTopbarTitle ? 'detail-topbar-title-visible' : ''}`}
+            aria-label="Current trip"
+            aria-hidden={!showTopbarTitle}
+          >
+            <span className="detail-topbar-date">{formatDateRange(trip.start, trip.end)}</span>
+            <span className="detail-topbar-name">{trip.title || tripId}</span>
+          </div>
           <button
             type="button"
             className="secondary-action theme-toggle"
@@ -671,7 +711,7 @@ export function TripDetailSurface({
         </div>
 
         {/* Header */}
-        <header className="detail-header">
+        <header ref={headerRef} className="detail-header">
           <div className="detail-header-body">
             <p className="trip-date">🗓️ {formatDateRange(trip.start, trip.end)}</p>
             <h1 className="detail-title">{trip.title || tripId}</h1>
