@@ -576,10 +576,11 @@ p {
 }
 
 .detail-panel {
+  --detail-panel-inline-pad: 1rem;
   width: min(100%, 1400px);
   max-width: none;
   margin: 0 auto;
-  padding: 1.5rem 1rem 3rem;
+  padding: 1.5rem var(--detail-panel-inline-pad) 3rem;
 }
 
 .back-link {
@@ -600,15 +601,19 @@ p {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.25rem;
   position: sticky;
   top: 0;
   z-index: 50;
-  padding: 0.5rem 0;
-  background: var(--bg-primary);
+  width: calc(100% + (var(--detail-panel-inline-pad) * 2));
+  margin: 0 calc(-1 * var(--detail-panel-inline-pad)) 1.25rem;
+  padding: 0.9rem var(--detail-panel-inline-pad);
+  background: color-mix(in srgb, var(--bg-secondary), transparent 4%);
+  border: 1px solid color-mix(in srgb, var(--border-color), transparent 15%);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-sm);
   /* subtle background blur so content scrolls beneath without obscuring */
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .detail-topbar .back-link {
   margin-bottom: 0;
@@ -1446,7 +1451,8 @@ p {
 /* Responsive */
 @media (max-width: 600px) {
   .detail-panel {
-    padding: 1rem 0.75rem 2.5rem;
+    --detail-panel-inline-pad: 0.75rem;
+    padding: 1rem var(--detail-panel-inline-pad) 2.5rem;
   }
   .leg-detail-flight {
     display: none;
