@@ -113,19 +113,27 @@ function getRouteProfile(rawMode) {
 // of the same leg do not spam the public router endpoint.
 const routeCache = new Map();
 
+function getPointLon(point) {
+  return point?.lon ?? point?.lng;
+}
+
 function routeCacheKey(origin, dest, rawMode) {
+  const originLon = getPointLon(origin);
+  const destLon = getPointLon(dest);
   return [
     getRouteProfile(rawMode),
     origin.lat.toFixed(5),
-    origin.lon.toFixed(5),
+    originLon.toFixed(5),
     dest.lat.toFixed(5),
-    dest.lon.toFixed(5),
+    destLon.toFixed(5),
   ].join('::');
 }
 
 async function fetchRoutePath(origin, dest, rawMode) {
   const profile = getRouteProfile(rawMode);
-  const url = new URL(`https://router.project-osrm.org/route/v1/${profile}/${origin.lon},${origin.lat};${dest.lon},${dest.lat}`);
+  const originLon = getPointLon(origin);
+  const destLon = getPointLon(dest);
+  const url = new URL(`https://router.project-osrm.org/route/v1/${profile}/${originLon},${origin.lat};${destLon},${dest.lat}`);
   url.searchParams.set('overview', 'full');
   url.searchParams.set('geometries', 'geojson');
   url.searchParams.set('steps', 'false');
