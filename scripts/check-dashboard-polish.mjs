@@ -206,13 +206,15 @@ assert.match(dashboardSurface, /isHeaderCompact/, 'dashboard summary header must
 assert.match(dashboardSurface, /window\.addEventListener\('scroll', handleScroll, \{ passive: true \}\)/, 'dashboard summary header must listen for scroll events to compact itself');
 assert.match(dashboardSurface, /session-header--compact/, 'dashboard summary header must apply a compact class when scrolled');
 assert.match(dashboardSurface, /className=\{`session-header \$\{isHeaderCompact \? 'session-header--compact' : ''\}`\}/, 'dashboard summary header must bind the compact class in JSX');
+assert.match(dashboardSurface, /className=\{`dashboard-subtitle \$\{isHeaderCompact \? 'dashboard-subtitle--compact' : ''\}`\}/, 'dashboard subtitle must animate via a compact modifier class');
+assert.match(dashboardSurface, /aria-hidden=\{isHeaderCompact\}/, 'dashboard subtitle must be marked hidden when compact');
 assert.match(dashboardSurface, /className="dashboard-title"/, 'dashboard title must have a dedicated class so it can scale with the compact header state');
-assert.match(dashboardSurface, /!isHeaderCompact \? \(/, 'dashboard subtitle must be hidden once the header is compact');
 assert.match(globalCss, /\.session-header--compact/, 'compact header must have CSS styling');
 assert.match(globalCss, /\.session-brand/, 'compact header brand container must have CSS styling');
 assert.match(globalCss, /\.dashboard-title/, 'dashboard title must have CSS styling for compact scaling');
-assert.match(globalCss, /\.session-header--compact \.dashboard-title/, 'compact header must reduce the dashboard title size');
-assert.match(globalCss, /\.session-header--compact \.dashboard-subtitle/, 'compact header must hide the tagline');
+assert.match(globalCss, /\.dashboard-subtitle--compact/, 'compact header must animate the subtitle out instead of removing it instantly');
+assert.match(globalCss, /transition:\s*\n\s*padding-bottom 240ms cubic-bezier\(0\.22, 1, 0\.36, 1\),/s, 'compact header padding should transition with a smoother easing curve');
+assert.match(globalCss, /\.dashboard-subtitle \{[\s\S]*?opacity: 1;[\s\S]*?transform: translateY\(0\);[\s\S]*?transition:[\s\S]*?opacity 180ms ease/s, 'dashboard subtitle must fade/slide out smoothly');
 assert.match(dashboardSurface, /FILTER_QUERY_KEY\s*=\s*'filter'/, 'filter state must use a stable query-string key');
 assert.match(dashboardSurface, /window\.history\.pushState\(\{\}, '', url\)/, 'filter changes must use the browser History API rather than a server navigation');
 assert.match(dashboardSurface, /window\.addEventListener\('popstate', handlePopState\)/, 'back\/forward navigation must restore the previous filter');

@@ -199,9 +199,12 @@ export function DashboardSessionSurface({
           <div className="session-brand">
             <p className="eyebrow">✈️ Travel intelligence</p>
             <h1 id="dashboard-title" className="dashboard-title">🧭 Tsang Travel</h1>
-            {!isHeaderCompact ? (
-              <p className="dashboard-subtitle">Upcoming and active trips from the private travel-planner portfolio.</p>
-            ) : null}
+            <p
+              className={`dashboard-subtitle ${isHeaderCompact ? 'dashboard-subtitle--compact' : ''}`}
+              aria-hidden={isHeaderCompact}
+            >
+              Upcoming and active trips from the private travel-planner portfolio.
+            </p>
           </div>
           <div className="session-actions">
             <span className="session-user">👤 Welcome, {userName}</span>
