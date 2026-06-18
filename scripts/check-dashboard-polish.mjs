@@ -202,6 +202,17 @@ assert.match(dashboardSurface, /aria-label=\{themeToggleLabel\}/, 'theme toggle 
 assert.match(dashboardSurface, /theme === 'dark' \? '☀️' : '🌙'/, 'theme toggle must be icon-only and switch between the sun and moon icons');
 assert.doesNotMatch(dashboardSurface, /☀️ Light|🌙 Dark/, 'theme toggle must not duplicate the icon as visible text — the icon alone is the affordance');
 assert.doesNotMatch(dashboardSurface, /handleThemeToggle[\s\S]{0,200}readTripsDashboardPortfolio|handleThemeToggle[\s\S]{0,200}fetch\(/, 'theme switching must not fetch or resync portfolio data');
+assert.match(dashboardSurface, /isHeaderCompact/, 'dashboard summary header must track a compact state while scrolling');
+assert.match(dashboardSurface, /window\.addEventListener\('scroll', handleScroll, \{ passive: true \}\)/, 'dashboard summary header must listen for scroll events to compact itself');
+assert.match(dashboardSurface, /session-header--compact/, 'dashboard summary header must apply a compact class when scrolled');
+assert.match(dashboardSurface, /className=\{`session-header \$\{isHeaderCompact \? 'session-header--compact' : ''\}`\}/, 'dashboard summary header must bind the compact class in JSX');
+assert.match(dashboardSurface, /className="dashboard-title"/, 'dashboard title must have a dedicated class so it can scale with the compact header state');
+assert.match(dashboardSurface, /!isHeaderCompact \? \(/, 'dashboard subtitle must be hidden once the header is compact');
+assert.match(globalCss, /\.session-header--compact/, 'compact header must have CSS styling');
+assert.match(globalCss, /\.session-brand/, 'compact header brand container must have CSS styling');
+assert.match(globalCss, /\.dashboard-title/, 'dashboard title must have CSS styling for compact scaling');
+assert.match(globalCss, /\.session-header--compact \.dashboard-title/, 'compact header must reduce the dashboard title size');
+assert.match(globalCss, /\.session-header--compact \.dashboard-subtitle/, 'compact header must hide the tagline');
 assert.match(dashboardSurface, /FILTER_QUERY_KEY\s*=\s*'filter'/, 'filter state must use a stable query-string key');
 assert.match(dashboardSurface, /window\.history\.pushState\(\{\}, '', url\)/, 'filter changes must use the browser History API rather than a server navigation');
 assert.match(dashboardSurface, /window\.addEventListener\('popstate', handlePopState\)/, 'back\/forward navigation must restore the previous filter');

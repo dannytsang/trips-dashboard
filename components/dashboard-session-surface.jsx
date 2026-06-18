@@ -99,6 +99,7 @@ export function DashboardSessionSurface({
   const [theme, setTheme] = useState('dark');
   const [activeFilter, setActiveFilter] = useState(null);
   const [expandedTripLegs, setExpandedTripLegs] = useState({});
+  const [isHeaderCompact, setIsHeaderCompact] = useState(false);
 
   useEffect(() => {
     const initialTheme = getInitialTheme();
@@ -119,6 +120,28 @@ export function DashboardSessionSurface({
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    let frameId = 0;
+
+    function updateHeaderCompactState() {
+      frameId = 0;
+      setIsHeaderCompact(window.scrollY > 24);
+    }
+
+    function handleScroll() {
+      if (frameId) return;
+      frameId = window.requestAnimationFrame(updateHeaderCompactState);
+    }
+
+    updateHeaderCompactState();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (frameId) window.cancelAnimationFrame(frameId);
+    };
   }, []);
 
   const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -172,11 +195,13 @@ export function DashboardSessionSurface({
   return (
     <main className="dashboard-shell" data-theme={theme}>
       <section aria-labelledby="dashboard-title" className="dashboard-panel">
-        <div className="session-header">
-          <div>
+        <div className={`session-header ${isHeaderCompact ? 'session-header--compact' : ''}`}>
+          <div className="session-brand">
             <p className="eyebrow">✈️ Travel intelligence</p>
-            <h1 id="dashboard-title">🧭 Tsang Travel</h1>
-            <p className="dashboard-subtitle">Upcoming and active trips from the private travel-planner portfolio.</p>
+            <h1 id="dashboard-title" className="dashboard-title">🧭 Tsang Travel</h1>
+            {!isHeaderCompact ? (
+              <p className="dashboard-subtitle">Upcoming and active trips from the private travel-planner portfolio.</p>
+            ) : null}
           </div>
           <div className="session-actions">
             <span className="session-user">👤 Welcome, {userName}</span>
