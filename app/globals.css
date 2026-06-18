@@ -571,7 +571,8 @@ p {
 /* ── Trip Detail ─────────────────────────────────── */
 
 .detail-panel {
-  max-width: 1400px;
+  width: min(100%, 1400px);
+  max-width: none;
   margin: 0 auto;
   padding: 1.5rem 1rem 3rem;
 }
