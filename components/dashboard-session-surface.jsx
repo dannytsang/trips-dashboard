@@ -9,6 +9,7 @@ import {
   formatNextActionLabel,
   formatReadinessLabel,
   formatStatusLabel,
+  formatWeatherCondition,
   toDisplayLabel,
 } from '@/lib/display-labels.mjs';
 import { formatUtcDateRange, formatUtcDateTime } from '@/lib/format-utc.mjs';
@@ -58,6 +59,22 @@ function monitoringLabel(trip) {
 
 function nextActionLabel(trip) {
   return formatNextActionLabel(trip.planning?.nextAction);
+}
+
+function WeatherSummaryChip({ weather }) {
+  const summary = weather?.summary;
+  if (!summary) return null;
+  const fallback = formatWeatherCondition(summary.label, { icon: summary.icon });
+  const label = summary.accessibleLabel || fallback.accessibleLabel;
+  const icons = Array.isArray(summary.icons) && summary.icons.length > 0
+    ? summary.icons.slice(0, 2)
+    : [summary.icon || fallback.icon];
+  return (
+    <span className="weather-summary-chip" aria-label={label} title={label}>
+      <span className="weather-summary-icons" aria-hidden="true">{icons.join('')}</span>
+      <span className="weather-summary-label">{summary.label || fallback.label}</span>
+    </span>
+  );
 }
 
 function metricValue(portfolio, predicate) {
@@ -390,6 +407,7 @@ export function DashboardSessionSurface({
                           <span className="trip-card-view-details">View trip details →</span>
                         </Link>
                         <span className="status-pill">{statusLabel(trip)}</span>
+                        <WeatherSummaryChip weather={trip.weather} />
                       </div>
                       <dl className="trip-details">
                         <div>

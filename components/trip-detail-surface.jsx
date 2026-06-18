@@ -17,6 +17,7 @@ import {
   formatLegModeEmoji,
   formatLegModeLabel,
   formatStatusLabel,
+  formatWeatherCondition,
   toDisplayLabel,
 } from '@/lib/display-labels.mjs';
 import { LegRouteMap } from '@/components/leg-route-map';
@@ -73,6 +74,75 @@ const ACCOMMODATION_STATUS_LABELS = {
 function accommodationStatusLabel(value) {
   if (!value) return null;
   return ACCOMMODATION_STATUS_LABELS[value] || value;
+}
+
+function formatWeatherMetaTime(value) {
+  if (!value) return null;
+  try {
+    return formatUtcDateTime(value);
+  } catch (err) {
+    return value;
+  }
+}
+
+function WeatherDetailSection({ weather }) {
+  if (!weather) return null;
+  const summary = weather.summary;
+  const periods = Array.isArray(weather.periods) ? weather.periods : [];
+  const hasAvailableForecast = weather.status === 'available' && (summary || periods.length > 0);
+  const statusLabel = toDisplayLabel(weather.status, 'Weather unavailable');
+  const generated = formatWeatherMetaTime(weather.generatedAt || weather.updatedAt);
+  const coverageNote = weather.coverageNote || (!hasAvailableForecast ? 'Forecast is not available for this trip window yet.' : null);
+
+  return (
+    <SectionCollapsible title="Weather" emoji="🌦️" defaultOpen={true}>
+      <div className="weather-detail-card">
+        <div className="weather-detail-meta">
+          {summary ? (
+            <span className="weather-detail-summary" aria-label={summary.accessibleLabel || formatWeatherCondition(summary.label, { icon: summary.icon }).accessibleLabel}>
+              <span aria-hidden="true">{summary.icon || formatWeatherCondition(summary.label).icon}</span>
+              <strong>{summary.label || formatWeatherCondition(summary.label).label}</strong>
+            </span>
+          ) : (
+            <span className="weather-detail-summary weather-detail-summary-muted">🌡️ {statusLabel}</span>
+          )}
+          {weather.locationLabel ? <span>📍 {weather.locationLabel}</span> : null}
+          {weather.source ? <span>Source: {weather.source}</span> : null}
+          {generated ? <span>Updated {generated} UTC</span> : null}
+        </div>
+        {coverageNote ? <p className="weather-coverage-note">{coverageNote}</p> : null}
+        {periods.length > 0 ? (
+          <ol className="weather-period-list">
+            {periods.map((period, index) => {
+              const condition = formatWeatherCondition(period.label, { icon: period.icon });
+              const temp = [period.temperatureMinC, period.temperatureMaxC].filter(v => v !== undefined && v !== null).join('–');
+              const temperature = period.temperature || (temp ? `${temp}°C` : null);
+              const precipitation = period.precipitation
+                || (period.precipitationChancePercent !== undefined ? `${period.precipitationChancePercent}% precipitation` : null)
+                || (period.precipitationAmountMm !== undefined ? `${period.precipitationAmountMm} mm` : null);
+              const wind = period.wind
+                || [period.windSpeedMph !== undefined ? `${period.windSpeedMph} mph` : null, period.windDirection].filter(Boolean).join(' ')
+                || null;
+              return (
+                <li key={`${period.periodLabel || period.start || 'period'}-${index}`} className="weather-period-row">
+                  <div className="weather-period-heading">
+                    <span aria-hidden="true">{period.icon || condition.icon}</span>
+                    <strong>{period.periodLabel || period.start || `Period ${index + 1}`}</strong>
+                    <span>{period.label || condition.label}</span>
+                  </div>
+                  <dl className="weather-period-facts">
+                    {temperature ? <><dt>Temp</dt><dd>{temperature}</dd></> : null}
+                    {precipitation ? <><dt>Rain</dt><dd>{precipitation}</dd></> : null}
+                    {wind ? <><dt>Wind</dt><dd>{wind}</dd></> : null}
+                  </dl>
+                </li>
+              );
+            })}
+          </ol>
+        ) : null}
+      </div>
+    </SectionCollapsible>
+  );
 }
 
 function readinessBadgeClass(readiness) {
@@ -683,6 +753,7 @@ export function TripDetailSurface({
   const hasTransportDecision = trip.planning?.transportDecision && trip.planning.transportDecision.selectedMode;
   const hasNextAction = typeof trip.planning?.nextAction === 'string' && trip.planning.nextAction.trim().length > 0;
   const hasAccommodation = Boolean(trip.accommodation);
+  const hasWeather = Boolean(trip.weather);
 
   return (
     <main className="dashboard-shell" data-theme={theme}>
@@ -726,6 +797,9 @@ export function TripDetailSurface({
 
         {/* Next action callout (FR-018) */}
         {hasNextAction ? <NextActionCallout nextAction={trip.planning.nextAction} /> : null}
+
+        {/* Weather */}
+        {hasWeather ? <WeatherDetailSection weather={trip.weather} /> : null}
 
         {/* Travellers */}
         <SectionCollapsible title="Travellers" emoji="👥" defaultOpen={true}>

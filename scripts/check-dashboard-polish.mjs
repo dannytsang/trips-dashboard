@@ -6,6 +6,7 @@ import {
   formatNextActionLabel,
   formatReadinessLabel,
   formatStatusLabel,
+  formatWeatherCondition,
   toDisplayLabel,
 } from '../lib/display-labels.mjs';
 
@@ -46,6 +47,8 @@ assert.equal(formatLegModeEmoji('bike_hire'), '🚴');
 assert.equal(formatLegModeEmoji('overnight_stay'), '🛏️');
 assert.equal(formatLegModeEmoji('mystery_mode'), '🛣️');
 assert.equal(formatNextActionLabel('confirm_train_eta'), 'Confirm train ETA');
+assert.deepEqual(formatWeatherCondition('light_rain'), { label: 'Light rain', icon: '🌧️', accessibleLabel: 'Light rain forecast' });
+assert.deepEqual(formatWeatherCondition('unknown_provider_code'), { label: 'Unknown provider code', icon: '🌡️', accessibleLabel: 'Unknown provider code forecast' });
 
 // OSM embed bbox — TripMap now embeds an OpenStreetMap iframe whose
 // URL is built from buildViewport(). This module's only export is the
@@ -249,6 +252,10 @@ assert.match(dashboardSurface, /aria-expanded=\{isLegListExpanded\}/, 'leg-list 
 assert.match(dashboardSurface, /className="trip-card-title-link"/, 'trip-card detail navigation must be a title link so the card can also contain an expand button');
 assert.doesNotMatch(dashboardSurface, /<Link[^>]*className="trip-card-link"[\s\S]*?<button[\s\S]*?className="leg-list-toggle"/, 'trip-card expand button must not be nested inside the card detail link');
 assert.match(dashboardSurface, /\{formatLegModeEmoji\(leg\.mode\)\} \{leg\.label\}/, 'leg rows must render the transport-mode emoji helper adjacent to the leg label');
+assert.match(dashboardSurface, /function WeatherSummaryChip\(\{ weather \}\)/, 'summary cards must define a compact weather chip component');
+assert.match(dashboardSurface, /<WeatherSummaryChip weather=\{trip\.weather\} \/>/, 'summary cards must render weather condition icons when trip.weather.summary is present');
+assert.match(dashboardSurface, /aria-label=\{label\}/, 'summary weather icon must expose accessible text');
+assert.doesNotMatch(dashboardSurface, /weather\?\.summary\?\.code|summary\.code/, 'summary weather must not render raw provider condition codes');
 assert.doesNotMatch(dashboardSurface, /<span>🛣️ \{leg\.label\}<\/span>/, 'leg rows must not hard-code the road emoji next to every leg label');
 assert.doesNotMatch(dashboardSurface, />\{trip\.status \|\| 'Unknown'\}</, 'raw trip status must not render directly');
 assert.doesNotMatch(dashboardSurface, />\{trip\.planning\?\.readiness/, 'raw planning readiness must not render directly');
@@ -266,6 +273,15 @@ assert.doesNotMatch(tripDetailSurface, /String\(decision\.selectedMode\)\.replac
 assert.doesNotMatch(tripDetailSurface, /k\.replace\(\/\[A-Z\]\/g, ' '\$1'\)/, 'transport decision basis keys must not be humanised with the camelCase-only regex; use toDisplayLabel so snake_case also collapses');
 assert.match(tripDetailSurface, /toDisplayLabel\(decision\.selectedMode/, 'transport decision must humanise the selected mode through toDisplayLabel');
 assert.match(tripDetailSurface, /toDisplayLabel\(k, k\)/, 'transport decision must humanise basis keys through toDisplayLabel');
+assert.match(tripDetailSurface, /function WeatherDetailSection\(\{ weather \}\)/, 'trip detail must define a Weather detail section');
+assert.match(tripDetailSurface, /<SectionCollapsible title="Weather" emoji="🌦️" defaultOpen=\{true\}>/, 'trip detail weather must render as an open Weather section');
+assert.match(tripDetailSurface, /weather\.locationLabel/, 'weather detail must show the forecast location label');
+assert.match(tripDetailSurface, /weather\.source/, 'weather detail must show the forecast source/provider');
+assert.match(tripDetailSurface, /formatWeatherMetaTime\(weather\.generatedAt \|\| weather\.updatedAt\)/, 'weather detail must show generated or updated time deterministically');
+assert.match(tripDetailSurface, /weather\.coverageNote/, 'weather detail must render useful unavailable/stale/out-of-range coverage notes');
+assert.match(tripDetailSurface, /period\.temperatureMinC/, 'weather period rows must include temperature range fields when present');
+assert.match(tripDetailSurface, /period\.precipitationChancePercent/, 'weather period rows must include precipitation values when present');
+assert.match(tripDetailSurface, /period\.windSpeedMph|period\.wind/, 'weather period rows must include wind values when present');
 
 for (const emoji of ['✈️', '🧭', '👤', '🔐', '🧳', '🚦', '📡', '✅', '🕒', '📍', '👥', '🧩', '➡️']) {
   assert.match(dashboardSurface, new RegExp(emoji), `dashboard surface must include emoji accent ${emoji}`);

@@ -591,6 +591,31 @@ p {
   text-transform: capitalize;
 }
 
+.weather-summary-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-cyan), transparent 90%);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.25rem 0.55rem;
+  white-space: nowrap;
+}
+
+.weather-summary-icons {
+  letter-spacing: -0.15rem;
+  padding-right: 0.15rem;
+}
+
+.weather-summary-label {
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .trip-details {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -899,6 +924,80 @@ p {
 
 /* Text */
 .text-muted { color: var(--text-muted); font-style: italic; }
+
+/* Weather */
+.weather-detail-card {
+  display: grid;
+  gap: 0.75rem;
+}
+.weather-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+.weather-detail-meta > span,
+.weather-detail-summary {
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  padding: 0.3rem 0.6rem;
+}
+.weather-detail-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-primary);
+}
+.weather-detail-summary-muted {
+  color: var(--text-muted);
+}
+.weather-coverage-note {
+  margin: 0;
+  color: var(--text-secondary);
+}
+.weather-period-list {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.weather-period-row {
+  display: grid;
+  gap: 0.45rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-tertiary), transparent 24%);
+  padding: 0.7rem;
+}
+.weather-period-heading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.weather-period-heading > span:last-child {
+  color: var(--text-secondary);
+}
+.weather-period-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+.weather-period-facts dt {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.weather-period-facts dd {
+  margin: 0.15rem 0 0;
+  color: var(--text-primary);
+}
 
 /* Travellers */
 .traveller-list {
