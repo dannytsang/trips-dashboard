@@ -4,7 +4,7 @@
  * TripOverviewMap — one Google Maps JavaScript API map showing all trip legs.
  * Uses @googlemaps/js-api-loader v2: setOptions() + importLibrary().
  *
- * FR-042 Revised (JS API): one interactive map, all legs as routed paths +
+ * FR-042 Revised (route geometry): one interactive map, all legs as routed paths +
  * AdvancedMarkerElement markers. Privacy contract unchanged
  * (precision home/exact excluded).
  *
@@ -100,6 +100,88 @@ function getTravelMode(rawMode) {
   if (m.includes('bike')) return 'BICYCLING';
   if (m.includes('transit') || m.includes('rail') || m.includes('train') || m.includes('bus')) return 'TRANSIT';
   return 'DRIVING';
+}
+
+function getRouteProfile(rawMode) {
+  const m = String(rawMode || '').toLowerCase();
+  if (m.includes('walk')) return 'walking';
+  if (m.includes('bike')) return 'cycling';
+  return 'driving';
+}
+
+// Module-level route cache shared by the main map so repeated renders
+// of the same leg do not spam the public router endpoint.
+const routeCache = new Map();
+
+function routeCacheKey(origin, dest, rawMode) {
+  return [
+    getRouteProfile(rawMode),
+    origin.lat.toFixed(5),
+    origin.lon.toFixed(5),
+    dest.lat.toFixed(5),
+    dest.lon.toFixed(5),
+  ].join('::');
+}
+
+async function fetchRoutePath(origin, dest, rawMode) {
+  const profile = getRouteProfile(rawMode);
+  const url = new URL(`https://router.project-osrm.org/route/v1/${profile}/${origin.lon},${origin.lat};${dest.lon},${dest.lat}`);
+  url.searchParams.set('overview', 'full');
+  url.searchParams.set('geometries', 'geojson');
+  url.searchParams.set('steps', 'false');
+
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    throw new Error(`OSRM_${response.status}`);
+  }
+  const data = await response.json();
+  const coords = data?.routes?.[0]?.geometry?.coordinates;
+  if (!Array.isArray(coords) || coords.length < 2) {
+    throw new Error('OSRM_NO_ROUTE');
+  }
+  return coords.map(([lon, lat]) => ({ lat, lng: lon }));
+}
+
+function routeShared(origin, dest, rawMode) {
+  const key = routeCacheKey(origin, dest, rawMode);
+  if (routeCache.has(key)) {
+    return routeCache.get(key);
+  }
+
+  const promise = fetchRoutePath(origin, dest, rawMode).catch(async (err) => {
+    console.warn('TripOverviewMap: OSRM routing failed, falling back to Google directions', err);
+    try {
+      const google = window.google;
+      if (!google?.maps?.DirectionsService) {
+        throw err;
+      }
+      const directionsService = new google.maps.DirectionsService();
+      const directions = await routeDirections(directionsService, {
+        origin,
+        destination: dest,
+        travelMode: getTravelMode(rawMode),
+        provideRouteAlternatives: false,
+      });
+      const path = directions.routes?.[0]?.overview_path;
+      if (!Array.isArray(path) || path.length < 2) {
+        throw new Error('GOOGLE_NO_ROUTE');
+      }
+      return path.map((point) => ({ lat: point.lat(), lng: point.lng() }));
+    } catch (fallbackErr) {
+      console.warn('TripOverviewMap: Google directions fallback failed', fallbackErr);
+      return null;
+    }
+  });
+
+  const cachedPromise = promise.then((result) => {
+    if (!result) {
+      routeCache.delete(key);
+    }
+    return result;
+  });
+
+  routeCache.set(key, cachedPromise);
+  return cachedPromise;
 }
 
 // Build a coloured circle HTML div for AdvancedMarkerElement (origin marker).
@@ -202,7 +284,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
     async function initMap() {
       setOptions({ key: envKey, v: 'weekly' });
 
-      // Load maps library (Map, LatLngBounds, InfoWindow, DirectionsService, DirectionsRenderer).
+      // Load maps library (Map, LatLngBounds, InfoWindow, Polyline).
       await importLibrary('maps');
 
       // Load marker library — this populates google.maps.marker namespace.
@@ -224,12 +306,11 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
         return;
       }
 
-      const { Map, Polyline, LatLngBounds, InfoWindow, MapTypeId, DirectionsRenderer, DirectionsService } = google.maps;
+      const { Map, Polyline, LatLngBounds, InfoWindow, MapTypeId } = google.maps;
       const { AdvancedMarkerElement } = google.maps.marker;
 
       const bounds = new LatLngBounds();
       const infoWindow = new InfoWindow();
-      const directionsService = new DirectionsService();
 
       const mapId = process.env.NEXT_PUBLIC_GMAPS_MAP_ID;
 
@@ -277,34 +358,27 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
         bounds.extend(originMarker.position);
         bounds.extend(destMarker.position);
 
-        const renderer = new DirectionsRenderer({
-          map,
-          suppressMarkers: true,
-          preserveViewport: true,
-          polylineOptions: {
+        const routePath = await routeShared(originPoint, destPoint, leg.mode);
+        if (routePath && routePath.length >= 2) {
+          const routeBounds = new LatLngBounds();
+          routePath.forEach((point) => routeBounds.extend(point));
+          bounds.union(routeBounds);
+          new Polyline({
+            path: routePath,
             strokeColor: color,
             strokeWeight: 4,
             strokeOpacity: 0.85,
-          },
-        });
-
-        try {
-          const directions = await routeDirections(directionsService, {
-            origin: originPoint,
-            destination: destPoint,
-            travelMode: getTravelMode(leg.mode),
-            provideRouteAlternatives: false,
+            geodesic: false,
+            map,
           });
-          renderer.setDirections(directions);
-          const routeBounds = directions.routes?.[0]?.bounds;
-          if (routeBounds) bounds.union(routeBounds);
-        } catch (err) {
-          console.warn('TripOverviewMap: directions routing failed, falling back to straight segment', err);
+        } else {
+          console.warn('TripOverviewMap: no routed path available, falling back to straight segment');
           new Polyline({
             path: [originPoint, destPoint],
             strokeColor: color,
             strokeWeight: 4,
             strokeOpacity: 0.85,
+            geodesic: false,
             map,
           });
         }
