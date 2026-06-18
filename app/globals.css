@@ -232,8 +232,8 @@ p {
   padding-bottom: 1rem;
   background: linear-gradient(var(--bg-secondary), color-mix(in srgb, var(--bg-secondary), transparent 8%));
   transition:
-    padding-bottom 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    gap 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    padding-bottom 480ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    gap 480ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .session-header--compact {
@@ -251,7 +251,7 @@ p {
   gap: 0.45rem;
   letter-spacing: -0.03em;
   line-height: 1.12;
-  transition: font-size 320ms cubic-bezier(0.2, 0.8, 0.2, 1), gap 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: font-size 480ms cubic-bezier(0.2, 0.8, 0.2, 1), gap 480ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .session-header--compact .dashboard-title {
@@ -271,10 +271,10 @@ p {
   transform: translateY(0);
   margin-top: 0.35rem;
   transition:
-    max-height 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    opacity 220ms ease,
-    transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    margin-top 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    max-height 480ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 280ms ease,
+    transform 480ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    margin-top 480ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .dashboard-subtitle--compact {
@@ -311,11 +311,11 @@ p {
   padding: 0.7rem 0.95rem;
   white-space: nowrap;
   transition:
-    border-color 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    color 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    background-color 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    box-shadow 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    border-color 360ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    color 360ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 360ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 360ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .session-user-label {
@@ -323,8 +323,8 @@ p {
   white-space: nowrap;
   min-width: max-content;
   transition:
-    opacity 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    opacity 480ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 480ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .session-user-label--full,
