@@ -605,13 +605,13 @@ p {
   top: 0;
   z-index: 50;
   width: calc(100% + (var(--detail-panel-inline-pad) * 2));
-  margin: 0 calc(-1 * var(--detail-panel-inline-pad)) 1.25rem;
+  margin: 0 calc(-1 * var(--detail-panel-inline-pad)) 1rem;
   padding: 1rem var(--detail-panel-inline-pad) 0.9rem;
-  background: color-mix(in srgb, var(--bg-secondary), transparent 4%);
-  border: 1px solid color-mix(in srgb, var(--border-color), transparent 15%);
-  border-bottom: 0;
-  border-radius: 1.25rem 1.25rem 0 0;
-  box-shadow: var(--shadow-sm);
+  background: color-mix(in srgb, var(--bg-secondary), transparent 2%);
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-color), transparent 10%);
+  border-radius: 1rem 1rem 0 0;
+  box-shadow: none;
   /* subtle background blur so content scrolls beneath without obscuring */
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
