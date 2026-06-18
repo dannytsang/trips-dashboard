@@ -48,6 +48,9 @@ assert.match(syncRoute, /Machine authentication required/, 'sync endpoint must r
 assert.match(tripsRoute, /getServerSession/, 'browser-facing trips API must require server session');
 assert.match(tripsRoute, /Authentication required/, 'browser-facing trips API must return explicit auth failure without relying only on middleware');
 assert.match(tripsRoute, /readTripsDashboardPortfolio/, 'browser-facing trips API must read portfolio through server-side split storage helper');
+assert.match(homePage, /export const runtime = 'nodejs'/, 'dashboard root must run on the Node.js runtime so private Blob env vars are available');
+assert.match(tripsRoute, /export const runtime = 'nodejs'/, 'trips API must run on the Node.js runtime for private Blob access');
+assert.match(syncRoute, /export const runtime = 'nodejs'/, 'trips sync API must run on the Node.js runtime for private Blob writes');
 assert.match(homePage, /readTripsDashboardPortfolio/, 'authenticated dashboard page must read the private split portfolio server-side');
 assert.match(dashboardSurface, /Upcoming and active trips/, 'dashboard surface must render summary-list copy');
 assert.match(dashboardSurface, /trip-list/, 'dashboard surface must include trip list rendering');

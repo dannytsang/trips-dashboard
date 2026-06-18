@@ -7,6 +7,7 @@ import {
   writeTripsDashboardPortfolio,
 } from '@/lib/trips-storage';
 
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 function expectedBearerToken() {

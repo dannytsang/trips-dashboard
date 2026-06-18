@@ -9,6 +9,8 @@ import {
 } from '../lib/trips-portfolio.js';
 import {
   DEFAULT_TRIPS_MANIFEST_PATH,
+  getMissingBlobStorageEnvironment,
+  hasBlobStorageEnvironment,
   readTripsDashboardPortfolio,
   TripsPortfolioStorageError,
   writeTripsDashboardPortfolio,
@@ -130,6 +132,8 @@ await assert.rejects(
   error => error instanceof TripsPortfolioStorageError && error.code === 'storage_not_configured',
   'storage reads must fail closed without Blob env',
 );
+assert.equal(hasBlobStorageEnvironment({ BLOB_STORE_ID: 'auto-store-id' }), false, 'BLOB_STORE_ID alone is not enough to read private Blob objects');
+assert.deepEqual(getMissingBlobStorageEnvironment({ BLOB_STORE_ID: 'auto-store-id' }), ['BLOB_READ_WRITE_TOKEN']);
 
 const emptyRead = await readTripsDashboardPortfolio({
   env: { BLOB_READ_WRITE_TOKEN: 'test-token' },
@@ -258,9 +262,11 @@ const writeResult = await writeTripsDashboardPortfolio(splitEnvelope, {
     assert.equal(options.access, 'private');
     assert.equal(options.allowOverwrite, true);
     assert.equal(options.contentType.includes('charset=utf-8'), true);
+    assert.equal(options.token, 'test-token');
     return { pathname, uploadedAt: new Date('2026-06-14T20:04:00.000Z'), size: Buffer.byteLength(body) };
   },
-  blobDelete: async pathnames => {
+  blobDelete: async (pathnames, options) => {
+    assert.equal(options.token, 'test-token');
     delCalls.push(...(Array.isArray(pathnames) ? pathnames : [pathnames]));
   },
 });
