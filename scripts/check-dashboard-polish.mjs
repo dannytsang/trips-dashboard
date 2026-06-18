@@ -272,7 +272,7 @@ for (const emoji of ['✈️', '🧭', '👤', '🔐', '🧳', '🚦', '📡', '
   assert.match(dashboardSurface, new RegExp(emoji), `dashboard surface must include emoji accent ${emoji}`);
 }
 
-assert.match(globalCss, /session-user-labels/, 'welcome trigger must include the compacting label wrapper');
+assert.match(globalCss, /\.dashboard-title\s*\{[\s\S]*line-height:\s*1\.12/, 'dashboard title must keep enough line-height to avoid clipping during compact transitions');
 assert.match(globalCss, /session-user-label--compact/, 'compact trigger label must be styled');
 assert.match(globalCss, /session-header--compact \.session-user-label--full/, 'full welcome label must fade out in compact mode');
 assert.match(globalCss, /session-header--compact \.session-user-label--compact/, 'compact label must fade in in compact mode');

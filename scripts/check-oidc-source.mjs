@@ -53,7 +53,7 @@ assert.match(dashboardSurface, /Upcoming and active trips/, 'dashboard surface m
 assert.match(dashboardSurface, /trip-list/, 'dashboard surface must include trip list rendering');
 assert.match(dashboardSurface, /metric-grid/, 'dashboard surface must include summary metric cards');
 assert.match(globalCss, /\.trip-card/, 'dashboard summary cards must have styling');
-assert.match(globalCss, /session-user-labels/, 'welcome trigger must include the compacting label wrapper');
+assert.match(globalCss, /\.dashboard-title\s*\{[\s\S]*line-height:\s*1\.12/, 'dashboard title must keep enough line-height to avoid clipping during compact transitions');
 assert.match(globalCss, /session-user-label--compact/, 'compact trigger label must be styled');
 assert.match(globalCss, /session-header--compact \.session-user-label--full/, 'full welcome label must fade out in compact mode');
 assert.match(globalCss, /session-header--compact \.session-user-label--compact/, 'compact label must fade in in compact mode');
