@@ -320,45 +320,38 @@ p {
 
 .session-user-labels {
   display: inline-grid;
-  grid-template-columns: auto auto;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
   align-items: center;
-  overflow: hidden;
-  min-width: 0;
+  position: relative;
+  min-width: max-content;
 }
 
 .session-user-label {
-  grid-row: 1;
+  grid-area: 1 / 1;
   white-space: nowrap;
-  overflow: hidden;
-  min-width: 0;
+  min-width: max-content;
   transition:
-    max-width 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    opacity 220ms ease,
+    opacity 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
     transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .session-user-label--full {
-  grid-column: 1;
-  max-width: 18rem;
   opacity: 1;
   transform: translateY(0);
 }
 
 .session-user-label--compact {
-  grid-column: 2;
-  max-width: 0;
   opacity: 0;
   transform: translateY(0.14rem);
 }
 
 .session-header--compact .session-user-label--full {
-  max-width: 0;
   opacity: 0;
   transform: translateY(-0.14rem);
 }
 
 .session-header--compact .session-user-label--compact {
-  max-width: 12rem;
   opacity: 1;
   transform: translateY(0);
 }

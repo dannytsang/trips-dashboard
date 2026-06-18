@@ -53,7 +53,10 @@ assert.match(dashboardSurface, /Upcoming and active trips/, 'dashboard surface m
 assert.match(dashboardSurface, /trip-list/, 'dashboard surface must include trip list rendering');
 assert.match(dashboardSurface, /metric-grid/, 'dashboard surface must include summary metric cards');
 assert.match(globalCss, /\.trip-card/, 'dashboard summary cards must have styling');
-assert.match(globalCss, /@media \(prefers-color-scheme: light\)/, 'dashboard summary must support light theme');
+assert.match(globalCss, /session-user-labels/, 'welcome trigger must include the compacting label wrapper');
+assert.match(globalCss, /session-user-label--compact/, 'compact trigger label must be styled');
+assert.match(globalCss, /session-header--compact \.session-user-label--full/, 'full welcome label must fade out in compact mode');
+assert.match(globalCss, /session-header--compact \.session-user-label--compact/, 'compact label must fade in in compact mode');
 assert.match(storage, /@vercel\/blob/, 'storage helper must use Vercel Blob SDK server-side');
 assert.match(storage, /access:\s*'private'/, 'storage helper must use private Blob access');
 assert.match(storage, /trips-dashboard\/current\.json/, 'storage helper must use stable current manifest path');
