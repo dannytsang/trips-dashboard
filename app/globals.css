@@ -580,7 +580,7 @@ p {
   width: min(100%, 1400px);
   max-width: none;
   margin: 0 auto;
-  padding: 1.5rem var(--detail-panel-inline-pad) 3rem;
+  padding: 0 var(--detail-panel-inline-pad) 3rem;
 }
 
 .back-link {
@@ -606,10 +606,11 @@ p {
   z-index: 50;
   width: calc(100% + (var(--detail-panel-inline-pad) * 2));
   margin: 0 calc(-1 * var(--detail-panel-inline-pad)) 1.25rem;
-  padding: 0.9rem var(--detail-panel-inline-pad);
+  padding: 1rem var(--detail-panel-inline-pad) 0.9rem;
   background: color-mix(in srgb, var(--bg-secondary), transparent 4%);
   border: 1px solid color-mix(in srgb, var(--border-color), transparent 15%);
-  border-radius: 1.25rem;
+  border-bottom: 0;
+  border-radius: 1.25rem 1.25rem 0 0;
   box-shadow: var(--shadow-sm);
   /* subtle background blur so content scrolls beneath without obscuring */
   backdrop-filter: blur(8px);
@@ -1452,7 +1453,7 @@ p {
 @media (max-width: 600px) {
   .detail-panel {
     --detail-panel-inline-pad: 0.75rem;
-    padding: 1rem var(--detail-panel-inline-pad) 2.5rem;
+    padding: 0 var(--detail-panel-inline-pad) 2.5rem;
   }
   .leg-detail-flight {
     display: none;
