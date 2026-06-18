@@ -4,8 +4,8 @@
  * TripOverviewMap — one Google Maps JavaScript API map showing all trip legs.
  * Uses @googlemaps/js-api-loader v2: setOptions() + importLibrary().
  *
- * FR-042 Revised (JS API): one interactive map, all legs as coloured
- * Polylines + AdvancedMarkerElement markers. Privacy contract unchanged
+ * FR-042 Revised (JS API): one interactive map, all legs as routed paths +
+ * AdvancedMarkerElement markers. Privacy contract unchanged
  * (precision home/exact excluded).
  *
  * Hydration safety: 'mounted' state is initialised to false. Server renders
@@ -94,6 +94,14 @@ function getModeColor(rawMode) {
   return MODE_COLORS.driving;
 }
 
+function getTravelMode(rawMode) {
+  const m = String(rawMode || '').toLowerCase();
+  if (m.includes('walk')) return 'WALKING';
+  if (m.includes('bike')) return 'BICYCLING';
+  if (m.includes('transit') || m.includes('rail') || m.includes('train') || m.includes('bus')) return 'TRANSIT';
+  return 'DRIVING';
+}
+
 // Build a coloured circle HTML div for AdvancedMarkerElement (origin marker).
 function makeCircleHTMLElement(color, text) {
   const el = document.createElement('div');
@@ -122,6 +130,18 @@ function makeSquareHTMLElement(color, text) {
   ].join(';');
   el.textContent = text;
   return el;
+}
+
+function routeDirections(directionsService, request) {
+  return new Promise((resolve, reject) => {
+    directionsService.route(request, (result, status) => {
+      if (status === 'OK' && result) {
+        resolve(result);
+      } else {
+        reject(new Error(status || 'DIRECTIONS_ERROR'));
+      }
+    });
+  });
 }
 
 export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
@@ -182,7 +202,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
     async function initMap() {
       setOptions({ key: envKey, v: 'weekly' });
 
-      // Load maps library (includes Map, Polyline, LatLngBounds, InfoWindow).
+      // Load maps library (Map, LatLngBounds, InfoWindow, DirectionsService, DirectionsRenderer).
       await importLibrary('maps');
 
       // Load marker library — this populates google.maps.marker namespace.
@@ -204,11 +224,12 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
         return;
       }
 
-      const { Map, Polyline, LatLngBounds, InfoWindow, MapTypeId } = google.maps;
+      const { Map, Polyline, LatLngBounds, InfoWindow, MapTypeId, DirectionsRenderer, DirectionsService } = google.maps;
       const { AdvancedMarkerElement } = google.maps.marker;
 
       const bounds = new LatLngBounds();
       const infoWindow = new InfoWindow();
+      const directionsService = new DirectionsService();
 
       const mapId = process.env.NEXT_PUBLIC_GMAPS_MAP_ID;
 
@@ -224,22 +245,12 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
         const { leg, origin, dest } = legCoords[i];
         const color = getModeColor(leg.mode);
         const legNum = i + 1;
-
-        // Polyline: straight-line segment, colour-coded by mode.
-        new Polyline({
-          path: [
-            { lat: origin.lat, lng: origin.lon },
-            { lat: dest.lat,   lng: dest.lon },
-          ],
-          strokeColor: color,
-          strokeWeight: 4,
-          strokeOpacity: 0.85,
-          map,
-        });
+        const originPoint = { lat: origin.lat, lng: origin.lon };
+        const destPoint = { lat: dest.lat, lng: dest.lon };
 
         // Origin marker — circle div.
         const originMarker = new AdvancedMarkerElement({
-          position: { lat: origin.lat, lng: origin.lon },
+          position: originPoint,
           map,
           content: makeCircleHTMLElement(color, String(legNum)),
           title: leg.origin.label,
@@ -252,7 +263,7 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
 
         // Destination marker — square div.
         const destMarker = new AdvancedMarkerElement({
-          position: { lat: dest.lat, lng: dest.lon },
+          position: destPoint,
           map,
           content: makeSquareHTMLElement(color, String(legNum)),
           title: leg.destination.label,
@@ -265,6 +276,38 @@ export function TripOverviewMap({ legs, homeBase, mapProvider = null }) {
 
         bounds.extend(originMarker.position);
         bounds.extend(destMarker.position);
+
+        const renderer = new DirectionsRenderer({
+          map,
+          suppressMarkers: true,
+          preserveViewport: true,
+          polylineOptions: {
+            strokeColor: color,
+            strokeWeight: 4,
+            strokeOpacity: 0.85,
+          },
+        });
+
+        try {
+          const directions = await routeDirections(directionsService, {
+            origin: originPoint,
+            destination: destPoint,
+            travelMode: getTravelMode(leg.mode),
+            provideRouteAlternatives: false,
+          });
+          renderer.setDirections(directions);
+          const routeBounds = directions.routes?.[0]?.bounds;
+          if (routeBounds) bounds.union(routeBounds);
+        } catch (err) {
+          console.warn('TripOverviewMap: directions routing failed, falling back to straight segment', err);
+          new Polyline({
+            path: [originPoint, destPoint],
+            strokeColor: color,
+            strokeWeight: 4,
+            strokeOpacity: 0.85,
+            map,
+          });
+        }
       }
 
       if (!cancelled) {
