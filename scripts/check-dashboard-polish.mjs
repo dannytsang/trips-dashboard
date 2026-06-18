@@ -211,7 +211,8 @@ assert.match(dashboardSurface, /className="secondary-action session-menu-item th
 assert.match(dashboardSurface, /className="secondary-action session-menu-item"/, 'sign-out must move into the account menu');
 assert.doesNotMatch(dashboardSurface, /className="secondary-action theme-toggle"/, 'theme toggle must no longer live inline in the header');
 assert.doesNotMatch(dashboardSurface, /<button className="secondary-action" type="button" onClick=\{handleSignOut\}>/, 'sign-out must no longer live inline in the header');
-assert.doesNotMatch(dashboardSurface, /<span className="session-user">👤 Welcome,/, 'welcome text must be the clickable menu trigger rather than a plain label');
+assert.match(dashboardSurface, /isHeaderCompact \? userName : `👤 Welcome, \$\{userName\}`/, 'welcome trigger must collapse to just the name in compact mode');
+assert.match(dashboardSurface, /session-user-trigger/, 'welcome text must be the clickable menu trigger rather than a plain label');
 assert.match(dashboardSurface, /sessionMenuRef/, 'account menu must have a ref for outside-click dismissal');
 assert.match(dashboardSurface, /document\.addEventListener\('pointerdown', handlePointerDown\)/, 'account menu must close on outside click');
 assert.match(dashboardSurface, /event\.key === 'Escape'/, 'account menu must close on Escape');

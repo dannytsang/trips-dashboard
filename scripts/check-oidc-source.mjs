@@ -38,7 +38,8 @@ assert.match(dashboardSurface, /aria-haspopup="menu"/, 'dashboard summary must e
 assert.match(dashboardSurface, /role="menu" aria-label="Account menu"/, 'dashboard summary must render an account menu');
 assert.match(dashboardSurface, /handleSessionThemeToggle/, 'dashboard summary account menu must include theme toggle action');
 assert.match(dashboardSurface, /handleSessionSignOut/, 'dashboard summary account menu must include sign-out action');
-assert.match(dashboardSurface, /Welcome, \{userName\}/, 'dashboard summary must keep the welcome label on the menu trigger');
+assert.match(dashboardSurface, /isHeaderCompact \? userName : `👤 Welcome, \$\{userName\}`/, 'welcome trigger must collapse to just the name in compact mode');
+assert.match(dashboardSurface, /session-user-trigger/, 'welcome text must be the clickable menu trigger rather than a plain label');
 assert.match(syncRoute, /TRIPS_DASHBOARD_SYNC_SECRET/, 'sync endpoint must use machine auth secret');
 assert.match(syncRoute, /timingSafeEqual/, 'sync endpoint must use constant-time bearer token comparison');
 assert.match(syncRoute, /Machine authentication required/, 'sync endpoint must reject missing or bad bearer token');
@@ -77,7 +78,8 @@ assert.match(dashboardSurface, /className="secondary-action session-menu-item th
 assert.match(dashboardSurface, /className="secondary-action session-menu-item"/, 'sign-out must move into the account menu');
 assert.doesNotMatch(dashboardSurface, /className="secondary-action theme-toggle"/, 'theme toggle must no longer live inline in the header');
 assert.doesNotMatch(dashboardSurface, /<button className="secondary-action" type="button" onClick=\{handleSignOut\}>/, 'sign-out must no longer live inline in the header');
-assert.doesNotMatch(dashboardSurface, /<span className="session-user">👤 Welcome,/, 'welcome text must be the clickable menu trigger rather than a plain label');
+assert.match(dashboardSurface, /isHeaderCompact \? userName : `👤 Welcome, \$\{userName\}`/, 'welcome trigger must collapse to just the name in compact mode');
+assert.match(dashboardSurface, /session-user-trigger/, 'welcome text must be the clickable menu trigger rather than a plain label');
 assert.match(dashboardSurface, /sessionMenuRef/, 'account menu must have a ref for outside-click dismissal');
 assert.match(dashboardSurface, /document\.addEventListener\('pointerdown', handlePointerDown\)/, 'account menu must close on outside click');
 assert.match(dashboardSurface, /event\.key === 'Escape'/, 'account menu must close on Escape');

@@ -258,7 +258,7 @@ export function DashboardSessionSurface({
               type="button"
               onClick={handleSessionMenuToggle}
             >
-              <span>👤 Welcome, {userName}</span>
+              <span>{isHeaderCompact ? userName : `👤 Welcome, ${userName}`}</span>
               <span className="session-user-caret" aria-hidden="true">▾</span>
             </button>
             {isSessionMenuOpen ? (
