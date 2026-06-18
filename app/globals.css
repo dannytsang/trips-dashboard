@@ -318,17 +318,8 @@ p {
     box-shadow 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.session-user-labels {
-  display: inline-grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: 1fr;
-  align-items: center;
-  position: relative;
-  min-width: max-content;
-}
-
 .session-user-label {
-  grid-area: 1 / 1;
+  display: inline-block;
   white-space: nowrap;
   min-width: max-content;
   transition:
@@ -336,22 +327,8 @@ p {
     transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.session-user-label--full {
-  opacity: 1;
-  transform: translateY(0);
-}
-
+.session-user-label--full,
 .session-user-label--compact {
-  opacity: 0;
-  transform: translateY(0.14rem);
-}
-
-.session-header--compact .session-user-label--full {
-  opacity: 0;
-  transform: translateY(-0.14rem);
-}
-
-.session-header--compact .session-user-label--compact {
   opacity: 1;
   transform: translateY(0);
 }

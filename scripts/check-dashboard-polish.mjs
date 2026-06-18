@@ -211,10 +211,9 @@ assert.match(dashboardSurface, /className="secondary-action session-menu-item th
 assert.match(dashboardSurface, /className="secondary-action session-menu-item"/, 'sign-out must move into the account menu');
 assert.doesNotMatch(dashboardSurface, /className="secondary-action theme-toggle"/, 'theme toggle must no longer live inline in the header');
 assert.doesNotMatch(dashboardSurface, /<button className="secondary-action" type="button" onClick=\{handleSignOut\}>/, 'sign-out must no longer live inline in the header');
-assert.match(dashboardSurface, /session-user-labels/, 'welcome trigger must render a compacting label stack');
-assert.match(dashboardSurface, /session-user-label--compact/, 'compact trigger must include the bare-name label');
-assert.match(dashboardSurface, /session-user-label--full/, 'compact trigger must keep the full welcome label for the non-compact state');
-assert.match(dashboardSurface, /session-user-trigger/, 'welcome text must be the clickable menu trigger rather than a plain label');
+assert.match(dashboardSurface, /session-user-label/, 'welcome trigger must render a single label span');
+assert.match(dashboardSurface, /session-user-label--full/, 'welcome trigger must render the full greeting in the expanded state');
+assert.match(dashboardSurface, /isHeaderCompact \? userName : `👤 Welcome, \$\{userName\}`/, 'welcome trigger must switch to just the name in compact mode');
 assert.match(dashboardSurface, /sessionMenuRef/, 'account menu must have a ref for outside-click dismissal');
 assert.match(dashboardSurface, /document\.addEventListener\('pointerdown', handlePointerDown\)/, 'account menu must close on outside click');
 assert.match(dashboardSurface, /event\.key === 'Escape'/, 'account menu must close on Escape');
@@ -273,10 +272,9 @@ for (const emoji of ['✈️', '🧭', '👤', '🔐', '🧳', '🚦', '📡', '
 }
 
 assert.match(globalCss, /\.dashboard-title\s*\{[\s\S]*line-height:\s*1\.12/, 'dashboard title must keep enough line-height to avoid clipping during compact transitions');
-assert.match(globalCss, /session-user-label--compact/, 'compact trigger label must be styled');
-assert.match(globalCss, /session-header--compact \.session-user-label--full/, 'full welcome label must fade out in compact mode');
-assert.match(globalCss, /session-header--compact \.session-user-label--compact/, 'compact label must fade in in compact mode');
-assert.match(globalCss, /:root\[data-theme="dark"\]/, 'explicit dark theme variables must be available');
+assert.match(globalCss, /\.session-user-label\s*\{/, 'welcome trigger must style the label span');
+assert.match(dashboardSurface, /session-user-label--full/, 'welcome trigger must render the full greeting in the expanded state');
+assert.match(dashboardSurface, /isHeaderCompact \? userName : `👤 Welcome, \$\{userName\}`/, 'welcome trigger must switch to just the name in compact mode');
 assert.match(globalCss, /:root\[data-theme="light"\]/, 'explicit light theme variables must be available');
 assert.match(globalCss, /\.theme-toggle/, 'theme toggle must have visible styling');
 

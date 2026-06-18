@@ -127,9 +127,13 @@ export function DashboardSessionSurface({
   useEffect(() => {
     let frameId = 0;
 
+    function getScrollTop() {
+      return document.scrollingElement?.scrollTop ?? window.scrollY ?? document.documentElement.scrollTop ?? 0;
+    }
+
     function updateHeaderCompactState() {
       frameId = 0;
-      setIsHeaderCompact(window.scrollY > 24);
+      setIsHeaderCompact(getScrollTop() > 24);
     }
 
     function handleScroll() {
@@ -139,9 +143,11 @@ export function DashboardSessionSurface({
 
     updateHeaderCompactState();
     window.addEventListener('scroll', handleScroll, { passive: true });
+    document.addEventListener('scroll', handleScroll, { passive: true, capture: true });
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('scroll', handleScroll, true);
       if (frameId) window.cancelAnimationFrame(frameId);
     };
   }, []);
@@ -258,17 +264,8 @@ export function DashboardSessionSurface({
               type="button"
               onClick={handleSessionMenuToggle}
             >
-              <span className="session-user-labels" aria-hidden="true">
-                <span
-                  className={`session-user-label session-user-label--full ${isHeaderCompact ? 'session-user-label--hidden' : ''}`}
-                >
-                  👤 Welcome,
-                </span>
-                <span
-                  className={`session-user-label session-user-label--compact ${isHeaderCompact ? 'session-user-label--visible' : ''}`}
-                >
-                  {userName}
-                </span>
+              <span className={`session-user-label ${isHeaderCompact ? 'session-user-label--compact' : 'session-user-label--full'}`}>
+                {isHeaderCompact ? userName : `👤 Welcome, ${userName}`}
               </span>
               <span className="session-user-caret" aria-hidden="true">▾</span>
             </button>
