@@ -570,6 +570,11 @@ p {
 
 /* ── Trip Detail ─────────────────────────────────── */
 
+.detail-panel > section {
+  width: 100%;
+  max-width: none;
+}
+
 .detail-panel {
   width: min(100%, 1400px);
   max-width: none;
