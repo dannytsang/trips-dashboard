@@ -16,7 +16,7 @@ The governing dashboard specs live in the travel-planner skill hierarchy, matchi
 | `/home/hermes/workspace/Hermes-Skills/productivity/travel-planner/.specify/specs/009-dashboard-oidc-authentication/spec.md` | Final | OIDC/AuthentiK and private data/API protection contract. |
 | `/home/hermes/workspace/Hermes-Skills/productivity/travel-planner/.specify/specs/010-dashboard-trip-detail/spec.md` | Final | Authenticated trip-detail surface, maps, collapsible legs, and read-only deep-dive contract. |
 | `/home/hermes/workspace/Hermes-Skills/productivity/travel-planner/.specify/specs/011-dashboard-weather-forecast/spec.md` | Final | Optional display-safe weather forecast on summary cards and trip detail. |
-| `/home/hermes/workspace/Hermes-Skills/productivity/travel-planner/.specify/specs/012-dashboard-demo-mode/spec.md` | Proposed | Preview/demo mode with generated anonymised static trips when Blob credentials are intentionally absent. |
+| `/home/hermes/workspace/Hermes-Skills/productivity/travel-planner/.specify/specs/012-dashboard-demo-mode/spec.md` | Final | Preview/demo mode with generated anonymised static trips when Blob credentials are intentionally absent. |
 
 This repository owns the web implementation, Vercel deployment, and any repo-local implementation notes. The travel-planner skill owns the source-of-truth dashboard behaviour specs.
 
