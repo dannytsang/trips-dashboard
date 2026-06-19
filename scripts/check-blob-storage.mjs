@@ -132,8 +132,8 @@ await assert.rejects(
   error => error instanceof TripsPortfolioStorageError && error.code === 'storage_not_configured',
   'storage reads must fail closed without Blob env',
 );
-assert.equal(hasBlobStorageEnvironment({ BLOB_STORE_ID: 'auto-store-id' }), false, 'BLOB_STORE_ID alone is not enough to read private Blob objects');
-assert.deepEqual(getMissingBlobStorageEnvironment({ BLOB_STORE_ID: 'auto-store-id' }), ['BLOB_READ_WRITE_TOKEN']);
+assert.equal(hasBlobStorageEnvironment({ BLOB_STORE_ID: 'auto-store-id' }), true, 'BLOB_STORE_ID can authenticate private Blob through Vercel OIDC on the Node.js runtime');
+assert.deepEqual(getMissingBlobStorageEnvironment({ BLOB_STORE_ID: 'auto-store-id' }), []);
 
 const emptyRead = await readTripsDashboardPortfolio({
   env: { BLOB_READ_WRITE_TOKEN: 'test-token' },

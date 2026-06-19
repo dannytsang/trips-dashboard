@@ -75,7 +75,6 @@ export async function GET(request) {
     const result = await get(TRIPS_MANIFEST_BLOB_PATH, {
       access: 'private',
       useCache: false,
-      token: process.env.BLOB_READ_WRITE_TOKEN,
     });
 
     if (!result) {
