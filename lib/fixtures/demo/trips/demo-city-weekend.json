@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "id": "demo-city-weekend",
+  "title": "Demo city weekend",
+  "status": "planned",
+  "start": "2026-08-14T09:15:00+01:00",
+  "end": "2026-08-16T18:30:00+01:00",
+  "destinationLabel": "Brighton",
+  "travellers": [
+    "Alex",
+    "Taylor"
+  ],
+  "planning": {
+    "readiness": "confirmed",
+    "nextAction": "Book late checkout",
+    "assumptions": [
+      "Hotel allows bag drop before check-in"
+    ],
+    "missing": [
+      "Confirm dinner booking"
+    ],
+    "questionsForDanny": [
+      "Prefer Italian or seafood for the first night?"
+    ],
+    "transportDecision": {
+      "selectedMode": "train",
+      "rationale": "Rail is the least stressful option for a short weekend city break."
+    }
+  },
+  "monitoring": {
+    "enabled": true,
+    "active": true,
+    "summary": "Monitoring active",
+    "checks": [
+      {
+        "label": "Hotel rate watch",
+        "status": "ok"
+      }
+    ]
+  },
+  "homeBase": {
+    "town": "Stevenage"
+  },
+  "legs": [
+    {
+      "label": "Stevenage to Brighton",
+      "mode": "train",
+      "origin": {
+        "label": "Stevenage",
+        "precision": "home"
+      },
+      "destination": {
+        "label": "Brighton station",
+        "precision": "station"
+      },
+      "start": "2026-08-14T09:15:00+01:00",
+      "end": "2026-08-14T11:05:00+01:00"
+    },
+    {
+      "label": "Brighton station to hotel",
+      "mode": "walk",
+      "origin": {
+        "label": "Brighton station",
+        "precision": "station"
+      },
+      "destination": {
+        "label": "Beachside Hotel",
+        "precision": "venue"
+      },
+      "start": "2026-08-14T11:20:00+01:00",
+      "end": "2026-08-14T11:40:00+01:00"
+    },
+    {
+      "label": "Brighton to Stevenage",
+      "mode": "train",
+      "origin": {
+        "label": "Brighton station",
+        "precision": "station"
+      },
+      "destination": {
+        "label": "Stevenage",
+        "precision": "home"
+      },
+      "start": "2026-08-16T16:00:00+01:00",
+      "end": "2026-08-16T18:30:00+01:00"
+    }
+  ],
+  "weather": {
+    "status": "available",
+    "source": "demo",
+    "locationLabel": "Brighton",
+    "generatedAt": "2026-06-19T12:00:00.000Z",
+    "summary": {
+      "label": "Partly cloudy",
+      "icon": "⛅",
+      "accessibleLabel": "Partly cloudy forecast"
+    },
+    "periods": [
+      {
+        "periodLabel": "Friday",
+        "label": "Partly cloudy",
+        "icon": "⛅",
+        "temperature": "20–24°C"
+      },
+      {
+        "periodLabel": "Saturday",
+        "label": "Light rain",
+        "icon": "🌦️",
+        "temperature": "18–21°C"
+      }
+    ]
+  },
+  "accommodation": {
+    "status": "available_paid_addon",
+    "name": "Beachside Hotel"
+  },
+  "programme": [
+    {
+      "title": "Dinner reservation",
+      "date": "2026-08-14",
+      "time": "19:30",
+      "location": "Sea View Restaurant",
+      "notes": "Try the tasting menu"
+    },
+    {
+      "title": "Museum visit",
+      "date": "2026-08-15",
+      "time": "10:00",
+      "location": "Brighton Museum",
+      "notes": "Pre-book tickets"
+    }
+  ],
+  "notes": [
+    "Bring railcard",
+    "Reserve a table for Saturday night"
+  ]
+}

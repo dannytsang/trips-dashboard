@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { PortfolioValidationError } from '@/lib/trips-portfolio';
 import {
   getMissingBlobStorageEnvironment,
+  resolveTripsDashboardMode,
   TripsPortfolioStorageError,
   writeTripsDashboardPortfolio,
 } from '@/lib/trips-storage';
@@ -55,6 +56,19 @@ export async function POST(request) {
   }
 
   const missingStorage = getMissingBlobStorageEnvironment();
+  const mode = resolveTripsDashboardMode();
+
+  if (mode.isDemo) {
+    return NextResponse.json({
+      accepted: true,
+      readOnly: true,
+      mode,
+      storage: {
+        configured: false,
+        source: 'static-demo-fixtures',
+      },
+    });
+  }
 
   if (missingStorage.length > 0) {
     return NextResponse.json(

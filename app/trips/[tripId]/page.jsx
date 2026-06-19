@@ -3,8 +3,8 @@ import { redirect } from 'next/navigation';
 import { TripDetailSurface } from '@/components/trip-detail-surface';
 import { authOptions } from '@/lib/auth';
 import {
-  getMissingBlobStorageEnvironment,
   readTripById,
+  resolveTripsDashboardMode,
   TripsPortfolioStorageError,
 } from '@/lib/trips-storage';
 
@@ -19,36 +19,33 @@ export default async function TripDetailPage({ params }) {
     redirect(`/auth/signin?callbackUrl=/trips/${tripId}`);
   }
 
-  const missingAuth = [];
-  const missingStorage = getMissingBlobStorageEnvironment();
-
   let trip = null;
   let storageOk = false;
   let notFound = false;
   let errorMessage = null;
+  const dashboardMode = resolveTripsDashboardMode();
 
-  if (missingStorage.length === 0) {
-    try {
-      trip = await readTripById(tripId);
-      storageOk = true;
-      if (!trip) {
-        notFound = true;
-      }
-    } catch (err) {
-      errorMessage =
-        err instanceof TripsPortfolioStorageError
-          ? err.message
-          : 'Failed to load trip data';
+  try {
+    trip = await readTripById(tripId);
+    storageOk = true;
+    if (!trip) {
+      notFound = true;
     }
+  } catch (err) {
+    errorMessage =
+      err instanceof TripsPortfolioStorageError
+        ? err.message
+        : 'Failed to load trip data';
   }
 
   return (
     <TripDetailSurface
       trip={trip}
       tripId={tripId}
-      authConfigurationIncomplete={missingAuth.length > 0}
-      storageConfigurationIncomplete={missingStorage.length > 0}
+      authConfigurationIncomplete={false}
+      storageConfigurationIncomplete={false}
       storageOk={storageOk}
+      dashboardMode={dashboardMode}
       notFound={notFound}
       errorMessage={errorMessage}
     />

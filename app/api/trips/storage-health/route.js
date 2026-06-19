@@ -3,8 +3,10 @@ import { get } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 import {
   getMissingBlobStorageEnvironment,
+  resolveTripsDashboardMode,
   TRIPS_MANIFEST_BLOB_PATH,
 } from '@/lib/trips-storage';
+import { getDemoTripsDashboardPortfolio } from '@/lib/trips-demo-fixtures';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -54,6 +56,7 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Machine authentication required' }, { status: 401 });
   }
 
+  const mode = resolveTripsDashboardMode();
   const missingStorage = getMissingBlobStorageEnvironment();
   const report = {
     ok: false,
@@ -66,6 +69,27 @@ export async function GET(request) {
     },
     manifest: null,
   };
+
+  if (mode.isDemo) {
+    const demo = getDemoTripsDashboardPortfolio();
+    return NextResponse.json({
+      ...report,
+      ok: true,
+      demoMode: true,
+      mode,
+      manifest: {
+        exists: true,
+        pathname: TRIPS_MANIFEST_BLOB_PATH,
+        size: null,
+        contentType: 'application/json',
+        firstByte: '{',
+        parsesAsJson: true,
+        schemaVersion: demo.manifest.schemaVersion,
+        tripCount: demo.manifest.tripCount,
+        generatedAt: demo.manifest.generatedAt,
+      },
+    });
+  }
 
   if (missingStorage.length > 0) {
     return NextResponse.json(report, { status: 503 });

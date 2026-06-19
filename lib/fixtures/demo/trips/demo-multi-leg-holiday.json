@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "id": "demo-multi-leg-holiday",
+  "title": "Demo multi-leg holiday",
+  "status": "active",
+  "start": "2026-09-10T06:15:00+01:00",
+  "end": "2026-09-17T21:45:00+01:00",
+  "destinationLabel": "Lake Como",
+  "travellers": [
+    "Alex"
+  ],
+  "planning": {
+    "readiness": "planned",
+    "nextAction": "Confirm ferry transfer timings",
+    "assumptions": [
+      "Outbound flight is unchanged"
+    ],
+    "missing": [
+      "Check luggage allowance"
+    ],
+    "questionsForDanny": [
+      "Should the return leg include an overnight stop?"
+    ],
+    "transportDecision": {
+      "selectedMode": "ferry",
+      "rationale": "The lakeside route is simpler with a ferry transfer for the final leg."
+    }
+  },
+  "monitoring": {
+    "enabled": true,
+    "active": true,
+    "summary": "Monitoring active",
+    "checks": [
+      {
+        "label": "Flight schedule watch",
+        "status": "ok"
+      },
+      {
+        "label": "Ferry service watch",
+        "status": "ok"
+      }
+    ]
+  },
+  "homeBase": {
+    "town": "Stevenage"
+  },
+  "legs": [
+    {
+      "label": "Stevenage to airport",
+      "mode": "driving",
+      "origin": {
+        "label": "Stevenage",
+        "precision": "home"
+      },
+      "destination": {
+        "label": "Luton Airport",
+        "precision": "airport"
+      },
+      "start": "2026-09-10T06:15:00+01:00",
+      "end": "2026-09-10T07:05:00+01:00"
+    },
+    {
+      "label": "Airport to Milan",
+      "mode": "flight",
+      "origin": {
+        "label": "Luton Airport",
+        "precision": "airport"
+      },
+      "destination": {
+        "label": "Milan Malpensa",
+        "precision": "airport"
+      },
+      "start": "2026-09-10T08:15:00+01:00",
+      "end": "2026-09-10T11:25:00+02:00"
+    },
+    {
+      "label": "Milan to Lake Como",
+      "mode": "ferry",
+      "origin": {
+        "label": "Milan Centrale",
+        "precision": "station"
+      },
+      "destination": {
+        "label": "Lake Como",
+        "precision": "venue"
+      },
+      "start": "2026-09-10T12:15:00+02:00",
+      "end": "2026-09-10T14:45:00+02:00"
+    }
+  ],
+  "weather": {
+    "status": "available",
+    "source": "demo",
+    "locationLabel": "Lake Como",
+    "generatedAt": "2026-06-19T12:00:00.000Z",
+    "summary": {
+      "label": "Sunny",
+      "icon": "☀️",
+      "accessibleLabel": "Sunny forecast"
+    },
+    "periods": [
+      {
+        "periodLabel": "Departure",
+        "label": "Sunny",
+        "icon": "☀️",
+        "temperature": "24–28°C"
+      },
+      {
+        "periodLabel": "Arrival",
+        "label": "Warm",
+        "icon": "🌤️",
+        "temperature": "23–27°C"
+      }
+    ]
+  },
+  "accommodation": {
+    "status": "not_purchased",
+    "name": "Lake Como apartment"
+  },
+  "programme": [
+    {
+      "title": "Lakeside walk",
+      "date": "2026-09-11",
+      "time": "09:30",
+      "location": "Bellagio",
+      "notes": "Morning stroll before lunch"
+    },
+    {
+      "title": "Boat excursion",
+      "date": "2026-09-13",
+      "time": "13:00",
+      "location": "Varenna",
+      "notes": "Private tour"
+    }
+  ],
+  "notes": [
+    "Pack sun cream",
+    "Keep an eye on ferry strike updates"
+  ]
+}

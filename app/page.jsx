@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation';
 import { DashboardSessionSurface } from '@/components/dashboard-session-surface';
 import { authOptions, getMissingAuthEnvironment } from '@/lib/auth';
 import {
-  getMissingBlobStorageEnvironment,
   readTripsDashboardPortfolio,
   TripsPortfolioStorageError,
 } from '@/lib/trips-storage';
@@ -19,19 +18,20 @@ export default async function HomePage() {
   }
 
   const missingAuth = getMissingAuthEnvironment();
-  const missingStorage = getMissingBlobStorageEnvironment();
   const userName = session.user?.name || session.user?.email || 'authorised traveller';
   let portfolio = null;
-  let storage = missingStorage.length > 0 ? { configured: false } : null;
+  let storage = null;
+  let portfolioMode = null;
   let portfolioStale = false;
   let portfolioMessage = null;
   let portfolioError = null;
 
-  if (missingAuth.length === 0 && missingStorage.length === 0) {
+  if (missingAuth.length === 0) {
     try {
       const result = await readTripsDashboardPortfolio();
       portfolio = result.portfolio;
       storage = result.storage;
+      portfolioMode = result.mode;
       portfolioStale = result.stale;
       portfolioMessage = result.message;
     } catch (error) {
@@ -46,7 +46,8 @@ export default async function HomePage() {
     <DashboardSessionSurface
       userName={userName}
       authConfigurationIncomplete={missingAuth.length > 0}
-      storageConfigurationIncomplete={missingStorage.length > 0}
+      storageConfigurationIncomplete={false}
+      portfolioMode={portfolioMode}
       portfolio={portfolio}
       portfolioStorage={storage}
       portfolioStale={portfolioStale}

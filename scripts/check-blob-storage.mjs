@@ -127,11 +127,14 @@ assert.throws(
   'raw google calendar source values must fail validation',
 );
 
-await assert.rejects(
-  () => readTripsDashboardPortfolio({ env: {}, blobGet: async () => null }),
-  error => error instanceof TripsPortfolioStorageError && error.code === 'storage_not_configured',
-  'storage reads must fail closed without Blob env',
-);
+const demoRead = await readTripsDashboardPortfolio({
+  env: {},
+  blobGet: async () => null,
+});
+assert.equal(demoRead.mode.isDemo, true);
+assert.equal(demoRead.storage.configured, false);
+assert.equal(demoRead.storage.source, 'static-demo-fixtures');
+assert.ok(demoRead.portfolio.trips.length >= 3, 'demo fixtures should include representative trips');
 assert.equal(hasBlobStorageEnvironment({ BLOB_STORE_ID: 'auto-store-id' }), true, 'BLOB_STORE_ID can authenticate private Blob through Vercel OIDC on the Node.js runtime');
 assert.deepEqual(getMissingBlobStorageEnvironment({ BLOB_STORE_ID: 'auto-store-id' }), []);
 

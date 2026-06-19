@@ -2,7 +2,6 @@ import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions, getMissingAuthEnvironment } from '@/lib/auth';
 import {
-  getMissingBlobStorageEnvironment,
   readTripsDashboardPortfolio,
   TripsPortfolioStorageError,
 } from '@/lib/trips-storage';
@@ -26,20 +25,8 @@ export async function GET() {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   }
 
-  const missingStorage = getMissingBlobStorageEnvironment();
-
-  if (missingStorage.length > 0) {
-    return NextResponse.json(
-      {
-        error: 'Trips portfolio storage is not configured',
-        storage: { configured: false },
-      },
-      { status: 503 },
-    );
-  }
-
   try {
-    const { portfolio, storage, stale, message } = await readTripsDashboardPortfolio();
+    const { portfolio, storage, stale, message, mode } = await readTripsDashboardPortfolio();
 
     return NextResponse.json(
       {
@@ -47,6 +34,7 @@ export async function GET() {
         storage,
         stale,
         message,
+        mode,
       },
       {
         headers: {

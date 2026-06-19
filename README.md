@@ -12,8 +12,11 @@ The governing dashboard specs live in the travel-planner skill hierarchy, matchi
 
 | Spec | Status | Purpose |
 |---|---|---|
-| `/home/hermes/workspace/Hermes-Skills/productivity/travel-planner/.specify/specs/008-dashboard-summary/spec.md` | Draft | Upcoming trips summary brief, privacy, sync, and visual contract. |
+| `/home/hermes/workspace/Hermes-Skills/productivity/travel-planner/.specify/specs/008-dashboard-summary/spec.md` | Final | Upcoming trips summary brief, privacy, sync, and visual contract. |
 | `/home/hermes/workspace/Hermes-Skills/productivity/travel-planner/.specify/specs/009-dashboard-oidc-authentication/spec.md` | Final | OIDC/AuthentiK and private data/API protection contract. |
+| `/home/hermes/workspace/Hermes-Skills/productivity/travel-planner/.specify/specs/010-dashboard-trip-detail/spec.md` | Final | Authenticated trip-detail surface, maps, collapsible legs, and read-only deep-dive contract. |
+| `/home/hermes/workspace/Hermes-Skills/productivity/travel-planner/.specify/specs/011-dashboard-weather-forecast/spec.md` | Final | Optional display-safe weather forecast on summary cards and trip detail. |
+| `/home/hermes/workspace/Hermes-Skills/productivity/travel-planner/.specify/specs/012-dashboard-demo-mode/spec.md` | Proposed | Preview/demo mode with generated anonymised static trips when Blob credentials are intentionally absent. |
 
 This repository owns the web implementation, Vercel deployment, and any repo-local implementation notes. The travel-planner skill owns the source-of-truth dashboard behaviour specs.
 
@@ -28,7 +31,7 @@ Set these in Vercel production/preview environments; never commit their values:
 - `NEXTAUTH_SECRET`
 - `TRIPS_DASHBOARD_SYNC_SECRET` once the sync endpoint is used by Hermes/travel-planner
 - Vercel Blob storage for the latest brief, using either Vercel-managed Blob OIDC/store binding or `BLOB_READ_WRITE_TOKEN`
-- Optional `TRIPS_DASHBOARD_BLOB_PATH` override; defaults to `trips-dashboard/latest.json`
+- Optional `TRIPS_DASHBOARD_BLOB_PATH` override; defaults to `trips-dashboard/current.json`
 
 ### Map provider switch (optional)
 
@@ -46,7 +49,7 @@ The trip detail map is embedded as an iframe. The default provider is **OpenStre
 
 Referrer restriction stops the key from being lifted and used elsewhere. Vercel does **not** hot-reload env changes — set the vars in **Project → Settings → Environment Variables**, then redeploy.
 
-**Provider selection logic:** the map uses Google only when `NEXT_PUBLIC_GMAPS_PROVIDER=google` AND a key is set. Otherwise it silently falls back to OSM so a missing key on a preview deploy never breaks the page. See `.env.example` and the JSDoc on `resolveProvider` in `components/trip-map.jsx`.
+**Provider selection logic:** the map uses Google only when `NEXT_PUBLIC_GMAPS_PROVIDER=google` AND a key is set. Otherwise it silently falls back to OSM so a missing key on a preview deploy never breaks the page. See `.env.example`, `components/trip-overview-map.jsx`, and the per-leg map helpers.
 
 > **Note on Google Maps Embed API:** the Embed API has a hard single-pin limit. `place` mode shows one pin; `directions` mode supports only one origin/destination; there is no multi-pin embed mode. To show multiple POI pins on one map you would need the **Maps JavaScript API** (billable product — separate decision). Spec 010 FR-009.
 

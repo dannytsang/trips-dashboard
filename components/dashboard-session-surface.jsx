@@ -111,6 +111,7 @@ export function DashboardSessionSurface({
   portfolioStale = false,
   portfolioMessage = null,
   portfolioError = null,
+  portfolioMode = null,
 }) {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [theme, setTheme] = useState('dark');
@@ -317,6 +318,11 @@ export function DashboardSessionSurface({
           <div className="notice notice-warning">
             <strong>⚠️ Authentication configuration incomplete.</strong>
             <span>No trip data is available until the server OIDC configuration is corrected.</span>
+          </div>
+        ) : portfolioMode?.isDemo ? (
+          <div className="notice notice-info">
+            <strong>🧪 Demo mode.</strong>
+            <span>{portfolioMode.bannerMessage || 'The dashboard is using anonymised static sample trips.'}</span>
           </div>
         ) : storageConfigurationIncomplete ? (
           <div className="notice notice-warning">

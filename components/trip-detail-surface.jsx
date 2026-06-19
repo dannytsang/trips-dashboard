@@ -640,6 +640,7 @@ export function TripDetailSurface({
   storageOk,
   notFound,
   errorMessage,
+  dashboardMode = null,
 }) {
   const [theme, setTheme] = useState('dark');
   const [showTopbarTitle, setShowTopbarTitle] = useState(false);
@@ -757,6 +758,12 @@ export function TripDetailSurface({
 
   return (
     <main className="dashboard-shell" data-theme={theme}>
+      {dashboardMode?.isDemo ? (
+        <div className="notice notice-info" style={{ margin: '0 1rem 1rem' }}>
+          <strong>🧪 Demo mode.</strong>
+          <span>{dashboardMode.bannerMessage || 'The trip detail page is using anonymised static sample trips.'}</span>
+        </div>
+      ) : null}
       <section className="detail-panel" aria-label={`Trip detail: ${trip.title}`}>
         {/* Top navigation */}
         <div ref={topbarRef} className="detail-topbar">
