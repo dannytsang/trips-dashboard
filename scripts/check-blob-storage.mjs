@@ -135,6 +135,17 @@ await assert.rejects(
 assert.equal(hasBlobStorageEnvironment({ BLOB_STORE_ID: 'auto-store-id' }), true, 'BLOB_STORE_ID can authenticate private Blob through Vercel OIDC on the Node.js runtime');
 assert.deepEqual(getMissingBlobStorageEnvironment({ BLOB_STORE_ID: 'auto-store-id' }), []);
 
+await assert.rejects(
+  () => readTripsDashboardPortfolio({
+    env: { BLOB_READ_WRITE_TOKEN: 'bad-token' },
+    blobGet: async () => { throw new Error('Vercel Blob: Failed to fetch blob: 403 Forbidden'); },
+  }),
+  error => error instanceof TripsPortfolioStorageError
+    && error.code === 'storage_read_failed'
+    && /credentials \(403 Forbidden\)/.test(error.message),
+  'forbidden Blob reads must surface an actionable credential failure',
+);
+
 const emptyRead = await readTripsDashboardPortfolio({
   env: { BLOB_READ_WRITE_TOKEN: 'test-token' },
   blobGet: async () => null,
