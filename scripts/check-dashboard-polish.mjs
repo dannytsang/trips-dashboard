@@ -426,7 +426,12 @@ assert.match(dashboardSurface, /trip-monitoring-state/, 'monitoring phase output
 assert.match(globalCss, /\.trip-monitoring-state\s*\{/, 'monitoring phase output must have dedicated layout styling');
 assert.match(globalCss, /\.monitoring-phase-chip--started\s*\{/, 'started monitoring phases must have dedicated styling');
 assert.match(globalCss, /\.monitoring-phase-chip--neutral\s*\{/, 'configured/not-started monitoring phases must have dedicated styling');
-assert.doesNotMatch(dashboardSurface, /fetch\([^\)]*(monitoring-state|live-status)/, 'monitoring phase rendering must not fetch live monitoring-state or live-status APIs');
+assert.match(tripDetailSurface, /computeMonitoringPhase\(trip, browserNow\)/, 'trip detail must compute the advisory monitoring phase from already-loaded data and browser time');
+assert.match(tripDetailSurface, /setInterval\(tickMonitoringClock, 60_000\)/, 'trip detail monitoring phase must refresh locally while open without refetching the brief');
+assert.match(tripDetailSurface, /monitoring-phase-chip/, 'trip detail monitoring section must render the advisory monitoring phase chip');
+assert.match(tripDetailSurface, /monitoring\.enabled === true \?\s*\(/, 'trip detail must gate the advisory monitoring phase on enabled monitoring');
+assert.match(tripDetailSurface, /Advisory: this page computes the recommendation from already-loaded trip and leg timing data plus browser time\./, 'trip detail monitoring section must label the recommendation as advisory');
+assert.doesNotMatch(tripDetailSurface, /fetch\([^\)]*(monitoring-state|live-status)/, 'trip detail monitoring phase rendering must not fetch live monitoring-state or live-status APIs');
 
 // Favicon: the root layout must declare an SVG icon (modern browsers) plus a
 // PNG fallback (older browsers) and a 180x180 apple-touch-icon for iOS home

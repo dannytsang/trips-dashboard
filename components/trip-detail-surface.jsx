@@ -28,6 +28,7 @@ import {
   formatUtcDateTime,
   formatUtcTime,
 } from '@/lib/format-utc.mjs';
+import { computeMonitoringPhase } from '@/lib/monitoring-phase.mjs';
 
 const THEME_STORAGE_KEY = 'tsang-travel-theme';
 
@@ -689,6 +690,7 @@ export function TripDetailSurface({
 }) {
   const [theme, setTheme] = useState('dark');
   const [showTopbarTitle, setShowTopbarTitle] = useState(false);
+  const [browserNow, setBrowserNow] = useState(null);
   const topbarRef = useRef(null);
   const headerRef = useRef(null);
 
@@ -730,6 +732,13 @@ export function TripDetailSurface({
       window.removeEventListener('resize', scheduleUpdate);
     };
   }, [trip?.id]);
+
+  useEffect(() => {
+    const tickMonitoringClock = () => setBrowserNow(new Date());
+    tickMonitoringClock();
+    const intervalId = window.setInterval(tickMonitoringClock, 60_000);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   const nextTheme = theme === 'dark' ? 'light' : 'dark';
 
@@ -796,6 +805,8 @@ export function TripDetailSurface({
   const hasPlanningSection = hasAssumptions || hasMissing || hasQuestions;
   const hasNotesSection = hasNotes;
   const hasMonitoringSection = trip.monitoring?.enabled || trip.monitoring?.active || hasMonitoringChecks;
+  const monitoringPhase = trip.monitoring?.enabled === true ? computeMonitoringPhase(trip, browserNow) : null;
+  const monitoringPhaseTone = monitoringPhase?.started ? 'started' : 'neutral';
   const hasTransportDecision = trip.planning?.transportDecision && trip.planning.transportDecision.selectedMode;
   const hasNextAction = typeof trip.planning?.nextAction === 'string' && trip.planning.nextAction.trim().length > 0;
   const hasWeather = Boolean(trip.weather);
@@ -934,6 +945,25 @@ export function TripDetailSurface({
         {/* Monitoring detail */}
         {hasMonitoringSection ? (
           <SectionCollapsible title="Monitoring detail" emoji="📡" defaultOpen={false}>
+            {trip.monitoring.enabled === true ? (
+              <div className="trip-monitoring-state">
+                <span
+                  className={`monitoring-phase-chip monitoring-phase-chip--${monitoringPhaseTone}`}
+                  aria-label={monitoringPhase.accessibleLabel}
+                >
+                  <span className="monitoring-phase-chip-icon" aria-hidden="true">
+                    {monitoringPhase.started ? '📡' : monitoringPhase.phase === 'insufficient_timing_data' ? '⚪' : '⏳'}
+                  </span>
+                  <span className="monitoring-phase-chip-copy">
+                    <strong>{monitoringPhase.label}</strong>
+                    <span>{monitoringPhase.detail}</span>
+                  </span>
+                </span>
+                <p className="monitoring-detail-note">
+                  Advisory: this page computes the recommendation from already-loaded trip and leg timing data plus browser time. It does not fetch live monitoring-state or live-status APIs.
+                </p>
+              </div>
+            ) : null}
             <dl className="monitoring-detail-list">
               {trip.monitoring.enabled !== undefined && (
                 <>

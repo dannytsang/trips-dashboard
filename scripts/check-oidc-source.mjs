@@ -117,6 +117,31 @@ assert.match(
   /<TripOverviewMap\s+legs=\{trip\.legs\}\s+homeBase=\{trip\.homeBase\}\s*\/>/,
   'trip detail must render TripOverviewMap above the leg list (FR-042)'
 );
+assert.match(
+  tripDetailSurface,
+  /computeMonitoringPhase\(trip, browserNow\)/,
+  'trip detail must compute the advisory monitoring phase from already-loaded data and browser time (FR-043..FR-047)'
+);
+assert.match(
+  tripDetailSurface,
+  /setInterval\(tickMonitoringClock, 60_000\)/,
+  'trip detail monitoring phase must refresh locally while open without refetching the brief (FR-046)'
+);
+assert.match(
+  tripDetailSurface,
+  /monitoring-phase-chip/,
+  'trip detail monitoring section must render the advisory monitoring phase chip (FR-043)'
+);
+assert.match(
+  tripDetailSurface,
+  /Advisory: this page computes the recommendation from already-loaded trip and leg timing data plus browser time\./,
+  'trip detail monitoring section must label the recommendation as advisory (FR-044)'
+);
+assert.doesNotMatch(
+  tripDetailSurface,
+  /fetch\([^\)]*(monitoring-state|live-status)/,
+  'trip detail monitoring phase rendering must not fetch live monitoring-state or live-status APIs (FR-044)'
+);
 // v5 + v5.1 expansion (spec 010 FR-038..FR-040): Travellers, Transport
 // decision, and Legs+Map render as SectionCollapsible and start open on
 // first load. Accommodation now uses the same collapsible shell but opens
