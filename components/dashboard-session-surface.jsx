@@ -13,6 +13,7 @@ import {
   toDisplayLabel,
 } from '@/lib/display-labels.mjs';
 import { formatUtcDateRange, formatUtcDateTime } from '@/lib/format-utc.mjs';
+import { computeMonitoringPhase } from '@/lib/monitoring-phase.mjs';
 
 const THEME_STORAGE_KEY = 'tsang-travel-theme';
 const FILTER_QUERY_KEY = 'filter';
@@ -115,6 +116,7 @@ export function DashboardSessionSurface({
 }) {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [theme, setTheme] = useState('dark');
+  const [browserNow, setBrowserNow] = useState(null);
   const [activeFilter, setActiveFilter] = useState(null);
   const [expandedTripLegs, setExpandedTripLegs] = useState({});
   const [isHeaderCompact, setIsHeaderCompact] = useState(false);
@@ -130,6 +132,25 @@ export function DashboardSessionSurface({
     document.documentElement.dataset.theme = theme;
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    let frameId = 0;
+
+    function tickMonitoringClock() {
+      frameId = 0;
+      setBrowserNow(new Date());
+    }
+
+    tickMonitoringClock();
+    const intervalId = window.setInterval(tickMonitoringClock, 60_000);
+
+    return () => {
+      window.clearInterval(intervalId);
+      if (frameId) window.cancelAnimationFrame(frameId);
+    };
+  }, []);
 
   useEffect(() => {
     setActiveFilter(readFilterFromLocation());
@@ -403,6 +424,8 @@ export function DashboardSessionSurface({
                   const isLegListExpanded = Boolean(expandedTripLegs[trip.id]);
                   const visibleLegs = isLegListExpanded ? trip.legs : trip.legs?.slice(0, 3);
                   const hiddenLegCount = Math.max(0, legCount - 3);
+                  const monitoringPhase = trip.monitoring?.enabled === true ? computeMonitoringPhase(trip, browserNow) : null;
+                  const monitoringPhaseTone = monitoringPhase?.started ? 'started' : 'neutral';
 
                   return (
                     <article className="trip-card" key={trip.id}>
@@ -430,7 +453,24 @@ export function DashboardSessionSurface({
                         </div>
                         <div>
                           <dt>📡 Monitoring</dt>
-                          <dd>{monitoringLabel(trip)}</dd>
+                          <dd className="trip-monitoring-state">
+                            {trip.monitoring?.enabled === true ? (
+                              <span
+                                className={`monitoring-phase-chip monitoring-phase-chip--${monitoringPhaseTone}`}
+                                aria-label={monitoringPhase.accessibleLabel}
+                              >
+                                <span className="monitoring-phase-chip-icon" aria-hidden="true">
+                                  {monitoringPhase.started ? '📡' : monitoringPhase.phase === 'insufficient_timing_data' ? '⚪' : '⏳'}
+                                </span>
+                                <span className="monitoring-phase-chip-copy">
+                                  <strong>{monitoringPhase.label}</strong>
+                                  <span>{monitoringPhase.detail}</span>
+                                </span>
+                              </span>
+                            ) : (
+                              monitoringLabel(trip)
+                            )}
+                          </dd>
                         </div>
                       </dl>
                       {legCount ? (

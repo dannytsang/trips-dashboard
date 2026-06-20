@@ -9,6 +9,10 @@ import {
   formatWeatherCondition,
   toDisplayLabel,
 } from '../lib/display-labels.mjs';
+import {
+  computeMonitoringPhase,
+  formatMonitoringPhaseLabel,
+} from '../lib/monitoring-phase.mjs';
 
 const dashboardSurface = readFileSync('components/dashboard-session-surface.jsx', 'utf8');
 const globalCss = readFileSync('app/globals.css', 'utf8');
@@ -49,6 +53,127 @@ assert.equal(formatLegModeEmoji('mystery_mode'), '🛣️');
 assert.equal(formatNextActionLabel('confirm_train_eta'), 'Confirm train ETA');
 assert.deepEqual(formatWeatherCondition('light_rain'), { label: 'Light rain', icon: '🌧️', accessibleLabel: 'Light rain forecast' });
 assert.deepEqual(formatWeatherCondition('unknown_provider_code'), { label: 'Unknown provider code', icon: '🌡️', accessibleLabel: 'Unknown provider code forecast' });
+
+const monitoringTrip = {
+  id: 'monitoring-sample',
+  monitoring: {
+    enabled: true,
+    active: false,
+  },
+  legs: [
+    {
+      label: 'Home to Eastbourne',
+      mode: 'driving',
+      monitoring_timing: {
+        start: '2026-07-01T09:00:00+01:00',
+        end: '2026-07-01T11:30:00+01:00',
+        fallbackEnd: '2026-07-01T17:30:00+01:00',
+        timezone: 'Europe/London',
+        monitorable: true,
+      },
+    },
+    {
+      label: 'Eastbourne to Brighton',
+      mode: 'train',
+      monitoring_timing: {
+        start: '2026-07-06T09:00:00+01:00',
+        end: '2026-07-06T11:30:00+01:00',
+        fallbackEnd: '2026-07-06T17:30:00+01:00',
+        timezone: 'Europe/London',
+        monitorable: true,
+      },
+    },
+  ],
+};
+assert.deepEqual(
+  computeMonitoringPhase(monitoringTrip, new Date('2026-06-23T09:00:00Z')),
+  {
+    phase: 'not_started',
+    started: false,
+    label: 'Monitoring configured',
+    detail: 'Monitoring is configured but has not yet started.',
+    accessibleLabel: 'Monitoring configured — monitoring is configured but has not yet started.',
+  },
+  'more than 7 days away should be treated as configured but not started'
+);
+assert.deepEqual(
+  computeMonitoringPhase(monitoringTrip, new Date('2026-06-28T10:00:00Z')),
+  {
+    phase: 'daily_precheck',
+    started: true,
+    label: 'Should be monitoring',
+    detail: 'Recommended phase: Daily precheck',
+    accessibleLabel: 'Should be monitoring — recommended phase: Daily precheck',
+  },
+  'within 7 days should move into daily precheck'
+);
+assert.deepEqual(
+  computeMonitoringPhase(monitoringTrip, new Date('2026-07-01T09:30:00+01:00')),
+  {
+    phase: 'active_leg',
+    started: true,
+    label: 'Should be monitoring',
+    detail: 'Recommended phase: Active leg',
+    accessibleLabel: 'Should be monitoring — recommended phase: Active leg',
+  },
+  'active timing window should report the active leg phase'
+);
+assert.deepEqual(
+  computeMonitoringPhase(monitoringTrip, new Date('2026-06-30T09:00:00Z')),
+  {
+    phase: 'four_hourly',
+    started: true,
+    label: 'Should be monitoring',
+    detail: 'Recommended phase: Four hourly',
+    accessibleLabel: 'Should be monitoring — recommended phase: Four hourly',
+  },
+  'twenty-four-to-seven-days-out should report the four-hourly phase'
+);
+assert.deepEqual(
+  computeMonitoringPhase(monitoringTrip, new Date('2026-07-01T05:30:00Z')),
+  {
+    phase: 'hourly',
+    started: true,
+    label: 'Should be monitoring',
+    detail: 'Recommended phase: Hourly',
+    accessibleLabel: 'Should be monitoring — recommended phase: Hourly',
+  },
+  'four-to-one-hours-out should report the hourly phase'
+);
+assert.deepEqual(
+  computeMonitoringPhase(monitoringTrip, new Date('2026-07-01T07:30:00Z')),
+  {
+    phase: 'fifteen_minute',
+    started: true,
+    label: 'Should be monitoring',
+    detail: 'Recommended phase: Fifteen minute',
+    accessibleLabel: 'Should be monitoring — recommended phase: Fifteen minute',
+  },
+  'under one hour should report the fifteen-minute phase'
+);
+assert.deepEqual(
+  computeMonitoringPhase(monitoringTrip, new Date('2026-07-06T17:31:00+01:00')),
+  {
+    phase: 'completed',
+    started: false,
+    label: 'Monitoring completed',
+    detail: 'Monitoring window has completed.',
+    accessibleLabel: 'Monitoring completed — monitoring window has completed.',
+  },
+  'after the last fallback end should report the completed phase'
+);
+assert.deepEqual(
+  computeMonitoringPhase({ monitoring: { enabled: true }, legs: [] }, new Date('2026-07-01T08:00:00Z')),
+  {
+    phase: 'insufficient_timing_data',
+    started: false,
+    label: 'Insufficient timing data',
+    detail: 'Timing data is incomplete, so the dashboard cannot estimate whether monitoring should have started.',
+    accessibleLabel: 'Insufficient timing data — timing data is incomplete, so the dashboard cannot estimate whether monitoring should have started.',
+  },
+  'missing timing data should produce the insufficient timing data phase'
+);
+assert.equal(formatMonitoringPhaseLabel('insufficient_timing_data'), 'Insufficient timing data');
 
 // OSM embed bbox — TripMap now embeds an OpenStreetMap iframe whose
 // URL is built from buildViewport(). This module's only export is the
@@ -294,6 +419,14 @@ assert.match(dashboardSurface, /session-user-label--full/, 'welcome trigger must
 assert.match(dashboardSurface, /isHeaderCompact \? userName : `👤 Welcome, \$\{userName\}`/, 'welcome trigger must switch to just the name in compact mode');
 assert.match(globalCss, /:root\[data-theme="light"\]/, 'explicit light theme variables must be available');
 assert.match(globalCss, /\.theme-toggle/, 'theme toggle must have visible styling');
+assert.match(dashboardSurface, /computeMonitoringPhase\(trip, browserNow\)/, 'monitoring-enabled trip cards must compute the advisory phase from already-loaded data and browser time');
+assert.match(dashboardSurface, /setInterval\(tickMonitoringClock, 60_000\)/, 'monitoring phase must refresh locally while open without refetching the brief');
+assert.match(dashboardSurface, /monitoring-phase-chip/, 'monitoring phase must render a compact badge/chip in the summary card');
+assert.match(dashboardSurface, /trip-monitoring-state/, 'monitoring phase output must sit in the monitoring field area');
+assert.match(globalCss, /\.trip-monitoring-state\s*\{/, 'monitoring phase output must have dedicated layout styling');
+assert.match(globalCss, /\.monitoring-phase-chip--started\s*\{/, 'started monitoring phases must have dedicated styling');
+assert.match(globalCss, /\.monitoring-phase-chip--neutral\s*\{/, 'configured/not-started monitoring phases must have dedicated styling');
+assert.doesNotMatch(dashboardSurface, /fetch\([^\)]*(monitoring-state|live-status)/, 'monitoring phase rendering must not fetch live monitoring-state or live-status APIs');
 
 // Favicon: the root layout must declare an SVG icon (modern browsers) plus a
 // PNG fallback (older browsers) and a 180x180 apple-touch-icon for iOS home
