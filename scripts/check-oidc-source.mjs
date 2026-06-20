@@ -139,6 +139,16 @@ assert.match(
 );
 assert.match(
   tripDetailSurface,
+  /function hasAccommodationContent\(accommodation\) \{[\s\S]*?return Boolean\([\s\S]*?booking\.actual_stay_window[\s\S]*?\n  \}/,
+  'Accommodation default-open logic must key off real accommodation content, not mere object truthiness (prevents empty accommodation blocks opening by default)'
+);
+assert.match(
+  tripDetailSurface,
+  /const hasAccommodation = hasAccommodationContent\(accommodation\);/,
+  'Accommodation section must derive defaultOpen from content-aware helper'
+);
+assert.match(
+  tripDetailSurface,
   /<SectionCollapsible\s+title="Accommodation"\s+emoji="🏨"\s+defaultOpen=\{hasAccommodation\}>/,
   'Accommodation section must render as SectionCollapsible with defaultOpen={hasAccommodation} when data exists (FR-040, updated)'
 );
@@ -147,7 +157,6 @@ assert.match(
   /No accommodation recorded for this trip\./,
   'Accommodation section must render a collapsed no-accommodation message when absent (FR-013, updated)'
 );
-// Regression check (FR-038): the primary sections must not regress to
 // non-collapsible DetailSection. A future edit that silently flips them
 // back would lose the user's ability to tuck them away after reading.
 assert.doesNotMatch(

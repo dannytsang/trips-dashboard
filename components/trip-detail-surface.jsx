@@ -338,8 +338,28 @@ function TransportDecisionCallout({ decision }) {
   );
 }
 
+function hasAccommodationContent(accommodation) {
+  if (!accommodation || typeof accommodation !== 'object') {
+    return false;
+  }
+  const booking = accommodation.booking || {};
+  return Boolean(
+    accommodation.provider
+    || accommodation.address
+    || accommodation.check_in
+    || accommodation.checkout
+    || accommodation.reception
+    || accommodation.parking
+    || accommodation.nearby_transport
+    || booking.reservation_number
+    || booking.nights
+    || booking.calendar_event_span
+    || booking.actual_stay_window
+  );
+}
+
 function AccommodationSection({ accommodation }) {
-  const hasAccommodation = Boolean(accommodation);
+  const hasAccommodation = hasAccommodationContent(accommodation);
   const b = accommodation?.booking || {};
   const earlyLabel = accommodationStatusLabel(accommodation?.early_check_in_status);
   const lateLabel = accommodationStatusLabel(accommodation?.late_checkout_status);
