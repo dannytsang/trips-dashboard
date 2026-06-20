@@ -289,6 +289,7 @@ for (const emoji of ['✈️', '🧭', '👤', '🔐', '🧳', '🚦', '📡', '
 
 assert.match(globalCss, /\.dashboard-title\s*\{[\s\S]*line-height:\s*1\.12/, 'dashboard title must keep enough line-height to avoid clipping during compact transitions');
 assert.match(globalCss, /\.session-user-label\s*\{/, 'welcome trigger must style the label span');
+assert.match(globalCss, /\.session-header--compact\s*\.session-actions\s*\{[\s\S]*align-self:\s*center/, 'compact session header must vertically centre the logged-in user control');
 assert.match(dashboardSurface, /session-user-label--full/, 'welcome trigger must render the full greeting in the expanded state');
 assert.match(dashboardSurface, /isHeaderCompact \? userName : `👤 Welcome, \$\{userName\}`/, 'welcome trigger must switch to just the name in compact mode');
 assert.match(globalCss, /:root\[data-theme="light"\]/, 'explicit light theme variables must be available');

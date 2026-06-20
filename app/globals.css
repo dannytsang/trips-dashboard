@@ -241,6 +241,10 @@ p {
   padding-bottom: 0.45rem;
 }
 
+.session-header--compact .session-actions {
+  align-self: center;
+}
+
 .session-brand {
   min-width: 0;
 }

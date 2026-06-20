@@ -31,6 +31,7 @@ assert.match(signInPage, /themeToggleLabel\s*=\s*useMemo\(\(\)\s*=>\s*'Toggle th
 assert.match(signInPage, /aria-label=\{themeToggleLabel\}/, 'sign-in page theme toggle must bind the accessible label');
 assert.match(signInPage, /theme === 'dark' \? '☀️' : '🌙'/, 'sign-in page theme toggle must be icon-only and switch between the sun and moon icons');
 assert.match(signInPage, /className="secondary-action theme-toggle"/, 'sign-in page theme toggle must be a secondary action so the sign-in button stays primary');
+assert.match(signInPage, /Login to continue/, 'sign-in button must use the updated primary action label');
 assert.match(signInPage, /handleThemeToggle/, 'sign-in page must wire the theme toggle click handler');
 assert.doesNotMatch(dashboardSurface, /className="secondary-action theme-toggle"/, 'dashboard summary must move the theme toggle into the account menu');
 assert.doesNotMatch(dashboardSurface, /<button className="secondary-action" type="button" onClick=\{handleSignOut\}>/, 'dashboard summary must move sign-out into the account menu');
@@ -58,6 +59,7 @@ assert.match(dashboardSurface, /metric-grid/, 'dashboard surface must include su
 assert.match(globalCss, /\.trip-card/, 'dashboard summary cards must have styling');
 assert.match(globalCss, /\.dashboard-title\s*\{[\s\S]*line-height:\s*1\.12/, 'dashboard title must keep enough line-height to avoid clipping during compact transitions');
 assert.match(globalCss, /\.session-user-label\s*\{/, 'welcome trigger must style the label span');
+assert.match(globalCss, /\.session-header--compact\s*\.session-actions\s*\{[\s\S]*align-self:\s*center/, 'compact session header must vertically centre the logged-in user control');
 assert.match(dashboardSurface, /session-user-label--full/, 'welcome trigger must render the full greeting in the expanded state');
 assert.match(dashboardSurface, /isHeaderCompact \? userName : `👤 Welcome, \$\{userName\}`/, 'welcome trigger must switch to just the name in compact mode');
 
@@ -116,11 +118,10 @@ assert.match(
   'trip detail must render TripOverviewMap above the leg list (FR-042)'
 );
 // v5 + v5.1 expansion (spec 010 FR-038..FR-040): Travellers, Transport
-// decision, Legs+Map, and Accommodation render as SectionCollapsible
-// with defaultOpen={true} — Danny asked for the four primary sections
-// to be collapsible, all starting open on first load. Accommodation
-// was added in v5.1 (2026-06-18) after Danny confirmed it should
-// match the v5 contract.
+// decision, and Legs+Map render as SectionCollapsible and start open on
+// first load. Accommodation now uses the same collapsible shell but opens
+// only when an accommodation block exists; otherwise it stays collapsed
+// with a no-accommodation message.
 assert.match(
   tripDetailSurface,
   /<SectionCollapsible\s+title="Travellers"\s+emoji="👥"\s+defaultOpen=\{true\}>/,
@@ -138,13 +139,17 @@ assert.match(
 );
 assert.match(
   tripDetailSurface,
-  /<SectionCollapsible\s+title="Accommodation"\s+emoji="🏨"\s+defaultOpen=\{true\}>/,
-  'Accommodation section must render as SectionCollapsible with defaultOpen={true} (FR-040, v5.1)'
+  /<SectionCollapsible\s+title="Accommodation"\s+emoji="🏨"\s+defaultOpen=\{hasAccommodation\}>/,
+  'Accommodation section must render as SectionCollapsible with defaultOpen={hasAccommodation} when data exists (FR-040, updated)'
 );
-// Regression check (FR-038): the four primary sections must not
-// regress to non-collapsible DetailSection. A future edit that
-// silently flips them back would lose the user's ability to tuck
-// them away after reading.
+assert.match(
+  tripDetailSurface,
+  /No accommodation recorded for this trip\./,
+  'Accommodation section must render a collapsed no-accommodation message when absent (FR-013, updated)'
+);
+// Regression check (FR-038): the primary sections must not regress to
+// non-collapsible DetailSection. A future edit that silently flips them
+// back would lose the user's ability to tuck them away after reading.
 assert.doesNotMatch(
   tripDetailSurface,
   /<DetailSection\s+title="Travellers"/,

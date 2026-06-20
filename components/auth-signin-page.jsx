@@ -141,7 +141,7 @@ export function AuthSignInPage() {
             boxShadow: 'var(--shadow-md)',
           }}
         >
-          Continue with Authentik
+          Login to continue
         </button>
       </section>
     </main>

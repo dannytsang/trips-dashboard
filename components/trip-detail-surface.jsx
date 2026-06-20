@@ -339,99 +339,124 @@ function TransportDecisionCallout({ decision }) {
 }
 
 function AccommodationSection({ accommodation }) {
-  if (!accommodation) return null;
-  const b = accommodation.booking || {};
-  const earlyLabel = accommodationStatusLabel(accommodation.early_check_in_status);
-  const lateLabel = accommodationStatusLabel(accommodation.late_checkout_status);
+  const hasAccommodation = Boolean(accommodation);
+  const b = accommodation?.booking || {};
+  const earlyLabel = accommodationStatusLabel(accommodation?.early_check_in_status);
+  const lateLabel = accommodationStatusLabel(accommodation?.late_checkout_status);
+  const hasAccommodationDetails = Boolean(
+    accommodation?.provider
+    || accommodation?.address
+    || accommodation?.check_in
+    || accommodation?.checkout
+    || earlyLabel
+    || lateLabel
+    || accommodation?.reception
+    || accommodation?.parking
+    || accommodation?.nearby_transport
+    || b?.reservation_number
+    || b?.nights
+    || b?.calendar_event_span
+    || b?.actual_stay_window
+  );
   return (
-    <SectionCollapsible title="Accommodation" emoji="🏨" defaultOpen={true}>
-      <dl className="accommodation-detail-list">
-        {accommodation.provider ? (
-          <>
-            <dt>Provider</dt>
-            <dd>{accommodation.provider}</dd>
-          </>
-        ) : null}
-        {accommodation.address ? (
-          <>
-            <dt>Address</dt>
-            <dd>{accommodation.address}</dd>
-          </>
-        ) : null}
-        {accommodation.check_in ? (
-          <>
-            <dt>Check-in</dt>
-            <dd>{formatDateTime(accommodation.check_in)}</dd>
-          </>
-        ) : null}
-        {accommodation.checkout ? (
-          <>
-            <dt>Checkout</dt>
-            <dd>{formatDateTime(accommodation.checkout)}</dd>
-          </>
-        ) : null}
-        {earlyLabel ? (
-          <>
-            <dt>Early check-in</dt>
-            <dd>{earlyLabel}</dd>
-          </>
-        ) : null}
-        {lateLabel ? (
-          <>
-            <dt>Late checkout</dt>
-            <dd>{lateLabel}</dd>
-          </>
-        ) : null}
-        {accommodation.reception ? (
-          <>
-            <dt>Reception</dt>
-            <dd>{accommodation.reception}</dd>
-          </>
-        ) : null}
-        {accommodation.parking ? (
-          <>
-            <dt>Parking</dt>
-            <dd>{accommodation.parking}</dd>
-          </>
-        ) : null}
-        {accommodation.nearby_transport ? (
-          <>
-            <dt>Nearby transport</dt>
-            <dd>{accommodation.nearby_transport}</dd>
-          </>
-        ) : null}
-      </dl>
-      {b && (b.nights || b.reservation_number || b.calendar_event_span || b.actual_stay_window) ? (
-        <div className="rationale-block accommodation-booking-block">
-          <h3 className="rationale-heading">Booking</h3>
-          <dl className="accommodation-detail-list">
-            {b.reservation_number ? (
-              <>
-                <dt>Reservation</dt>
-                <dd>{b.reservation_number}</dd>
-              </>
-            ) : null}
-            {b.nights ? (
-              <>
-                <dt>Nights</dt>
-                <dd>{b.nights}</dd>
-              </>
-            ) : null}
-            {b.calendar_event_span ? (
-              <>
-                <dt>Calendar span</dt>
-                <dd>{b.calendar_event_span}</dd>
-              </>
-            ) : null}
-            {b.actual_stay_window ? (
-              <>
-                <dt>Stay window</dt>
-                <dd>{b.actual_stay_window}</dd>
-              </>
-            ) : null}
-          </dl>
-        </div>
-      ) : null}
+    <SectionCollapsible title="Accommodation" emoji="🏨" defaultOpen={hasAccommodation}>
+      {hasAccommodation ? (
+        <>
+          {hasAccommodationDetails ? (
+            <dl className="accommodation-detail-list">
+              {accommodation.provider ? (
+                <>
+                  <dt>Provider</dt>
+                  <dd>{accommodation.provider}</dd>
+                </>
+              ) : null}
+              {accommodation.address ? (
+                <>
+                  <dt>Address</dt>
+                  <dd>{accommodation.address}</dd>
+                </>
+              ) : null}
+              {accommodation.check_in ? (
+                <>
+                  <dt>Check-in</dt>
+                  <dd>{formatDateTime(accommodation.check_in)}</dd>
+                </>
+              ) : null}
+              {accommodation.checkout ? (
+                <>
+                  <dt>Checkout</dt>
+                  <dd>{formatDateTime(accommodation.checkout)}</dd>
+                </>
+              ) : null}
+              {earlyLabel ? (
+                <>
+                  <dt>Early check-in</dt>
+                  <dd>{earlyLabel}</dd>
+                </>
+              ) : null}
+              {lateLabel ? (
+                <>
+                  <dt>Late checkout</dt>
+                  <dd>{lateLabel}</dd>
+                </>
+              ) : null}
+              {accommodation.reception ? (
+                <>
+                  <dt>Reception</dt>
+                  <dd>{accommodation.reception}</dd>
+                </>
+              ) : null}
+              {accommodation.parking ? (
+                <>
+                  <dt>Parking</dt>
+                  <dd>{accommodation.parking}</dd>
+                </>
+              ) : null}
+              {accommodation.nearby_transport ? (
+                <>
+                  <dt>Nearby transport</dt>
+                  <dd>{accommodation.nearby_transport}</dd>
+                </>
+              ) : null}
+            </dl>
+          ) : (
+            <p className="text-muted">Accommodation details are pending.</p>
+          )}
+          {b && (b.nights || b.reservation_number || b.calendar_event_span || b.actual_stay_window) ? (
+            <div className="rationale-block accommodation-booking-block">
+              <h3 className="rationale-heading">Booking</h3>
+              <dl className="accommodation-detail-list">
+                {b.reservation_number ? (
+                  <>
+                    <dt>Reservation</dt>
+                    <dd>{b.reservation_number}</dd>
+                  </>
+                ) : null}
+                {b.nights ? (
+                  <>
+                    <dt>Nights</dt>
+                    <dd>{b.nights}</dd>
+                  </>
+                ) : null}
+                {b.calendar_event_span ? (
+                  <>
+                    <dt>Calendar span</dt>
+                    <dd>{b.calendar_event_span}</dd>
+                  </>
+                ) : null}
+                {b.actual_stay_window ? (
+                  <>
+                    <dt>Stay window</dt>
+                    <dd>{b.actual_stay_window}</dd>
+                  </>
+                ) : null}
+              </dl>
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <p className="text-muted">No accommodation recorded for this trip.</p>
+      )}
     </SectionCollapsible>
   );
 }
@@ -753,7 +778,6 @@ export function TripDetailSurface({
   const hasMonitoringSection = trip.monitoring?.enabled || trip.monitoring?.active || hasMonitoringChecks;
   const hasTransportDecision = trip.planning?.transportDecision && trip.planning.transportDecision.selectedMode;
   const hasNextAction = typeof trip.planning?.nextAction === 'string' && trip.planning.nextAction.trim().length > 0;
-  const hasAccommodation = Boolean(trip.accommodation);
   const hasWeather = Boolean(trip.weather);
 
   return (
@@ -942,7 +966,7 @@ export function TripDetailSurface({
         ) : null}
 
         {/* Accommodation (FR-013) — between Monitoring detail and Notes */}
-        {hasAccommodation ? <AccommodationSection accommodation={trip.accommodation} /> : null}
+        <AccommodationSection accommodation={trip.accommodation} />
 
         {/* Notes */}
         {hasNotesSection ? (
