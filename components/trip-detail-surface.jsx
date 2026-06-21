@@ -4,7 +4,7 @@
 // FR-042 also adds a TripOverviewMap above the leg list, showing
 // all legs on a single embedded map (one pin per leg destination).
 // Nudge commit to fire Vercel rebuild (empty commits are skipped by vercel-ignore-build.sh).
-// FR-042 Proposed: TripOverviewMap uses the Google Maps JavaScript API
+// FR-042 Final: TripOverviewMap uses the Google Maps JavaScript API
 // (@googlemaps/js-api-loader) — one interactive map showing all legs as
 // colored polylines (one per leg, colour-coded by transport mode) plus
 // numbered circle/square markers at each endpoint. Map auto-fits its bounds

@@ -4,7 +4,7 @@
  * TripOverviewMap — one Google Maps JavaScript API map showing all trip legs.
  * Uses @googlemaps/js-api-loader v2: setOptions() + importLibrary().
  *
- * FR-042 Proposed (route geometry): one interactive map, all legs as routed paths +
+ * FR-042 Final (route geometry): one interactive map, all legs as routed paths +
  * AdvancedMarkerElement markers. Privacy contract unchanged
  * (precision home/exact excluded).
  *
