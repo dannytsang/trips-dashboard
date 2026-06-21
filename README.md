@@ -61,4 +61,4 @@ Trip data must not be stored in this public git repository, committed generated 
 
 This repository includes a minimal Next.js dashboard shell so Vercel has a valid deployment target before the real authenticated dashboard is implemented.
 
-`vercel.json` configures `scripts/vercel-ignore-build.sh` as the ignored-build command. Markdown/spec-only commits are skipped by Vercel, while source/config/app changes still build and deploy.
+`scripts/vercel-ignore-build.sh` remains available as a manual check for docs-only changes, but `vercel.json` no longer uses it to block preview deploys. Preview pushes now build normally so theme/UI fixes are not accidentally cancelled by a brittle diff gate.
