@@ -162,6 +162,33 @@ assert.deepEqual(
   },
   'after the last fallback end should report the completed phase'
 );
+const legacyTimingTrip = {
+  id: 'legacy-timing',
+  monitoring: {
+    enabled: true,
+    active: false,
+  },
+  legs: [
+    {
+      label: 'Gulliver\'s Land outbound',
+      mode: 'driving',
+      recommended_departure: '2026-07-01T09:15:00+01:00',
+      target_arrival: '2026-07-01T10:15:00+01:00',
+    },
+  ],
+};
+assert.deepEqual(
+  computeMonitoringPhase(legacyTimingTrip, new Date('2026-06-30T20:00:00+01:00')),
+  {
+    phase: 'four_hourly',
+    started: true,
+    label: 'Should be monitoring',
+    detail: 'Recommended phase: Four hourly',
+    accessibleLabel: 'Should be monitoring — recommended phase: Four hourly',
+  },
+  'legacy timing fields should be enough to avoid the insufficient timing data state'
+);
+
 assert.deepEqual(
   computeMonitoringPhase({ monitoring: { enabled: true }, legs: [] }, new Date('2026-07-01T08:00:00Z')),
   {
