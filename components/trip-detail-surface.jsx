@@ -28,7 +28,7 @@ import {
   formatUtcDateTime,
   formatUtcTime,
 } from '@/lib/format-utc.mjs';
-import { computeMonitoringPhase } from '@/lib/monitoring-phase.mjs';
+import { computeMonitoringPhase, formatMonitoringPhaseTooltip } from '@/lib/monitoring-phase.mjs';
 
 const THEME_STORAGE_KEY = 'tsang-travel-theme';
 
@@ -950,6 +950,7 @@ export function TripDetailSurface({
                 <span
                   className={`monitoring-phase-chip monitoring-phase-chip--${monitoringPhaseTone}`}
                   aria-label={monitoringPhase.accessibleLabel}
+                  title={formatMonitoringPhaseTooltip(monitoringPhase.phase)}
                 >
                   <span className="monitoring-phase-chip-icon" aria-hidden="true">
                     {monitoringPhase.started ? '📡' : monitoringPhase.phase === 'insufficient_timing_data' ? '⚪' : '⏳'}

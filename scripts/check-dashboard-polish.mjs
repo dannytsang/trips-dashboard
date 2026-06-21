@@ -12,10 +12,13 @@ import {
 import {
   computeMonitoringPhase,
   formatMonitoringPhaseLabel,
+  formatMonitoringPhaseTooltip,
 } from '../lib/monitoring-phase.mjs';
 
 const dashboardSurface = readFileSync('components/dashboard-session-surface.jsx', 'utf8');
+const tripDetailSurface = readFileSync('components/trip-detail-surface.jsx', 'utf8');
 const globalCss = readFileSync('app/globals.css', 'utf8');
+const monitoringPhaseLib = readFileSync('lib/monitoring-phase.mjs', 'utf8');
 
 assert.equal(toDisplayLabel('finalised_core_details'), 'Finalised core details');
 assert.equal(toDisplayLabel('driving_ev'), 'Driving EV');
@@ -90,9 +93,9 @@ assert.deepEqual(
   {
     phase: 'not_started',
     started: false,
-    label: 'Monitoring configured',
+    label: 'Monitoring',
     detail: 'Monitoring is configured but has not yet started.',
-    accessibleLabel: 'Monitoring configured — monitoring is configured but has not yet started.',
+    accessibleLabel: 'Monitoring — monitoring is configured but has not yet started.'
   },
   'more than 7 days away should be treated as configured but not started'
 );
@@ -101,9 +104,9 @@ assert.deepEqual(
   {
     phase: 'daily_precheck',
     started: true,
-    label: 'Should be monitoring',
+    label: 'Monitoring',
     detail: 'Recommended phase: Daily precheck',
-    accessibleLabel: 'Should be monitoring — recommended phase: Daily precheck',
+    accessibleLabel: 'Monitoring — recommended phase: Daily precheck'
   },
   'within 7 days should move into daily precheck'
 );
@@ -112,9 +115,9 @@ assert.deepEqual(
   {
     phase: 'active_leg',
     started: true,
-    label: 'Should be monitoring',
+    label: 'Monitoring',
     detail: 'Recommended phase: Active leg',
-    accessibleLabel: 'Should be monitoring — recommended phase: Active leg',
+    accessibleLabel: 'Monitoring — recommended phase: Active leg'
   },
   'active timing window should report the active leg phase'
 );
@@ -123,9 +126,9 @@ assert.deepEqual(
   {
     phase: 'four_hourly',
     started: true,
-    label: 'Should be monitoring',
+    label: 'Monitoring',
     detail: 'Recommended phase: Four hourly',
-    accessibleLabel: 'Should be monitoring — recommended phase: Four hourly',
+    accessibleLabel: 'Monitoring — recommended phase: Four hourly',
   },
   'twenty-four-to-seven-days-out should report the four-hourly phase'
 );
@@ -134,9 +137,9 @@ assert.deepEqual(
   {
     phase: 'hourly',
     started: true,
-    label: 'Should be monitoring',
+    label: 'Monitoring',
     detail: 'Recommended phase: Hourly',
-    accessibleLabel: 'Should be monitoring — recommended phase: Hourly',
+    accessibleLabel: 'Monitoring — recommended phase: Hourly',
   },
   'four-to-one-hours-out should report the hourly phase'
 );
@@ -145,9 +148,9 @@ assert.deepEqual(
   {
     phase: 'fifteen_minute',
     started: true,
-    label: 'Should be monitoring',
+    label: 'Monitoring',
     detail: 'Recommended phase: Fifteen minute',
-    accessibleLabel: 'Should be monitoring — recommended phase: Fifteen minute',
+    accessibleLabel: 'Monitoring — recommended phase: Fifteen minute',
   },
   'under one hour should report the fifteen-minute phase'
 );
@@ -156,9 +159,9 @@ assert.deepEqual(
   {
     phase: 'completed',
     started: false,
-    label: 'Monitoring completed',
+    label: 'Monitoring complete',
     detail: 'Monitoring window has completed.',
-    accessibleLabel: 'Monitoring completed — monitoring window has completed.',
+    accessibleLabel: 'Monitoring complete — monitoring window has completed.',
   },
   'after the last fallback end should report the completed phase'
 );
@@ -182,9 +185,9 @@ assert.deepEqual(
   {
     phase: 'four_hourly',
     started: true,
-    label: 'Should be monitoring',
+    label: 'Monitoring',
     detail: 'Recommended phase: Four hourly',
-    accessibleLabel: 'Should be monitoring — recommended phase: Four hourly',
+    accessibleLabel: 'Monitoring — recommended phase: Four hourly',
   },
   'legacy timing fields should be enough to avoid the insufficient timing data state'
 );
@@ -194,13 +197,17 @@ assert.deepEqual(
   {
     phase: 'insufficient_timing_data',
     started: false,
-    label: 'Insufficient timing data',
+    label: 'Monitoring',
     detail: 'Timing data is incomplete, so the dashboard cannot estimate whether monitoring should have started.',
-    accessibleLabel: 'Insufficient timing data — timing data is incomplete, so the dashboard cannot estimate whether monitoring should have started.',
+    accessibleLabel: 'Monitoring — timing data is incomplete, so the dashboard cannot estimate whether monitoring should have started.',
   },
   'missing timing data should produce the insufficient timing data phase'
 );
-assert.equal(formatMonitoringPhaseLabel('insufficient_timing_data'), 'Insufficient timing data');
+assert.equal(formatMonitoringPhaseLabel('insufficient_timing_data'), 'Monitoring');
+assert.equal(
+  formatMonitoringPhaseTooltip('hourly'),
+  'Monitoring\nCurrent phase: Hourly\nRecommended phase: Hourly\n\nHover legend:\n• Not started yet: Monitoring is configured but has not yet started.\n• Daily precheck: Recommended phase: Daily precheck\n• Four hourly: Recommended phase: Four hourly\n→ Hourly: Recommended phase: Hourly\n• Fifteen minute: Recommended phase: Fifteen minute\n• Active leg: Recommended phase: Active leg\n• Completed: Monitoring window has completed.\n• Insufficient timing data: Timing data is incomplete, so the dashboard cannot estimate whether monitoring should have started.'
+);
 
 // OSM embed bbox — TripMap now embeds an OpenStreetMap iframe whose
 // URL is built from buildViewport(). This module's only export is the
@@ -420,7 +427,6 @@ assert.doesNotMatch(dashboardSurface, />\{leg\.mode\}</, 'raw leg mode must not 
 // `driving_ev_confirmed` → `Driving EV confirmed`. The check reads
 // trip-detail-surface.jsx (where the transport-decision callout lives), not
 // dashboard-session-surface.jsx.
-const tripDetailSurface = readFileSync('components/trip-detail-surface.jsx', 'utf8');
 assert.doesNotMatch(tripDetailSurface, /String\(decision\.selectedMode\)\.replace\(.*?\)/, 'transport decision must not render the selected mode via a raw .replace(/_/g, ...) call');
 assert.doesNotMatch(tripDetailSurface, /k\.replace\(\/\[A-Z\]\/g, ' '\$1'\)/, 'transport decision basis keys must not be humanised with the camelCase-only regex; use toDisplayLabel so snake_case also collapses');
 assert.match(tripDetailSurface, /toDisplayLabel\(decision\.selectedMode/, 'transport decision must humanise the selected mode through toDisplayLabel');
@@ -451,6 +457,9 @@ assert.match(dashboardSurface, /setInterval\(tickMonitoringClock, 60_000\)/, 'mo
 assert.match(dashboardSurface, /monitoring-phase-chip/, 'monitoring phase must render a compact badge/chip in the summary card');
 assert.match(dashboardSurface, /trip-monitoring-state/, 'monitoring phase output must sit in the monitoring field area');
 assert.match(globalCss, /\.trip-monitoring-state\s*\{/, 'monitoring phase output must have dedicated layout styling');
+assert.match(monitoringPhaseLib, /label:\s*'Monitoring'/, 'monitoring phase labels must now use the elegant Monitoring wording');
+assert.match(dashboardSurface, /title=\{formatMonitoringPhaseTooltip\(monitoringPhase\.phase\)\}/, 'summary monitoring chip must expose the phase legend in a hover tooltip');
+assert.match(tripDetailSurface, /title=\{formatMonitoringPhaseTooltip\(monitoringPhase\.phase\)\}/, 'detail monitoring chip must expose the phase legend in a hover tooltip');
 assert.match(globalCss, /\.monitoring-phase-chip--started\s*\{/, 'started monitoring phases must have dedicated styling');
 assert.match(globalCss, /\.monitoring-phase-chip--neutral\s*\{/, 'configured/not-started monitoring phases must have dedicated styling');
 assert.match(tripDetailSurface, /computeMonitoringPhase\(trip, browserNow\)/, 'trip detail must compute the advisory monitoring phase from already-loaded data and browser time');

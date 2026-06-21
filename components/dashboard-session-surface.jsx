@@ -13,7 +13,7 @@ import {
   toDisplayLabel,
 } from '@/lib/display-labels.mjs';
 import { formatUtcDateRange, formatUtcDateTime } from '@/lib/format-utc.mjs';
-import { computeMonitoringPhase } from '@/lib/monitoring-phase.mjs';
+import { computeMonitoringPhase, formatMonitoringPhaseTooltip } from '@/lib/monitoring-phase.mjs';
 
 const THEME_STORAGE_KEY = 'tsang-travel-theme';
 const FILTER_QUERY_KEY = 'filter';
@@ -458,6 +458,7 @@ export function DashboardSessionSurface({
                               <span
                                 className={`monitoring-phase-chip monitoring-phase-chip--${monitoringPhaseTone}`}
                                 aria-label={monitoringPhase.accessibleLabel}
+                                title={formatMonitoringPhaseTooltip(monitoringPhase.phase)}
                               >
                                 <span className="monitoring-phase-chip-icon" aria-hidden="true">
                                   {monitoringPhase.started ? '📡' : monitoringPhase.phase === 'insufficient_timing_data' ? '⚪' : '⏳'}
