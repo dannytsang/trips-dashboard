@@ -600,29 +600,34 @@ p {
   gap: 0.45rem;
 }
 
+.trip-monitoring-state {
+  display: grid;
+  gap: 0.35rem;
+}
+
 .monitoring-status-row {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.45rem 0.5rem;
-  padding: 0.15rem 0 0.15rem 0.6rem;
-  border-inline-start: 3px solid color-mix(in srgb, var(--border-color), transparent 10%);
-  border-radius: 0.65rem;
-  line-height: 1;
+  gap: 0.35rem 0.45rem;
+  padding: 0.1rem 0 0.1rem 0.55rem;
+  border-inline-start: 3px solid color-mix(in srgb, var(--border-color), transparent 12%);
+  border-radius: 0;
+  background: transparent;
+  line-height: 1.25;
+  max-width: 100%;
 }
 
 .monitoring-status-row--started {
   border-inline-start-color: var(--accent-cyan);
-  background: color-mix(in srgb, var(--accent-cyan), transparent 94%);
 }
 
 .monitoring-status-row--neutral {
   border-inline-start-color: rgba(148, 163, 184, 0.55);
-  background: color-mix(in srgb, var(--bg-secondary), white 2%);
 }
 
 .monitoring-status-label {
-  font-size: 0.84rem;
+  font-size: 0.85rem;
   font-weight: 800;
   color: var(--text-primary);
   letter-spacing: 0.01em;
@@ -630,7 +635,7 @@ p {
 
 .monitoring-status-phase {
   color: var(--text-secondary);
-  font-size: 0.75rem;
+  font-size: 0.76rem;
   font-weight: 600;
 }
 
@@ -643,13 +648,13 @@ p {
   cursor: pointer;
   display: inline-grid;
   place-items: center;
-  width: 1rem;
-  height: 1rem;
+  width: 1.1rem;
+  height: 1.1rem;
   border-radius: 999px;
   border: 1px solid var(--border-color);
   background: color-mix(in srgb, var(--bg-secondary), white 8%);
   color: var(--text-muted);
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 800;
   line-height: 1;
   user-select: none;
