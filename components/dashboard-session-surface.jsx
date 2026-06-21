@@ -13,7 +13,8 @@ import {
   toDisplayLabel,
 } from '@/lib/display-labels.mjs';
 import { formatUtcDateRange, formatUtcDateTime } from '@/lib/format-utc.mjs';
-import { computeMonitoringPhase, formatMonitoringPhaseTooltip } from '@/lib/monitoring-phase.mjs';
+import { computeMonitoringPhase } from '@/lib/monitoring-phase.mjs';
+import { MonitoringPhaseHelp } from '@/components/monitoring-phase-help';
 
 const THEME_STORAGE_KEY = 'tsang-travel-theme';
 const FILTER_QUERY_KEY = 'filter';
@@ -459,15 +460,8 @@ export function DashboardSessionSurface({
                                 <span className="monitoring-status-label" aria-label={monitoringPhase.accessibleLabel}>
                                   {monitoringPhase.label}
                                 </span>
-                                <details className="monitoring-status-help">
-                                  <summary
-                                    aria-label={`Show phase guide for ${monitoringPhase.label}`}
-                                    title={formatMonitoringPhaseTooltip(monitoringPhase.phase)}
-                                  >
-                                    i
-                                  </summary>
-                                  <pre>{formatMonitoringPhaseTooltip(monitoringPhase.phase)}</pre>
-                                </details>
+                                <span className="monitoring-status-phase">Current phase: {monitoringPhase.currentPhaseLabel}</span>
+                                <MonitoringPhaseHelp phase={monitoringPhase.phase} label={monitoringPhase.label} />
                               </div>
                             ) : (
                               monitoringLabel(trip)

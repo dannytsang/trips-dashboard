@@ -17,6 +17,7 @@ import {
 
 const dashboardSurface = readFileSync('components/dashboard-session-surface.jsx', 'utf8');
 const tripDetailSurface = readFileSync('components/trip-detail-surface.jsx', 'utf8');
+const monitoringPhaseHelpSource = readFileSync('components/monitoring-phase-help.jsx', 'utf8');
 const globalCss = readFileSync('app/globals.css', 'utf8');
 const monitoringPhaseLib = readFileSync('lib/monitoring-phase.mjs', 'utf8');
 
@@ -93,6 +94,7 @@ assert.deepEqual(
   {
     phase: 'not_started',
     started: false,
+    currentPhaseLabel: 'Not started yet',
     label: 'Monitoring',
     detail: 'Monitoring is configured but has not yet started.',
     accessibleLabel: 'Monitoring — monitoring is configured but has not yet started.'
@@ -104,6 +106,7 @@ assert.deepEqual(
   {
     phase: 'daily_precheck',
     started: true,
+    currentPhaseLabel: 'Daily precheck',
     label: 'Monitoring',
     detail: 'Recommended phase: Daily precheck',
     accessibleLabel: 'Monitoring — recommended phase: Daily precheck'
@@ -115,6 +118,7 @@ assert.deepEqual(
   {
     phase: 'active_leg',
     started: true,
+    currentPhaseLabel: 'Active leg',
     label: 'Monitoring',
     detail: 'Recommended phase: Active leg',
     accessibleLabel: 'Monitoring — recommended phase: Active leg'
@@ -126,6 +130,7 @@ assert.deepEqual(
   {
     phase: 'four_hourly',
     started: true,
+    currentPhaseLabel: 'Four hourly',
     label: 'Monitoring',
     detail: 'Recommended phase: Four hourly',
     accessibleLabel: 'Monitoring — recommended phase: Four hourly',
@@ -137,6 +142,7 @@ assert.deepEqual(
   {
     phase: 'hourly',
     started: true,
+    currentPhaseLabel: 'Hourly',
     label: 'Monitoring',
     detail: 'Recommended phase: Hourly',
     accessibleLabel: 'Monitoring — recommended phase: Hourly',
@@ -148,6 +154,7 @@ assert.deepEqual(
   {
     phase: 'fifteen_minute',
     started: true,
+    currentPhaseLabel: 'Fifteen minute',
     label: 'Monitoring',
     detail: 'Recommended phase: Fifteen minute',
     accessibleLabel: 'Monitoring — recommended phase: Fifteen minute',
@@ -159,6 +166,7 @@ assert.deepEqual(
   {
     phase: 'completed',
     started: false,
+    currentPhaseLabel: 'Completed',
     label: 'Monitoring complete',
     detail: 'Monitoring window has completed.',
     accessibleLabel: 'Monitoring complete — monitoring window has completed.',
@@ -185,6 +193,7 @@ assert.deepEqual(
   {
     phase: 'four_hourly',
     started: true,
+    currentPhaseLabel: 'Four hourly',
     label: 'Monitoring',
     detail: 'Recommended phase: Four hourly',
     accessibleLabel: 'Monitoring — recommended phase: Four hourly',
@@ -197,6 +206,7 @@ assert.deepEqual(
   {
     phase: 'insufficient_timing_data',
     started: false,
+    currentPhaseLabel: 'Insufficient timing data',
     label: 'Monitoring',
     detail: 'Timing data is incomplete, so the dashboard cannot estimate whether monitoring should have started.',
     accessibleLabel: 'Monitoring — timing data is incomplete, so the dashboard cannot estimate whether monitoring should have started.',
@@ -458,13 +468,15 @@ assert.match(dashboardSurface, /trip-monitoring-state/, 'monitoring phase output
 assert.match(globalCss, /\.trip-monitoring-state\s*\{/, 'monitoring phase output must have dedicated layout styling');
 assert.match(monitoringPhaseLib, /label:\s*'Monitoring'/, 'monitoring phase labels must now use the elegant Monitoring wording');
 assert.match(dashboardSurface, /monitoring-status-row--\$\{monitoringPhaseTone\}/, 'summary monitoring status must bind the active-state accent to the computed phase');
-assert.match(dashboardSurface, /<summary[\s\S]*>\s*i\s*<\/summary>/, 'summary monitoring status must keep the info toggle inline with the value');
-assert.match(dashboardSurface, /monitoring-status-help/, 'summary monitoring status must expose the phase legend on tap for mobile Safari');
+assert.match(dashboardSurface, /monitoring-status-phase/, 'summary monitoring status must show the current phase inline');
+assert.match(monitoringPhaseHelpSource, /monitoring-status-help-toggle/, 'tap-to-toggle help control must be available for mobile Safari');
+assert.match(monitoringPhaseHelpSource, /monitoring-status-help-panel/, 'help panel must render when the toggle is opened');
 assert.doesNotMatch(dashboardSurface, /monitoring-phase-chip/, 'summary monitoring status should not render the old pill treatment');
 assert.match(dashboardSurface, /monitoring-status-label/, 'summary monitoring status must render the compact phase label');
 assert.match(tripDetailSurface, /monitoring-status-row--\$\{monitoringPhaseTone\}/, 'detail monitoring status must bind the active-state accent to the computed phase');
-assert.match(tripDetailSurface, /<summary[\s\S]*>\s*i\s*<\/summary>/, 'detail monitoring status must keep the info toggle inline with the value');
-assert.match(tripDetailSurface, /monitoring-status-help/, 'detail monitoring status must expose the phase legend on tap for mobile Safari');
+assert.match(tripDetailSurface, /monitoring-status-phase/, 'detail monitoring status must show the current phase inline');
+assert.match(monitoringPhaseHelpSource, /monitoring-status-help-toggle/, 'tap-to-toggle help control must be available for mobile Safari');
+assert.match(monitoringPhaseHelpSource, /monitoring-status-help-panel/, 'help panel must render when the toggle is opened');
 assert.doesNotMatch(tripDetailSurface, /monitoring-phase-chip/, 'detail monitoring status should not render the old pill treatment');
 assert.match(tripDetailSurface, /monitoring-status-label/, 'detail monitoring status must render the compact phase label');
 assert.match(globalCss, /\.monitoring-status-row--started\s*\{/, 'started monitoring status must have a subtle active-state accent');

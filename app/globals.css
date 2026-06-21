@@ -602,8 +602,9 @@ p {
 
 .monitoring-status-row {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.45rem 0.5rem;
   padding: 0.15rem 0 0.15rem 0.6rem;
   border-inline-start: 3px solid color-mix(in srgb, var(--border-color), transparent 10%);
   border-radius: 0.65rem;
@@ -627,14 +628,18 @@ p {
   letter-spacing: 0.01em;
 }
 
+.monitoring-status-phase {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
 .monitoring-status-help {
   display: inline-flex;
   align-items: center;
-  color: var(--text-secondary);
-  font-size: 0.72rem;
 }
 
-.monitoring-status-help summary {
+.monitoring-status-help-toggle {
   cursor: pointer;
   display: inline-grid;
   place-items: center;
@@ -648,19 +653,10 @@ p {
   font-weight: 800;
   line-height: 1;
   user-select: none;
-  list-style: none;
 }
 
-.monitoring-status-help summary::-webkit-details-marker {
-  display: none;
-}
-
-.monitoring-status-help[open] summary {
-  margin-bottom: 0;
-}
-
-.monitoring-status-help pre {
-  margin: 0;
+.monitoring-status-help-panel {
+  margin: 0.35rem 0 0;
   padding: 0.65rem 0.75rem;
   border: 1px solid var(--border-color);
   border-radius: 0.75rem;
