@@ -64,7 +64,7 @@ export function AuthSignInPage() {
             display: 'flex',
             justifyContent: 'space-between',
             gap: '1rem',
-            alignItems: 'flex-start',
+            alignItems: 'center',
             marginBottom: '1.5rem',
           }}
         >
@@ -103,10 +103,16 @@ export function AuthSignInPage() {
               backgroundColor: 'var(--bg-tertiary)',
               color: 'var(--text-secondary)',
               borderRadius: '999px',
-              padding: '0.45rem 0.75rem',
+              padding: '0.4rem 0.7rem',
               cursor: 'pointer',
               fontWeight: 700,
+              fontSize: '0.95rem',
+              lineHeight: 1,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               flexShrink: 0,
+              alignSelf: 'center',
             }}
           >
             {theme === 'dark' ? '☀️' : '🌙'}
