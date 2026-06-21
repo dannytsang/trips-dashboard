@@ -402,7 +402,7 @@ p {
 
 .theme-toggle {
   flex: 0 0 auto;
-  align-self: stretch;
+  align-self: center;
   min-width: 0;
   width: auto;
   margin-top: 0;
