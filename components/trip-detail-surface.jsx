@@ -947,17 +947,19 @@ export function TripDetailSurface({
           <SectionCollapsible title="Monitoring detail" emoji="📡" defaultOpen={false}>
             {trip.monitoring.enabled === true ? (
               <div className="trip-monitoring-state">
-                <span
-                  className={`monitoring-phase-chip monitoring-phase-chip--${monitoringPhaseTone}`}
-                  aria-label={monitoringPhase.accessibleLabel}
-                  title={formatMonitoringPhaseTooltip(monitoringPhase.phase)}
-                >
-                  <span className="monitoring-phase-chip-icon" aria-hidden="true">
-                    {monitoringPhase.started ? '📡' : monitoringPhase.phase === 'insufficient_timing_data' ? '⚪' : '⏳'}
+                <div className="monitoring-phase-control">
+                  <span
+                    className={`monitoring-phase-chip monitoring-phase-chip--${monitoringPhaseTone}`}
+                    aria-label={monitoringPhase.accessibleLabel}
+                    title={formatMonitoringPhaseTooltip(monitoringPhase.phase)}
+                  >
+                    <strong className="monitoring-phase-chip-label">{monitoringPhase.label}</strong>
                   </span>
-                  <strong className="monitoring-phase-chip-label">{monitoringPhase.label}</strong>
-                  <span className="monitoring-phase-chip-info" aria-hidden="true">ⓘ</span>
-                </span>
+                  <details className="monitoring-phase-help">
+                    <summary>Phase guide</summary>
+                    <pre>{formatMonitoringPhaseTooltip(monitoringPhase.phase)}</pre>
+                  </details>
+                </div>
                 <p className="monitoring-detail-note">
                   Advisory: this page computes the recommendation from already-loaded trip and leg timing data plus browser time. It does not fetch live monitoring-state or live-status APIs.
                 </p>
