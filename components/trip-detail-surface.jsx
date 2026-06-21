@@ -955,10 +955,8 @@ export function TripDetailSurface({
                   <span className="monitoring-phase-chip-icon" aria-hidden="true">
                     {monitoringPhase.started ? '📡' : monitoringPhase.phase === 'insufficient_timing_data' ? '⚪' : '⏳'}
                   </span>
-                  <span className="monitoring-phase-chip-copy">
-                    <strong>{monitoringPhase.label}</strong>
-                    <span>{monitoringPhase.detail}</span>
-                  </span>
+                  <strong className="monitoring-phase-chip-label">{monitoringPhase.label}</strong>
+                  <span className="monitoring-phase-chip-info" aria-hidden="true">ⓘ</span>
                 </span>
                 <p className="monitoring-detail-note">
                   Advisory: this page computes the recommendation from already-loaded trip and leg timing data plus browser time. It does not fetch live monitoring-state or live-status APIs.

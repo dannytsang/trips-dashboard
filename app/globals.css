@@ -597,35 +597,56 @@ p {
 
 .trip-monitoring-state {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.5rem;
 }
 
 .monitoring-phase-chip {
   display: inline-flex;
-  align-items: flex-start;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.45rem;
   border: 1px solid var(--border-color);
   border-radius: 999px;
-  padding: 0.45rem 0.7rem;
-  background: color-mix(in srgb, var(--bg-secondary), white 4%);
+  padding: 0.34rem 0.65rem;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-secondary), white 8%), color-mix(in srgb, var(--bg-secondary), transparent 3%));
   color: var(--text-primary);
-  font-size: 0.82rem;
-  line-height: 1.35;
+  font-size: 0.78rem;
+  line-height: 1;
+  box-shadow: var(--shadow-sm);
+  white-space: nowrap;
 }
 
 .monitoring-phase-chip--started {
   border-color: rgba(6, 182, 212, 0.42);
-  background: color-mix(in srgb, var(--accent-cyan), transparent 88%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-cyan), white 86%), color-mix(in srgb, var(--accent-cyan), transparent 90%));
 }
 
 .monitoring-phase-chip--neutral {
   border-color: rgba(148, 163, 184, 0.38);
-  background: color-mix(in srgb, var(--bg-secondary), white 2%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-secondary), white 8%), color-mix(in srgb, var(--bg-secondary), transparent 2%));
 }
 
-.monitoring-phase-chip-icon {
+.monitoring-phase-chip-icon,
+.monitoring-phase-chip-info {
   flex: none;
-  margin-top: 0.1rem;
+  font-size: 0.72rem;
+}
+
+.monitoring-phase-chip-info {
+  color: var(--text-muted);
+  opacity: 0.92;
+}
+
+.monitoring-phase-chip-label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.monitoring-detail-note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.45;
 }
 
 .monitoring-phase-chip-copy {

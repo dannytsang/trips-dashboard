@@ -459,7 +459,13 @@ assert.match(dashboardSurface, /trip-monitoring-state/, 'monitoring phase output
 assert.match(globalCss, /\.trip-monitoring-state\s*\{/, 'monitoring phase output must have dedicated layout styling');
 assert.match(monitoringPhaseLib, /label:\s*'Monitoring'/, 'monitoring phase labels must now use the elegant Monitoring wording');
 assert.match(dashboardSurface, /title=\{formatMonitoringPhaseTooltip\(monitoringPhase\.phase\)\}/, 'summary monitoring chip must expose the phase legend in a hover tooltip');
+assert.doesNotMatch(dashboardSurface, /monitoring-phase-chip-copy/, 'summary monitoring chip should not render the old stacked copy layout');
+assert.match(dashboardSurface, /monitoring-phase-chip-label/, 'summary monitoring chip must render the compact phase label');
+assert.match(dashboardSurface, /monitoring-phase-chip-info/, 'summary monitoring chip must render an explicit info affordance');
 assert.match(tripDetailSurface, /title=\{formatMonitoringPhaseTooltip\(monitoringPhase\.phase\)\}/, 'detail monitoring chip must expose the phase legend in a hover tooltip');
+assert.doesNotMatch(tripDetailSurface, /monitoring-phase-chip-copy/, 'detail monitoring chip should not render the old stacked copy layout');
+assert.match(tripDetailSurface, /monitoring-phase-chip-label/, 'detail monitoring chip must render the compact phase label');
+assert.match(tripDetailSurface, /monitoring-phase-chip-info/, 'detail monitoring chip must render an explicit info affordance');
 assert.match(globalCss, /\.monitoring-phase-chip--started\s*\{/, 'started monitoring phases must have dedicated styling');
 assert.match(globalCss, /\.monitoring-phase-chip--neutral\s*\{/, 'configured/not-started monitoring phases must have dedicated styling');
 assert.match(tripDetailSurface, /computeMonitoringPhase\(trip, browserNow\)/, 'trip detail must compute the advisory monitoring phase from already-loaded data and browser time');
