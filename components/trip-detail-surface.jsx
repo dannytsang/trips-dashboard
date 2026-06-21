@@ -947,16 +947,17 @@ export function TripDetailSurface({
           <SectionCollapsible title="Monitoring detail" emoji="📡" defaultOpen={false}>
             {trip.monitoring.enabled === true ? (
               <div className="trip-monitoring-state">
-                <div className="monitoring-phase-control">
-                  <span
-                    className={`monitoring-phase-chip monitoring-phase-chip--${monitoringPhaseTone}`}
-                    aria-label={monitoringPhase.accessibleLabel}
-                    title={formatMonitoringPhaseTooltip(monitoringPhase.phase)}
-                  >
-                    <strong className="monitoring-phase-chip-label">{monitoringPhase.label}</strong>
+                <div className={`monitoring-status-row monitoring-status-row--${monitoringPhaseTone}`}>
+                  <span className="monitoring-status-label" aria-label={monitoringPhase.accessibleLabel}>
+                    {monitoringPhase.label}
                   </span>
-                  <details className="monitoring-phase-help">
-                    <summary>Phase guide</summary>
+                  <details className="monitoring-status-help">
+                    <summary
+                      aria-label={`Show phase guide for ${monitoringPhase.label}`}
+                      title={formatMonitoringPhaseTooltip(monitoringPhase.phase)}
+                    >
+                      i
+                    </summary>
                     <pre>{formatMonitoringPhaseTooltip(monitoringPhase.phase)}</pre>
                   </details>
                 </div>

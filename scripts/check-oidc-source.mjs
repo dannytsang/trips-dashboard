@@ -129,8 +129,8 @@ assert.match(
 );
 assert.match(
   tripDetailSurface,
-  /monitoring-phase-chip/,
-  'trip detail monitoring section must render the advisory monitoring phase chip (FR-043)'
+  /monitoring-status-row/,
+  'trip detail monitoring section must render the advisory monitoring status row (FR-043)'
 );
 assert.match(
   tripDetailSurface,
