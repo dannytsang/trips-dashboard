@@ -1194,7 +1194,7 @@ p {
   color: var(--text-muted);
 }
 
-/* Trip overview map — Google Maps JavaScript API (FR-042 Revised).
+/* Trip overview map — Google Maps JavaScript API (FR-042 Proposed).
    One interactive map, all legs shown as colored polylines + markers.
    OSM fallback handled by TripOverviewMap returning null for non-Google. */
 .trip-overview-map {
