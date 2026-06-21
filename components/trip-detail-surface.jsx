@@ -949,11 +949,11 @@ export function TripDetailSurface({
             {trip.monitoring.enabled === true ? (
               <div className="trip-monitoring-state">
                 <div className={`monitoring-status-row monitoring-status-row--${monitoringPhaseTone}`}>
+                  <MonitoringPhaseHelp phase={monitoringPhase.phase} label={monitoringPhase.label} />
                   <span className="monitoring-status-label" aria-label={monitoringPhase.accessibleLabel}>
                     {monitoringPhase.label}
                   </span>
                   <span className="monitoring-status-phase">Current phase: {monitoringPhase.currentPhaseLabel}</span>
-                  <MonitoringPhaseHelp phase={monitoringPhase.phase} label={monitoringPhase.label} />
                 </div>
                 <p className="monitoring-detail-note">
                   Advisory: this page computes the recommendation from already-loaded trip and leg timing data plus browser time. It does not fetch live monitoring-state or live-status APIs.
