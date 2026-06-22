@@ -108,8 +108,8 @@ assert.deepEqual(
     started: true,
     currentPhaseLabel: 'Daily precheck',
     label: 'Monitoring',
-    detail: 'Recommended phase: Daily precheck',
-    accessibleLabel: 'Monitoring — recommended phase: Daily precheck'
+    detail: 'Current phase: Daily precheck',
+    accessibleLabel: 'Monitoring — current phase: Daily precheck'
   },
   'within 7 days should move into daily precheck'
 );
@@ -120,8 +120,8 @@ assert.deepEqual(
     started: true,
     currentPhaseLabel: 'Active leg',
     label: 'Monitoring',
-    detail: 'Recommended phase: Active leg',
-    accessibleLabel: 'Monitoring — recommended phase: Active leg'
+    detail: 'Current phase: Active leg',
+    accessibleLabel: 'Monitoring — current phase: Active leg'
   },
   'active timing window should report the active leg phase'
 );
@@ -132,8 +132,8 @@ assert.deepEqual(
     started: true,
     currentPhaseLabel: 'Four hourly',
     label: 'Monitoring',
-    detail: 'Recommended phase: Four hourly',
-    accessibleLabel: 'Monitoring — recommended phase: Four hourly',
+    detail: 'Current phase: Four hourly',
+    accessibleLabel: 'Monitoring — current phase: Four hourly',
   },
   'twenty-four-to-seven-days-out should report the four-hourly phase'
 );
@@ -144,8 +144,8 @@ assert.deepEqual(
     started: true,
     currentPhaseLabel: 'Hourly',
     label: 'Monitoring',
-    detail: 'Recommended phase: Hourly',
-    accessibleLabel: 'Monitoring — recommended phase: Hourly',
+    detail: 'Current phase: Hourly',
+    accessibleLabel: 'Monitoring — current phase: Hourly',
   },
   'four-to-one-hours-out should report the hourly phase'
 );
@@ -156,8 +156,8 @@ assert.deepEqual(
     started: true,
     currentPhaseLabel: 'Fifteen minute',
     label: 'Monitoring',
-    detail: 'Recommended phase: Fifteen minute',
-    accessibleLabel: 'Monitoring — recommended phase: Fifteen minute',
+    detail: 'Current phase: Fifteen minute',
+    accessibleLabel: 'Monitoring — current phase: Fifteen minute',
   },
   'under one hour should report the fifteen-minute phase'
 );
@@ -195,8 +195,8 @@ assert.deepEqual(
     started: true,
     currentPhaseLabel: 'Four hourly',
     label: 'Monitoring',
-    detail: 'Recommended phase: Four hourly',
-    accessibleLabel: 'Monitoring — recommended phase: Four hourly',
+    detail: 'Current phase: Four hourly',
+    accessibleLabel: 'Monitoring — current phase: Four hourly',
   },
   'legacy timing fields should be enough to avoid the insufficient timing data state'
 );
@@ -216,7 +216,7 @@ assert.deepEqual(
 assert.equal(formatMonitoringPhaseLabel('insufficient_timing_data'), 'Monitoring');
 assert.equal(
   formatMonitoringPhaseTooltip('hourly'),
-  'Monitoring\nCurrent phase: Hourly\nRecommended phase: Hourly\n\nHover legend:\n• Not started yet: Monitoring is configured but has not yet started.\n• Daily precheck: Recommended phase: Daily precheck\n• Four hourly: Recommended phase: Four hourly\n→ Hourly: Recommended phase: Hourly\n• Fifteen minute: Recommended phase: Fifteen minute\n• Active leg: Recommended phase: Active leg\n• Completed: Monitoring window has completed.\n• Insufficient timing data: Timing data is incomplete, so the dashboard cannot estimate whether monitoring should have started.'
+  'Monitoring\nCurrent phase: Hourly\nCurrent phase: Hourly\n\nHover legend:\n• Not started yet: Monitoring is configured but has not yet started.\n• Daily precheck: Current phase: Daily precheck\n• Four hourly: Current phase: Four hourly\n→ Hourly: Current phase: Hourly\n• Fifteen minute: Current phase: Fifteen minute\n• Active leg: Current phase: Active leg\n• Completed: Monitoring window has completed.\n• Insufficient timing data: Timing data is incomplete, so the dashboard cannot estimate whether monitoring should have started.'
 );
 
 // OSM embed bbox — TripMap now embeds an OpenStreetMap iframe whose
