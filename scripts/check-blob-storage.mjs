@@ -11,6 +11,7 @@ import {
   DEFAULT_TRIPS_MANIFEST_PATH,
   getMissingBlobStorageEnvironment,
   hasBlobStorageEnvironment,
+  readTripById,
   readTripsDashboardPortfolio,
   TripsPortfolioStorageError,
   writeTripsDashboardPortfolio,
@@ -172,6 +173,28 @@ assert.equal(storedRead.storage.url, undefined, 'storage metadata must not expos
 assert.equal(storedRead.portfolio.trips[0].title, 'Eastbourne fixture');
 assert.equal(storedRead.portfolio.trips[1].title, 'Birmingham fixture');
 
+const directTripRead = await readTripById('trip-a', {
+  env: { BLOB_READ_WRITE_TOKEN: 'test-token' },
+  blobGet: async pathname => {
+    if (pathname === DEFAULT_TRIPS_MANIFEST_PATH) return blobResult(pathname, splitEnvelope.manifest);
+    if (pathname === 'trips-dashboard/trips/trip-a.json') return blobResult(pathname, tripA);
+    throw new Error(`unexpected blob read ${pathname}`);
+  },
+});
+assert.equal(directTripRead.title, 'Eastbourne fixture');
+
+const staleDirectTripRead = await readTripById('removed-trip', {
+  env: { BLOB_READ_WRITE_TOKEN: 'test-token' },
+  blobGet: async pathname => {
+    if (pathname === DEFAULT_TRIPS_MANIFEST_PATH) return blobResult(pathname, splitEnvelope.manifest);
+    if (pathname === 'trips-dashboard/trips/removed-trip.json') {
+      throw new Error('stale trip object must not be read when absent from manifest');
+    }
+    return null;
+  },
+});
+assert.equal(staleDirectTripRead, null, 'trip detail reads must be gated by the current manifest so stale removed objects cannot render');
+
 const futureTrip = {
   ...tripA,
   id: 'trip-future',
@@ -287,6 +310,12 @@ const writeResult = await writeTripsDashboardPortfolio(splitEnvelope, {
 
 assert.equal(writeResult.storage.exists, true);
 assert.equal(writeResult.storage.pathname, DEFAULT_TRIPS_MANIFEST_PATH);
+assert.deepEqual(writeResult.storage.removedTripIds, ['removed-trip']);
+assert.deepEqual(writeResult.storage.deletedPaths, [
+  'trips-dashboard/trips/removed-trip.json',
+  'trips-dashboard/trips/removed-trip.sha256',
+]);
+assert.equal(writeResult.storage.deletedPathCount, 2);
 assert.equal(writeResult.portfolio.trips.length, 2);
 assert.deepEqual(
   putCalls.map(call => call.pathname),
