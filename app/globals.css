@@ -1767,6 +1767,80 @@ p {
   border-top: 1px solid var(--border-color);
 }
 
+/* Trip-level Notifications section (spec 010 FR-048..FR-052).
+ * The trip-level policy block uses the existing rationale-block idiom
+ * (same heading + dl shape as the Accommodation booking block); the
+ * per-leg preapproval summary table is a compact list of leg rows with
+ * a status pill at the end. */
+.notifications-policy-list {
+  display: grid;
+  grid-template-columns: minmax(8rem, max-content) 1fr;
+  gap: 0.3rem 0.6rem;
+  margin: 0;
+  font-size: 0.82rem;
+}
+.notifications-policy-list dt {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.66rem;
+  align-self: start;
+  padding-top: 0.15rem;
+}
+.notifications-policy-list dd {
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.notifications-perleg {
+  margin-top: 0.6rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color);
+}
+.notifications-perleg-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.notifications-perleg-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+}
+.notifications-perleg-pill {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.notifications-perleg-pill[data-state="pre_approved"] {
+  border-color: var(--accent-emerald);
+  color: var(--accent-emerald);
+}
+.notifications-perleg-pill[data-state="disabled"] {
+  color: var(--text-muted);
+}
+.notifications-perleg-pill[data-state="pending"] {
+  border-color: var(--accent-amber);
+  color: var(--accent-amber);
+}
+.notifications-perleg-detail {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  flex-basis: 100%;
+  padding-left: 2rem;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   .detail-panel {

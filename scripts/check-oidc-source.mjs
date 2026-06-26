@@ -304,4 +304,20 @@ assert.match(
 // We assert that the trip detail source does not reference the
 // removed class names. The CSS rules themselves can stay.
 
+// v8 expansion (spec 010 FR-048..FR-052): trip-level Notifications
+// section. The component is wired into the section list between
+// Monitoring detail and Accommodation, opens by default, and reads
+// from the new `trip.notifications` brief field emitted by
+// `notifications_projection()` in the brief builder.
+assert.match(
+  tripDetailSurface,
+  /<NotificationsSection\s+notifications=\{trip\.notifications\}\s+legs=\{trip\.legs\}\s*\/>/,
+  'trip detail must wire NotificationsSection with trip.notifications and trip.legs (FR-048, FR-050)'
+);
+assert.match(
+  tripDetailSurface,
+  /\{hasNotificationsSection \? \(/,
+  'trip detail must gate NotificationsSection on hasNotificationsSection (FR-048 omit-when-empty)'
+);
+
 console.log('OIDC source checks passed.');

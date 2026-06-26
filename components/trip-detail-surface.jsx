@@ -598,6 +598,138 @@ function NotificationBlock({ notif }) {
   );
 }
 
+// FR-048..FR-052 (spec 010 v8): trip-level Notifications section.
+// Aggregates the per-leg preapproval summary table (from the existing
+// `leg.notification.policy` projection, spec 006) with an optional
+// trip-level `trip.notifications` policy block (from the new
+// `notifications_projection()` in the brief builder). The section is
+// read-only, display-only, and is omitted entirely when the trip has
+// no notification data at all (no per-leg blocks AND no
+// trip.notifications block) — consistent with FR-005.
+//
+// Status pill logic (FR-049):
+//   policy.enabled === true && approvalPolicy === 'all_or_nothing_leg_preapproval_required'
+//     → 🔔 Pre-approved (all-or-nothing)
+//   policy.enabled === false
+//     → 🔕 Disabled
+//   otherwise
+//     → ❓ Pending decision
+
+const NOTIFICATION_STATUS_LABELS = {
+  pre_approved: '🔔 Pre-approved (all-or-nothing)',
+  disabled: '🔕 Disabled',
+  pending: '❓ Pending decision',
+};
+
+function notificationStatusKey(policy) {
+  if (!policy) return 'pending';
+  if (policy.enabled === false) return 'disabled';
+  if (
+    policy.enabled === true
+    && policy.approvalPolicy === 'all_or_nothing_leg_preapproval_required'
+  ) {
+    return 'pre_approved';
+  }
+  return 'pending';
+}
+
+function NotificationsSection({ notifications, legs }) {
+  const legRows = Array.isArray(legs) ? legs : [];
+  const legsWithNotif = legRows
+    .map((leg, index) => ({ leg, index }))
+    .filter(({ leg }) => leg && leg.notification);
+  const hasTripNotif = notifications
+    && typeof notifications === 'object'
+    && Object.keys(notifications).length > 0;
+  if (!hasTripNotif && legsWithNotif.length === 0) return null;
+
+  return (
+    <SectionCollapsible title="Notifications" emoji="🔔" defaultOpen={true}>
+      {hasTripNotif ? (
+        <div className="rationale-block notifications-policy-block">
+          <h3 className="rationale-heading">Notification policy</h3>
+          <dl className="notifications-policy-list">
+            {notifications.defaultApprovalPolicy ? (
+              <>
+                <dt>Default approval</dt>
+                <dd>{notifications.defaultApprovalPolicy.replace(/_/g, ' ')}</dd>
+              </>
+            ) : null}
+            {notifications.defaultArrivalWhatsappPolicy ? (
+              <>
+                <dt>Arrival WhatsApp</dt>
+                <dd>{notifications.defaultArrivalWhatsappPolicy.replace(/_/g, ' ')}</dd>
+              </>
+            ) : null}
+            {typeof notifications.defaultEtaChangeThresholdMinutes === 'number' ? (
+              <>
+                <dt>ETA change threshold</dt>
+                <dd>{notifications.defaultEtaChangeThresholdMinutes} minutes</dd>
+              </>
+            ) : null}
+            {Array.isArray(notifications.defaultEnabledTriggers)
+              && notifications.defaultEnabledTriggers.length > 0 ? (
+                <>
+                  <dt>Default triggers</dt>
+                  <dd>
+                    {notifications.defaultEnabledTriggers
+                      .map((t) => t.replace('send_on_', ''))
+                      .join(', ')}
+                  </dd>
+                </>
+              ) : null}
+            {notifications.defaultMessageStyle ? (
+              <>
+                <dt>Message style</dt>
+                <dd>{notifications.defaultMessageStyle.replace(/_/g, ' ')}</dd>
+              </>
+            ) : null}
+          </dl>
+        </div>
+      ) : null}
+      {legsWithNotif.length > 0 ? (
+        <div className="notifications-perleg">
+          <h3 className="rationale-heading">Per-leg preapproval</h3>
+          <ol className="notifications-perleg-list">
+            {legsWithNotif.map(({ leg, index }) => {
+              const statusKey = notificationStatusKey(leg.notification?.policy);
+              const statusLabel = NOTIFICATION_STATUS_LABELS[statusKey];
+              const rawApproval = leg.notification?.policy?.approvalPolicy;
+              const enabledTriggers = Array.isArray(leg.notification?.policy?.enabledTriggers)
+                ? leg.notification.policy.enabledTriggers
+                : [];
+              return (
+                <li
+                  key={`notif-leg-${index}`}
+                  className="notifications-perleg-row"
+                  data-state={statusKey}
+                >
+                  <span className="leg-detail-index">{index + 1}</span>
+                  <span className="leg-detail-mode">{formatLegModeEmoji(leg.mode)}</span>
+                  <span className="leg-detail-label">{leg.label || 'Unknown leg'}</span>
+                  <span className="notifications-perleg-pill" data-state={statusKey}>
+                    {statusLabel}
+                  </span>
+                  {rawApproval ? (
+                    <span className="notifications-perleg-detail">
+                      Approval policy: {rawApproval.replace(/_/g, ' ')}
+                    </span>
+                  ) : null}
+                  {enabledTriggers.length > 0 ? (
+                    <span className="notifications-perleg-detail">
+                      Triggers: {enabledTriggers.map((t) => t.replace('send_on_', '')).join(', ')}
+                    </span>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      ) : null}
+    </SectionCollapsible>
+  );
+}
+
 function PlanningReviewBlock({ review }) {
   const action = review?.action;
   const drafts = review?.drafts;
@@ -811,6 +943,12 @@ export function TripDetailSurface({
   const hasTransportDecision = trip.planning?.transportDecision && trip.planning.transportDecision.selectedMode;
   const hasNextAction = typeof trip.planning?.nextAction === 'string' && trip.planning.nextAction.trim().length > 0;
   const hasWeather = Boolean(trip.weather);
+  const hasTripNotifications = trip.notifications
+    && typeof trip.notifications === 'object'
+    && Object.keys(trip.notifications).length > 0;
+  const hasPerLegNotifications = Array.isArray(trip.legs)
+    && trip.legs.some((leg) => leg && leg.notification);
+  const hasNotificationsSection = hasTripNotifications || hasPerLegNotifications;
 
   return (
     <main className="dashboard-shell" data-theme={theme}>
@@ -1011,7 +1149,15 @@ export function TripDetailSurface({
           </SectionCollapsible>
         ) : null}
 
-        {/* Accommodation (FR-013) — between Monitoring detail and Notes */}
+        {/* Notifications (FR-048..FR-052) — between Monitoring detail and Accommodation */}
+        {hasNotificationsSection ? (
+          <NotificationsSection
+            notifications={trip.notifications}
+            legs={trip.legs}
+          />
+        ) : null}
+
+        {/* Accommodation (FR-013) — between Notifications and Notes */}
         <AccommodationSection accommodation={trip.accommodation} />
 
         {/* Notes */}

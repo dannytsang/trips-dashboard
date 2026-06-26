@@ -755,4 +755,207 @@ assert.match(
   'LegRouteMap must populate the cache after fetching'
 );
 
+// Trip-level Notifications section (spec 010 FR-048..FR-052).
+// The section sits between Monitoring and Accommodation, opens by
+// default, and aggregates two data paths: the per-leg preapproval
+// summary table (from spec 006 `leg.notification.policy`) and an
+// optional trip-level `trip.notifications` policy block (from the
+// new `notifications_projection()` in the brief builder). The section
+// is omitted entirely when there is no notification data anywhere.
+//
+// Source-shape contract: the JSX must declare a NotificationsSection
+// component that renders the existing SectionCollapsible shell with
+// `title="Notifications"`, `emoji="🔔"`, and `defaultOpen={true}`.
+// The call site must come after the Monitoring section and before
+// the AccommodationSection call site (section ordering is part of the
+// visitor-facing contract).
+
+assert.match(
+  tripDetailSurface,
+  /function NotificationsSection\(\{\s*notifications,\s*legs\s*\}\)/,
+  'trip detail must define a NotificationsSection component (FR-048)'
+);
+assert.match(
+  tripDetailSurface,
+  /<SectionCollapsible\s+title="Notifications"\s+emoji="🔔"\s+defaultOpen=\{true\}>/,
+  'Notifications section must use SectionCollapsible with title=Notifications, emoji=🔔, defaultOpen={true} (FR-048)'
+);
+assert.match(
+  tripDetailSurface,
+  /hasNotificationsSection\s*=\s*hasTripNotifications\s*\|\|\s*hasPerLegNotifications/,
+  'Notifications section visibility must be gated on either trip.notifications or a per-leg notification block (FR-048, FR-049)'
+);
+assert.match(
+  tripDetailSurface,
+  /hasNotificationsSection\s*\?\s*\([\s\S]{0,40}<NotificationsSection/,
+  'Notifications section must be conditionally rendered via hasNotificationsSection gate'
+);
+// Section ordering — Notifications must be between the Monitoring
+// detail SectionCollapsible closing tag and the AccommodationSection
+// call site. We assert by checking that the NotificationsSection call
+// site appears after the Monitoring-detail closing tag (the
+// </SectionCollapsible> right after the "stopWhen" block) and
+// before the AccommodationSection call site.
+const monitoringClosingIdx = tripDetailSurface.indexOf("trip.monitoring.stopWhen && trip.monitoring.stopWhen.length > 0");
+const notificationsCallIdx = tripDetailSurface.indexOf('<NotificationsSection');
+const accommodationCallIdx = tripDetailSurface.indexOf('<AccommodationSection');
+assert.ok(monitoringClosingIdx > -1, 'trip detail must include the monitoring stopWhen block');
+assert.ok(notificationsCallIdx > -1, 'trip detail must render NotificationsSection (FR-048)');
+assert.ok(accommodationCallIdx > -1, 'trip detail must still render AccommodationSection');
+assert.ok(
+  monitoringClosingIdx < notificationsCallIdx && notificationsCallIdx < accommodationCallIdx,
+  'Notifications section must render between Monitoring detail and Accommodation (FR-048)'
+);
+
+// Per-leg preapproval summary table — rows are ordered by leg
+// index, each carries the leg index badge / mode emoji / label idiom
+// used elsewhere, and the status pill maps to one of three states.
+function notificationStatusKey(policy) {
+  if (!policy) return 'pending';
+  if (policy.enabled === false) return 'disabled';
+  if (
+    policy.enabled === true
+    && policy.approvalPolicy === 'all_or_nothing_leg_preapproval_required'
+  ) {
+    return 'pre_approved';
+  }
+  return 'pending';
+}
+
+assert.equal(
+  notificationStatusKey({ enabled: true, approvalPolicy: 'all_or_nothing_leg_preapproval_required' }),
+  'pre_approved',
+  'enabled + all_or_nothing_leg_preapproval_required → pre_approved'
+);
+assert.equal(
+  notificationStatusKey({ enabled: false, approvalPolicy: 'all_or_nothing_leg_preapproval_required' }),
+  'disabled',
+  'enabled === false → disabled'
+);
+assert.equal(
+  notificationStatusKey({ enabled: true, approvalPolicy: 'single_message_only' }),
+  'pending',
+  'enabled + non-matching approval policy → pending'
+);
+assert.equal(
+  notificationStatusKey(undefined),
+  'pending',
+  'absent policy → pending'
+);
+assert.equal(
+  notificationStatusKey({ enabled: true }),
+  'pending',
+  'enabled === true without an approval policy → pending'
+);
+assert.equal(
+  notificationStatusKey({}),
+  'pending',
+  'empty policy → pending'
+);
+
+// Status pill labels match FR-049 verbatim.
+assert.equal(
+  '🔔 Pre-approved (all-or-nothing)',
+  '🔔 Pre-approved (all-or-nothing)',
+  'pre_approved pill label'
+);
+assert.match(
+  tripDetailSurface,
+  /🔔 Pre-approved \(all-or-nothing\)/,
+  'Notifications section must render the pre-approved pill label (FR-049)'
+);
+assert.match(
+  tripDetailSurface,
+  /🔕 Disabled/,
+  'Notifications section must render the disabled pill label (FR-049)'
+);
+assert.match(
+  tripDetailSurface,
+  /❓ Pending decision/,
+  'Notifications section must render the pending pill label (FR-049)'
+);
+
+// Raw approvalPolicy is rendered as a detail span for transparency.
+assert.match(
+  tripDetailSurface,
+  /Approval policy:/,
+  'Notifications section must surface the raw approvalPolicy as a detail span (FR-049)'
+);
+
+// Per-leg ordering — the implementation walks trip.legs and
+// preserves the original leg index. We assert by source shape.
+assert.match(
+  tripDetailSurface,
+  /\.map\(\(\{\s*leg,\s*index\s*\}/,
+  'Notifications section must walk legs with index for row ordering (FR-049)'
+);
+
+// Trip-level policy block (FR-050): rationale-block idiom + 5
+// display-safe fields. The block must omit fields that are absent.
+assert.match(
+  tripDetailSurface,
+  /className="rationale-block notifications-policy-block"/,
+  'trip-level notification policy block must use the rationale-block idiom (FR-050)'
+);
+assert.match(
+  tripDetailSurface,
+  /<h3 className="rationale-heading">Notification policy<\/h3>/,
+  'trip-level notification policy block must carry a Notification policy heading (FR-050)'
+);
+assert.match(
+  tripDetailSurface,
+  /notifications\.defaultApprovalPolicy/,
+  'trip-level notification policy block must surface defaultApprovalPolicy (FR-050)'
+);
+assert.match(
+  tripDetailSurface,
+  /notifications\.defaultArrivalWhatsappPolicy/,
+  'trip-level notification policy block must surface defaultArrivalWhatsappPolicy (FR-050)'
+);
+assert.match(
+  tripDetailSurface,
+  /notifications\.defaultEtaChangeThresholdMinutes/,
+  'trip-level notification policy block must surface defaultEtaChangeThresholdMinutes (FR-050)'
+);
+assert.match(
+  tripDetailSurface,
+  /notifications\.defaultEnabledTriggers/,
+  'trip-level notification policy block must surface defaultEnabledTriggers (FR-050)'
+);
+assert.match(
+  tripDetailSurface,
+  /notifications\.defaultMessageStyle/,
+  'trip-level notification policy block must surface defaultMessageStyle (FR-050)'
+);
+
+// FR-052: the section must not introduce new live-source fetches.
+// No new fetch / WebSocket / cron reference in the Notifications path.
+assert.doesNotMatch(
+  tripDetailSurface,
+  /NotificationsSection[\s\S]{0,800}fetch\(/,
+  'NotificationsSection must not introduce fetch calls (FR-052)'
+);
+assert.doesNotMatch(
+  tripDetailSurface,
+  /NotificationsSection[\s\S]{0,800}new WebSocket/,
+  'NotificationsSection must not introduce WebSocket connections (FR-052)'
+);
+
+// Companion brief-builder assertion: the section depends on
+// `notifications_projection()` being available from the brief
+// builder. We don't pull the python module here, but the JSX must
+// reference `trip.notifications` (the emitted field name) for the
+// trip-level policy block.
+assert.match(
+  tripDetailSurface,
+  /trip\.notifications/,
+  'trip detail must read trip.notifications for the policy block (FR-050, FR-051)'
+);
+// Per-leg block comes from leg.notification (spec 006 — unchanged).
+assert.match(
+  tripDetailSurface,
+  /leg\.notification/,
+  'trip detail must read leg.notification for the per-leg summary (FR-049, FR-051 additive)'
+);
+
 console.log('Dashboard polish checks passed.');
