@@ -192,6 +192,67 @@ function DetailSection({ title, emoji, children }) {
   );
 }
 
+function DetailDebugDisclosure({ id, title, summary, data, open, onToggle }) {
+  return (
+    <section className="debug-inline-panel" data-debug-disclosure>
+      <button
+        type="button"
+        className="debug-inline-toggle"
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={onToggle}
+      >
+        <span>{open ? '▾' : '▸'} 🛠 {title}</span>
+        {summary ? <small>{summary}</small> : null}
+      </button>
+      {open ? (
+        <pre id={id} className="debug-pre debug-inline-pre">{JSON.stringify(data, null, 2)}</pre>
+      ) : null}
+    </section>
+  );
+}
+
+function buildTripDetailDebugPayload(trip, { tripId, dashboardMode, monitoringPhase }) {
+  return {
+    id: trip?.id ?? tripId,
+    title: trip?.title ?? null,
+    route: `/trips/${tripId}`,
+    dashboardMode: dashboardMode?.isDemo ? 'demo' : 'live',
+    status: trip?.status ?? null,
+    dateRange: { start: trip?.start ?? null, end: trip?.end ?? null },
+    destinationLabel: trip?.destinationLabel ?? null,
+    counts: {
+      travellers: trip?.travellers?.length ?? 0,
+      legs: trip?.legs?.length ?? 0,
+      programme: trip?.programme?.length ?? 0,
+      assumptions: trip?.planning?.assumptions?.length ?? 0,
+      missing: trip?.planning?.missing?.length ?? 0,
+      questionsForDanny: trip?.planning?.questionsForDanny?.length ?? 0,
+      notes: trip?.notes?.length ?? 0,
+    },
+    planning: {
+      readiness: trip?.planning?.readiness ?? null,
+      nextAction: trip?.planning?.nextAction ?? null,
+      transportDecisionMode: trip?.planning?.transportDecision?.selectedMode ?? null,
+    },
+    monitoring: {
+      enabled: trip?.monitoring?.enabled ?? null,
+      active: trip?.monitoring?.active ?? null,
+      summary: trip?.monitoring?.summary ?? null,
+      computedPhase: monitoringPhase ? {
+        phase: monitoringPhase.phase,
+        started: monitoringPhase.started,
+        currentPhaseLabel: monitoringPhase.currentPhaseLabel,
+      } : null,
+    },
+    sections: {
+      weather: Boolean(trip?.weather),
+      notifications: Boolean(trip?.notifications) || Boolean(trip?.legs?.some((leg) => leg?.notification)),
+      accommodation: Boolean(trip?.accommodation),
+    },
+  };
+}
+
 function LegCollapsible({ leg, index }) {
   const [open, setOpen] = useState(false);
   const label = leg.label || 'Unknown leg';
@@ -824,6 +885,8 @@ export function TripDetailSurface({
   const [theme, setTheme] = useState('dark');
   const [showTopbarTitle, setShowTopbarTitle] = useState(false);
   const [browserNow, setBrowserNow] = useState(null);
+  const [isDebugOpen, setIsDebugOpen] = useState(false);
+  const [isTripDebugExpanded, setIsTripDebugExpanded] = useState(false);
   const topbarRef = useRef(null);
   const headerRef = useRef(null);
 
@@ -949,9 +1012,10 @@ export function TripDetailSurface({
   const hasPerLegNotifications = Array.isArray(trip.legs)
     && trip.legs.some((leg) => leg && leg.notification);
   const hasNotificationsSection = hasTripNotifications || hasPerLegNotifications;
+  const tripDebugPayload = buildTripDetailDebugPayload(trip, { tripId, dashboardMode, monitoringPhase });
 
   return (
-    <main className="dashboard-shell" data-theme={theme}>
+    <main className={`dashboard-shell ${isDebugOpen ? 'debug-mode-active' : ''}`} data-theme={theme} data-debug-mode={isDebugOpen ? 'on' : 'off'}>
       {dashboardMode?.isDemo ? (
         <div className="notice notice-info" style={{ margin: '0 1rem 1rem' }}>
           <strong>🧪 Demo mode.</strong>
@@ -972,6 +1036,15 @@ export function TripDetailSurface({
             <span className="detail-topbar-date">{formatDateRange(trip.start, trip.end)}</span>
             <span className="detail-topbar-name">{trip.title || tripId}</span>
           </div>
+          <button
+            type="button"
+            className={`secondary-action debug-mode-toggle ${isDebugOpen ? 'debug-mode-toggle--active' : ''}`}
+            aria-pressed={isDebugOpen}
+            aria-label={isDebugOpen ? 'Turn trip detail debug mode off' : 'Turn trip detail debug mode on'}
+            onClick={() => setIsDebugOpen(open => !open)}
+          >
+            🛠 Debug {isDebugOpen ? 'on' : 'off'}
+          </button>
           <button
             type="button"
             className="secondary-action theme-toggle"
@@ -995,6 +1068,30 @@ export function TripDetailSurface({
             </div>
           </div>
         </header>
+
+        {isDebugOpen ? (
+          <section className="debug-global-panel" aria-label="Trip detail debug summary">
+            <div className="debug-global-heading">
+              <span>🛠 Debug mode</span>
+              <strong>Trip detail diagnostics are embedded in-page.</strong>
+            </div>
+            <dl className="debug-kv-grid">
+              <div><dt>Route</dt><dd>/trips/{tripId}</dd></div>
+              <div><dt>Mode</dt><dd>{dashboardMode?.isDemo ? 'demo' : 'live'}</dd></div>
+              <div><dt>Readiness</dt><dd>{rl}</dd></div>
+              <div><dt>Monitoring phase</dt><dd>{monitoringPhase?.currentPhaseLabel || 'not computed'}</dd></div>
+              <div><dt>Sections</dt><dd>{[hasWeather ? 'weather' : null, hasLegs ? 'legs' : null, hasPlanningSection ? 'planning' : null, hasNotificationsSection ? 'notifications' : null].filter(Boolean).join(', ') || 'none'}</dd></div>
+            </dl>
+            <DetailDebugDisclosure
+              id={`trip-detail-debug-${tripId}`}
+              title="Trip detail payload"
+              summary={`${tripDebugPayload.counts.legs} legs · ${tripDebugPayload.counts.questionsForDanny} questions`}
+              data={tripDebugPayload}
+              open={isTripDebugExpanded}
+              onToggle={() => setIsTripDebugExpanded(open => !open)}
+            />
+          </section>
+        ) : null}
 
         {/* Next action callout (FR-018) */}
         {hasNextAction ? <NextActionCallout nextAction={trip.planning.nextAction} /> : null}

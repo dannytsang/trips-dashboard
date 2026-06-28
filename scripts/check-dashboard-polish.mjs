@@ -415,7 +415,7 @@ assert.match(dashboardSurface, /activeFilter \? \(/, 'Show all control must only
 assert.match(dashboardSurface, /<strong>Show all<\/strong>/, 'a visible Show all control must exist while filtered');
 assert.match(dashboardSurface, /filteredTrips\.length === 0/, 'the dashboard must handle filters that match zero trips');
 assert.match(dashboardSurface, /No trips match the \{activeFilterLabel\} filter/, 'filtered empty state must explain which filter is active');
-assert.match(dashboardSurface, /\{filteredTrips\.map\(trip => \{/, 'only the trip list, not the metric totals, must narrow under an active filter');
+assert.match(dashboardSurface, /\{filteredTrips\.map\(\(trip, tripIndex\) => \{/, 'only the trip list, not the metric totals, must narrow under an active filter');
 assert.match(dashboardSurface, /expandedTripLegs/, 'summary trip cards must track per-trip leg-list expansion state');
 assert.match(dashboardSurface, /visibleLegs\s*=\s*isLegListExpanded \? trip\.legs : trip\.legs\?\.slice\(0, 3\)/, 'summary trip cards must preview three legs before expansion');
 assert.match(dashboardSurface, /className="leg-list-toggle"/, 'summary trip cards with more than three legs must render an explicit expand/collapse control');
@@ -999,75 +999,86 @@ assert.doesNotMatch(
   'display label helpers must avoid locale-sensitive formatting for build metadata'
 );
 
-// Debug panel assertions — FR-006 / AS-005.
-const debugPanelSource = readFileSync('components/debug-panel.jsx', 'utf8');
-
-assert.match(
-  debugPanelSource,
-  /role="region"[\s\S]*aria-label="Debug snapshot"/,
-  'DebugPanel must be a role=region landmark with Debug snapshot label (AS-005)'
-);
-assert.match(
-  debugPanelSource,
-  /aria-label=\{`Copy \$\{title\} section`\}/,
-  'DebugPanel must label per-section copy buttons accessibly (AS-005)'
-);
-assert.match(
-  debugPanelSource,
-  /aria-label="Copy full debug snapshot as JSON"/,
-  'DebugPanel must label the copy-all button accessibly (AS-005)'
-);
-assert.match(
-  debugPanelSource,
-  /aria-live="polite"[\s\S]*Full snapshot copied/i,
-  'DebugPanel must use aria-live region for clipboard confirmation (AS-005)'
-);
-assert.match(
-  debugPanelSource,
-  /navigator\.clipboard|execCommand\('copy'\)/,
-  'DebugPanel must implement clipboard fallback for insecure contexts (AS-005)'
-);
+// Debug mode assertions — FR-006 / AS-005.
 assert.doesNotMatch(
-  debugPanelSource,
-  /<div[^>]+className="debug-backdrop"|onClick=\{onClose\}[^>]*debug-backdrop/i,
-  'DebugPanel must not use an outside-click backdrop to close the panel (AS-005)'
+  dashboardSurface,
+  /DebugPanel|debugSnapshot|debug-panel/i,
+  'Dashboard debug mode must reveal diagnostics in the dashboard instead of a confined floating panel'
 );
-
-// Debug menu item: signed-in only, no env/query/feature-flag gate.
-// It lives in the session menu, rendered by DashboardSessionSurface.
 assert.match(
   dashboardSurface,
-  /🛠[\s\S]*Debug/,
-  'Debug menu item must appear in the session menu (FR-006)'
+  /aria-label=\{isDebugOpen \? 'Turn dashboard debug mode off' : 'Turn dashboard debug mode on'\}/,
+  'Dashboard debug menu item must be an explicit on/off toggle'
+);
+assert.match(
+  dashboardSurface,
+  /Debug mode \{isDebugOpen \? 'on' : 'off'\}/,
+  'Debug toggle must expose visible on/off state'
+);
+assert.match(
+  dashboardSurface,
+  /onClick=\{handleToggleDebug\}[\s\S]*?onClick=\{handleSessionSignOut\}/,
+  'Debug menu item must appear above Sign out in the account menu'
+);
+assert.match(
+  dashboardSurface,
+  /debug-global-panel[\s\S]*Dashboard diagnostics are embedded in-page\./,
+  'Dashboard header must render global debug diagnostics when debug mode is on'
+);
+assert.match(
+  dashboardSurface,
+  /metric-debug-line[\s\S]*predicate: monitoring\.active === true/,
+  'Summary metric cards must reveal their predicate/debug information when debug mode is on'
+);
+assert.match(
+  dashboardSurface,
+  /Trip summary debug/,
+  'Each trip summary card must expose a per-trip debug disclosure'
+);
+assert.match(
+  dashboardSurface,
+  /debugExpandedTripIds/,
+  'Trip summary debug disclosure state must be tracked per trip'
+);
+assert.match(
+  tripDetailSurface,
+  /Turn trip detail debug mode off/,
+  'Trip detail page must have its own debug toggle'
+);
+assert.match(
+  tripDetailSurface,
+  /Trip detail diagnostics are embedded in-page\./,
+  'Trip detail page must reveal debug information on the page'
+);
+assert.match(
+  tripDetailSurface,
+  /Trip detail payload/,
+  'Trip detail page must expose a safe debug payload disclosure'
+);
+assert.match(
+  globalCss,
+  /\.debug-global-panel\s*\{/,
+  'Global debug panel must have dashboard-integrated styling'
+);
+assert.match(
+  globalCss,
+  /\.debug-inline-panel\s*\{/,
+  'Per-element debug disclosure must have dashboard-integrated styling'
+);
+assert.doesNotMatch(
+  dashboardSurface + tripDetailSurface,
+  /console\.(log|debug|info)|developer console/i,
+  'Debug mode must not require console logging for normal diagnostics'
+);
+assert.doesNotMatch(
+  dashboardSurface + tripDetailSurface,
+  /VERCEL_|NEXT_PUBLIC_.*URL|process\.env\./i,
+  'Debug surfaces must not expose secret-adjacent deployment metadata'
 );
 assert.doesNotMatch(
   dashboardSurface,
   /debug.*env|featureFlag.*debug|query.*debug/i,
   'Debug menu item must not be gated on env/query/feature-flag (FR-006)'
-);
-
-// Debug panel: floating top-right on desktop, bottom-sheet on mobile (< 720px).
-assert.match(
-  globalCss,
-  /\.debug-panel\s*\{[^}]*position:\s*fixed[^}]*right:\s*1rem/i,
-  'DebugPanel must be positioned top-right via CSS (AS-004)'
-);
-assert.match(
-  globalCss,
-  /@media\s*\(max-width:\s*720px\)[^{]*\{[^}]*\.debug-panel[^}]*bottom:\s*0/i,
-  'DebugPanel must switch to bottom-sheet on screens narrower than 720px (AS-004)'
-);
-
-// FR-007: Debug panel must not expose secrets / SHAs / deployment URLs / env names.
-assert.doesNotMatch(
-  debugPanelSource,
-  /\bSHA\b|commit|branch|deploy/i,
-  'DebugPanel source must not contain secret-adjacent keywords'
-);
-assert.doesNotMatch(
-  debugPanelSource,
-  /VERCEL_|NEXT_PUBLIC_.*URL|process\.env\.(?!VERCEL\?)/,
-  'DebugPanel must not read raw hosting metadata env vars (FR-007)'
 );
 
 console.log('Dashboard polish checks passed.');

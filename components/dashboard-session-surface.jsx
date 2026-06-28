@@ -16,7 +16,6 @@ import {
 import { formatUtcDateRange, formatUtcDateTime } from '@/lib/format-utc.mjs';
 import { computeMonitoringPhase } from '@/lib/monitoring-phase.mjs';
 import { MonitoringPhaseHelp } from '@/components/monitoring-phase-help';
-import { DebugPanel } from '@/components/debug-panel';
 
 const THEME_STORAGE_KEY = 'tsang-travel-theme';
 const FILTER_QUERY_KEY = 'filter';
@@ -106,6 +105,74 @@ function writeFilterToUrl(filter) {
   window.history.pushState({}, '', url);
 }
 
+function DebugDisclosure({ id, title, summary, data, open, onToggle }) {
+  return (
+    <section className="debug-inline-panel" data-debug-disclosure>
+      <button
+        type="button"
+        className="debug-inline-toggle"
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={onToggle}
+      >
+        <span>{open ? '▾' : '▸'} 🛠 {title}</span>
+        {summary ? <small>{summary}</small> : null}
+      </button>
+      {open ? (
+        <pre id={id} className="debug-pre debug-inline-pre">{JSON.stringify(data, null, 2)}</pre>
+      ) : null}
+    </section>
+  );
+}
+
+function summaryMetricDebug({ key, count, activeFilter, note }) {
+  return {
+    key,
+    count,
+    activeFilter: activeFilter ?? 'all',
+    note,
+    computedFrom: 'already-loaded portfolio.trips in DashboardSessionSurface',
+  };
+}
+
+function tripSummaryDebug(trip, { index, monitoringPhase }) {
+  return {
+    id: trip.id,
+    index,
+    title: trip.title,
+    dateRange: { start: trip.start ?? null, end: trip.end ?? null },
+    destinationLabel: trip.destinationLabel ?? null,
+    status: trip.status ?? null,
+    planning: {
+      readiness: trip.planning?.readiness ?? null,
+      nextAction: trip.planning?.nextAction ?? null,
+      hasQuestionsForDanny: Boolean(trip.planning?.questionsForDanny?.length),
+      missingCount: trip.planning?.missing?.length ?? 0,
+    },
+    monitoring: {
+      enabled: trip.monitoring?.enabled ?? null,
+      active: trip.monitoring?.active ?? null,
+      summary: trip.monitoring?.summary ?? null,
+      computedPhase: monitoringPhase ? {
+        phase: monitoringPhase.phase,
+        started: monitoringPhase.started,
+        currentPhaseLabel: monitoringPhase.currentPhaseLabel,
+      } : null,
+    },
+    counts: {
+      travellers: trip.travellers?.length ?? 0,
+      legs: trip.legs?.length ?? 0,
+      programme: trip.programme?.length ?? 0,
+      notes: trip.notes?.length ?? 0,
+    },
+    features: {
+      hasWeather: Boolean(trip.weather),
+      hasNotifications: Boolean(trip.notifications) || Boolean(trip.legs?.some((leg) => leg?.notification)),
+      hasAccommodation: Boolean(trip.accommodation),
+    },
+  };
+}
+
 export function DashboardSessionSurface({
   userName,
   authConfigurationIncomplete = false,
@@ -126,7 +193,7 @@ export function DashboardSessionSurface({
   const [isHeaderCompact, setIsHeaderCompact] = useState(false);
   const [isSessionMenuOpen, setIsSessionMenuOpen] = useState(false);
   const [isDebugOpen, setIsDebugOpen] = useState(false);
-  const [debugSnapshot, setDebugSnapshot] = useState(null);
+  const [debugExpandedTripIds, setDebugExpandedTripIds] = useState({});
   const sessionMenuRef = useRef(null);
 
   useEffect(() => {
@@ -230,88 +297,16 @@ export function DashboardSessionSurface({
     handleSignOut();
   }
 
-  function buildDebugSnapshot() {
-    // Assemble snapshot client-side from already-loaded props and browser APIs.
-    // This function is invoked only when the user opens the panel so the
-    // rendered snapshot remains frozen until the next explicit open.
-    const { innerWidth, innerHeight } = window;
-    const pixelRatio = window.devicePixelRatio ?? 1;
-
-    const section = (data, source, notes = null) => ({
-      data,
-      provenance: {
-        source,
-        computedAt: 'panel-open',
-        notes: notes ?? 'Snapshot is a frozen read; re-open the panel to refresh this section.',
-      },
-    });
-
-    return {
-      meta: section({
-        capturedAt: new Date().toISOString(),
-        userAgent: window.navigator?.userAgent ?? null,
-        viewport: { width: innerWidth, height: innerHeight },
-        theme,
-        pathname: window.location?.pathname ?? null,
-      }, 'browser APIs captured at panel open'),
-      session: section({
-        userName,
-        userEmail: null,
-        isSignedIn: true,
-        oidcProvider: null,
-      }, 'signed-in DashboardSessionSurface props'),
-      portfolio: section({
-        mode: portfolioMode?.isDemo ? 'demo' : 'live',
-        stale: portfolioStale ?? null,
-        message: portfolioMessage ?? null,
-        error: portfolioError ?? null,
-        storage: { configured: portfolioStorage?.configured ?? null },
-        tripCount: Array.isArray(portfolio?.trips) ? portfolio.trips.length : null,
-        tripIds: Array.isArray(portfolio?.trips) ? portfolio.trips.map((trip) => trip.id) : [],
-      }, 'portfolio props passed to DashboardSessionSurface'),
-      trips: section(Array.isArray(portfolio?.trips)
-        ? portfolio.trips.map((trip) => ({
-            id: trip.id,
-            title: trip.title,
-            startDate: trip.start ?? null,
-            endDate: trip.end ?? null,
-            status: trip.status,
-            legCount: trip.legs?.length ?? 0,
-            legModes: Array.from(new Set((trip.legs ?? []).map((leg) => leg.mode).filter(Boolean))),
-          }))
-        : [], 'summaries derived from portfolio.trips'),
-      uiState: section({
-        activeFilter: activeFilter ?? 'all',
-        selectedTripId: null,
-        selectedLegId: null,
-        isSessionMenuOpen,
-        isHeaderCompact,
-        isDebugOpen: true,
-        expandedTripIds: Object.keys(expandedTripLegs),
-      }, 'DashboardSessionSurface component state at panel open'),
-      environment: section({
-        dataMode: portfolioMode?.isDemo ? 'demo' : 'live',
-        storageBackend: portfolioStorage?.configured ? 'vercel-blob' : 'local-fixture',
-        devicePixelRatio: pixelRatio,
-      }, 'client-assembled display-safe environment summary'),
-      notes: section([], 'reserved for future non-fatal client warnings', 'v1 always emits an empty array.'),
-    };
-  }
-
   function handleToggleDebug() {
-    if (isDebugOpen) {
-      setIsDebugOpen(false);
-      setDebugSnapshot(null);
-    } else {
-      setDebugSnapshot(buildDebugSnapshot());
-      setIsDebugOpen(true);
-    }
+    setIsDebugOpen(open => !open);
     handleSessionMenuClose();
   }
 
-  function handleDebugClose() {
-    setIsDebugOpen(false);
-    setDebugSnapshot(null);
+  function handleTripDebugToggle(tripId) {
+    setDebugExpandedTripIds(prev => ({
+      ...prev,
+      [tripId]: !prev[tripId],
+    }));
   }
 
   useEffect(() => {
@@ -372,12 +367,7 @@ export function DashboardSessionSurface({
   const buildInfo = formatBuildInfo(builtAt);
 
   return (
-    <main className="dashboard-shell" data-theme={theme}>
-      <DebugPanel
-        isOpen={isDebugOpen}
-        onClose={handleDebugClose}
-        debugSnapshot={debugSnapshot}
-      />
+    <main className={`dashboard-shell ${isDebugOpen ? 'debug-mode-active' : ''}`} data-theme={theme} data-debug-mode={isDebugOpen ? 'on' : 'off'}>
       <section aria-labelledby="dashboard-title" className="dashboard-panel">
         <div className={`session-header ${isHeaderCompact ? 'session-header--compact' : ''}`}>
           <div className="session-brand">
@@ -419,6 +409,19 @@ export function DashboardSessionSurface({
                   <span className="session-menu-item-label">{themeToggleLabel}</span>
                 </button>
                 <button
+                  aria-label={isDebugOpen ? 'Turn dashboard debug mode off' : 'Turn dashboard debug mode on'}
+                  className="secondary-action session-menu-item"
+                  type="button"
+                  role="menuitem"
+                  aria-pressed={isDebugOpen}
+                  onClick={handleToggleDebug}
+                >
+                  <span className="session-menu-item-icon" aria-hidden="true">🛠</span>
+                  <span className="session-menu-item-label">
+                    Debug mode {isDebugOpen ? 'on' : 'off'}
+                  </span>
+                </button>
+                <button
                   className="secondary-action session-menu-item"
                   type="button"
                   role="menuitem"
@@ -426,23 +429,27 @@ export function DashboardSessionSurface({
                 >
                   🔐 Sign out
                 </button>
-                <button
-                  aria-label="Open debug panel"
-                  className="secondary-action session-menu-item"
-                  type="button"
-                  role="menuitem"
-                  onClick={handleToggleDebug}
-                >
-                  <span className="session-menu-item-icon" aria-hidden="true">🛠</span>
-                  <span className="session-menu-item-label">
-                    Debug
-                    {isDebugOpen ? ' ✓' : ''}
-                  </span>
-                </button>
               </div>
             ) : null}
           </div>
         </div>
+
+        {isDebugOpen ? (
+          <section className="debug-global-panel" aria-label="Dashboard debug summary">
+            <div className="debug-global-heading">
+              <span>🛠 Debug mode</span>
+              <strong>Dashboard diagnostics are embedded in-page.</strong>
+            </div>
+            <dl className="debug-kv-grid">
+              <div><dt>Data source</dt><dd>{portfolioMode?.dataSourceLabel || (portfolioMode?.isDemo ? 'Demo data' : 'Live portfolio')}</dd></div>
+              <div><dt>Storage configured</dt><dd>{portfolioStorage?.configured === undefined ? 'unknown' : String(portfolioStorage?.configured)}</dd></div>
+              <div><dt>Portfolio generated</dt><dd>{generatedAt || 'null'}</dd></div>
+              <div><dt>Build timestamp</dt><dd>{builtAt || 'null'}</dd></div>
+              <div><dt>Active filter</dt><dd>{activeFilter || 'all'}</dd></div>
+              <div><dt>Shown / total trips</dt><dd>{filteredTrips.length} / {trips.length}</dd></div>
+            </dl>
+          </section>
+        ) : null}
 
         {authConfigurationIncomplete ? (
           <div className="notice notice-warning">
@@ -470,6 +477,9 @@ export function DashboardSessionSurface({
               <article className="metric-card">
                 <span className="metric-label">🧳 Trips shown</span>
                 <strong>{trips.length}</strong>
+                {isDebugOpen ? (
+                  <small className="metric-debug-line">source: portfolio.trips; filtered: {filteredTrips.length}</small>
+                ) : null}
               </article>
               <button
                 type="button"
@@ -479,6 +489,9 @@ export function DashboardSessionSurface({
               >
                 <span className="metric-label">🚦 Active</span>
                 <strong>{activeTrips}</strong>
+                {isDebugOpen ? (
+                  <small className="metric-debug-line">predicate: monitoring.active === true</small>
+                ) : null}
               </button>
               <button
                 type="button"
@@ -488,6 +501,9 @@ export function DashboardSessionSurface({
               >
                 <span className="metric-label">📡 Monitoring</span>
                 <strong>{monitorableTrips}</strong>
+                {isDebugOpen ? (
+                  <small className="metric-debug-line">predicate: monitoring.enabled === true</small>
+                ) : null}
               </button>
               <button
                 type="button"
@@ -497,6 +513,9 @@ export function DashboardSessionSurface({
               >
                 <span className="metric-label">✅ Actions</span>
                 <strong>{blockers}</strong>
+                {isDebugOpen ? (
+                  <small className="metric-debug-line">predicate: planning.nextAction != null</small>
+                ) : null}
               </button>
               {activeFilter ? (
                 <button
@@ -531,13 +550,16 @@ export function DashboardSessionSurface({
               </div>
             ) : (
               <div className="trip-list" aria-label={activeFilterLabel ? `${activeFilterLabel} trips` : 'Upcoming trips'}>
-                {filteredTrips.map(trip => {
+                {filteredTrips.map((trip, tripIndex) => {
                   const legCount = trip.legs?.length || 0;
                   const isLegListExpanded = Boolean(expandedTripLegs[trip.id]);
                   const visibleLegs = isLegListExpanded ? trip.legs : trip.legs?.slice(0, 3);
                   const hiddenLegCount = Math.max(0, legCount - 3);
                   const monitoringPhase = trip.monitoring?.enabled === true ? computeMonitoringPhase(trip, browserNow) : null;
                   const monitoringPhaseTone = monitoringPhase?.started ? 'started' : 'neutral';
+                  const isTripDebugOpen = Boolean(debugExpandedTripIds[trip.id]);
+                  const tripDebugId = `trip-summary-debug-${trip.id}`;
+                  const tripDebugPayload = tripSummaryDebug(trip, { index: tripIndex, monitoringPhase });
 
                   return (
                     <article className="trip-card" key={trip.id}>
@@ -602,6 +624,16 @@ export function DashboardSessionSurface({
                             </button>
                           ) : null}
                         </div>
+                      ) : null}
+                      {isDebugOpen ? (
+                        <DebugDisclosure
+                          id={tripDebugId}
+                          title="Trip summary debug"
+                          summary={`${legCount} legs · ${trip.monitoring?.enabled ? 'monitoring configured' : 'monitoring off'}`}
+                          data={tripDebugPayload}
+                          open={isTripDebugOpen}
+                          onToggle={() => handleTripDebugToggle(trip.id)}
+                        />
                       ) : null}
                       <div className="next-action">
                         <span>➡️ Next action</span>
