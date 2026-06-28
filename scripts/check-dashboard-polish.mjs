@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
+  formatBuildInfo,
   formatLegModeEmoji,
   formatLegModeLabel,
   formatNextActionLabel,
@@ -20,6 +21,7 @@ const tripDetailSurface = readFileSync('components/trip-detail-surface.jsx', 'ut
 const monitoringPhaseHelpSource = readFileSync('components/monitoring-phase-help.jsx', 'utf8');
 const globalCss = readFileSync('app/globals.css', 'utf8');
 const monitoringPhaseLib = readFileSync('lib/monitoring-phase.mjs', 'utf8');
+const displayLabelsSource = readFileSync('lib/display-labels.mjs', 'utf8');
 
 assert.equal(toDisplayLabel('finalised_core_details'), 'Finalised core details');
 assert.equal(toDisplayLabel('driving_ev'), 'Driving EV');
@@ -956,6 +958,116 @@ assert.match(
   tripDetailSurface,
   /leg\.notification/,
   'trip detail must read leg.notification for the per-leg summary (FR-049, FR-051 additive)'
+);
+
+// formatBuildInfo — FR-035 / FR-036: display-safe date formatting.
+assert.deepEqual(
+  formatBuildInfo('2026-06-28T10:00:00.000Z'),
+  { label: 'Deployed 28 Jun 2026', missing: false },
+  'formatBuildInfo should render a neutral date without exposing SHA / env metadata'
+);
+assert.deepEqual(
+  formatBuildInfo(null),
+  { label: 'Build date unavailable', missing: true },
+  'formatBuildInfo must return missing=true for null input'
+);
+assert.deepEqual(
+  formatBuildInfo('not-a-date'),
+  { label: 'Build date unavailable', missing: true },
+  'formatBuildInfo must return missing=true for invalid date strings'
+);
+
+// FR-036: the build-info source must not contain SHA / branch strings in the rendered surface.
+assert.doesNotMatch(
+  dashboardSurface,
+  /VERCEL_GIT_COMMIT_SHA|process\.env\.NEXT_PUBLIC.*SHA/i,
+  'dashboard surface must not reference raw hosting metadata env vars'
+);
+assert.match(
+  dashboardSurface,
+  /portfolio-build-info/,
+  'dashboard surface must render a compact build/deployed date surface'
+);
+assert.doesNotMatch(
+  dashboardSurface,
+  /toLocale(Date|Time|String)/,
+  'dashboard surface must not use locale-sensitive formatting for build metadata'
+);
+assert.doesNotMatch(
+  displayLabelsSource,
+  /toLocale(Date|Time|String)/,
+  'display label helpers must avoid locale-sensitive formatting for build metadata'
+);
+
+// Debug panel assertions — FR-006 / AS-005.
+const debugPanelSource = readFileSync('components/debug-panel.jsx', 'utf8');
+
+assert.match(
+  debugPanelSource,
+  /role="region"[\s\S]*aria-label="Debug snapshot"/,
+  'DebugPanel must be a role=region landmark with Debug snapshot label (AS-005)'
+);
+assert.match(
+  debugPanelSource,
+  /aria-label=\{`Copy \$\{title\} section`\}/,
+  'DebugPanel must label per-section copy buttons accessibly (AS-005)'
+);
+assert.match(
+  debugPanelSource,
+  /aria-label="Copy full debug snapshot as JSON"/,
+  'DebugPanel must label the copy-all button accessibly (AS-005)'
+);
+assert.match(
+  debugPanelSource,
+  /aria-live="polite"[\s\S]*Full snapshot copied/i,
+  'DebugPanel must use aria-live region for clipboard confirmation (AS-005)'
+);
+assert.match(
+  debugPanelSource,
+  /navigator\.clipboard|execCommand\('copy'\)/,
+  'DebugPanel must implement clipboard fallback for insecure contexts (AS-005)'
+);
+assert.doesNotMatch(
+  debugPanelSource,
+  /<div[^>]+className="debug-backdrop"|onClick=\{onClose\}[^>]*debug-backdrop/i,
+  'DebugPanel must not use an outside-click backdrop to close the panel (AS-005)'
+);
+
+// Debug menu item: signed-in only, no env/query/feature-flag gate.
+// It lives in the session menu, rendered by DashboardSessionSurface.
+assert.match(
+  dashboardSurface,
+  /🛠[\s\S]*Debug/,
+  'Debug menu item must appear in the session menu (FR-006)'
+);
+assert.doesNotMatch(
+  dashboardSurface,
+  /debug.*env|featureFlag.*debug|query.*debug/i,
+  'Debug menu item must not be gated on env/query/feature-flag (FR-006)'
+);
+
+// Debug panel: floating top-right on desktop, bottom-sheet on mobile (< 720px).
+assert.match(
+  globalCss,
+  /\.debug-panel\s*\{[^}]*position:\s*fixed[^}]*right:\s*1rem/i,
+  'DebugPanel must be positioned top-right via CSS (AS-004)'
+);
+assert.match(
+  globalCss,
+  /@media\s*\(max-width:\s*720px\)[^{]*\{[^}]*\.debug-panel[^}]*bottom:\s*0/i,
+  'DebugPanel must switch to bottom-sheet on screens narrower than 720px (AS-004)'
+);
+
+// FR-007: Debug panel must not expose secrets / SHAs / deployment URLs / env names.
+assert.doesNotMatch(
+  debugPanelSource,
+  /\bSHA\b|commit|branch|deploy/i,
+  'DebugPanel source must not contain secret-adjacent keywords'
+);
+assert.doesNotMatch(
+  debugPanelSource,
+  /VERCEL_|NEXT_PUBLIC_.*URL|process\.env\.(?!VERCEL\?)/,
+  'DebugPanel must not read raw hosting metadata env vars (FR-007)'
 );
 
 console.log('Dashboard polish checks passed.');

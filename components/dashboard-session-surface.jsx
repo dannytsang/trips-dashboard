@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import {
+  formatBuildInfo,
   formatLegModeEmoji,
   formatLegModeLabel,
   formatNextActionLabel,
@@ -15,6 +16,7 @@ import {
 import { formatUtcDateRange, formatUtcDateTime } from '@/lib/format-utc.mjs';
 import { computeMonitoringPhase } from '@/lib/monitoring-phase.mjs';
 import { MonitoringPhaseHelp } from '@/components/monitoring-phase-help';
+import { DebugPanel } from '@/components/debug-panel';
 
 const THEME_STORAGE_KEY = 'tsang-travel-theme';
 const FILTER_QUERY_KEY = 'filter';
@@ -114,6 +116,7 @@ export function DashboardSessionSurface({
   portfolioMessage = null,
   portfolioError = null,
   portfolioMode = null,
+  builtAt = null,
 }) {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [theme, setTheme] = useState('dark');
@@ -122,6 +125,8 @@ export function DashboardSessionSurface({
   const [expandedTripLegs, setExpandedTripLegs] = useState({});
   const [isHeaderCompact, setIsHeaderCompact] = useState(false);
   const [isSessionMenuOpen, setIsSessionMenuOpen] = useState(false);
+  const [isDebugOpen, setIsDebugOpen] = useState(false);
+  const [debugSnapshot, setDebugSnapshot] = useState(null);
   const sessionMenuRef = useRef(null);
 
   useEffect(() => {
@@ -225,6 +230,90 @@ export function DashboardSessionSurface({
     handleSignOut();
   }
 
+  function buildDebugSnapshot() {
+    // Assemble snapshot client-side from already-loaded props and browser APIs.
+    // This function is invoked only when the user opens the panel so the
+    // rendered snapshot remains frozen until the next explicit open.
+    const { innerWidth, innerHeight } = window;
+    const pixelRatio = window.devicePixelRatio ?? 1;
+
+    const section = (data, source, notes = null) => ({
+      data,
+      provenance: {
+        source,
+        computedAt: 'panel-open',
+        notes: notes ?? 'Snapshot is a frozen read; re-open the panel to refresh this section.',
+      },
+    });
+
+    return {
+      meta: section({
+        capturedAt: new Date().toISOString(),
+        userAgent: window.navigator?.userAgent ?? null,
+        viewport: { width: innerWidth, height: innerHeight },
+        theme,
+        pathname: window.location?.pathname ?? null,
+      }, 'browser APIs captured at panel open'),
+      session: section({
+        userName,
+        userEmail: null,
+        isSignedIn: true,
+        oidcProvider: null,
+      }, 'signed-in DashboardSessionSurface props'),
+      portfolio: section({
+        mode: portfolioMode?.isDemo ? 'demo' : 'live',
+        stale: portfolioStale ?? null,
+        message: portfolioMessage ?? null,
+        error: portfolioError ?? null,
+        storage: { configured: portfolioStorage?.configured ?? null },
+        tripCount: Array.isArray(portfolio?.trips) ? portfolio.trips.length : null,
+        tripIds: Array.isArray(portfolio?.trips) ? portfolio.trips.map((trip) => trip.id) : [],
+      }, 'portfolio props passed to DashboardSessionSurface'),
+      trips: section(Array.isArray(portfolio?.trips)
+        ? portfolio.trips.map((trip) => ({
+            id: trip.id,
+            title: trip.title,
+            startDate: trip.start ?? null,
+            endDate: trip.end ?? null,
+            status: trip.status,
+            legCount: trip.legs?.length ?? 0,
+            legModes: Array.from(new Set((trip.legs ?? []).map((leg) => leg.mode).filter(Boolean))),
+          }))
+        : [], 'summaries derived from portfolio.trips'),
+      uiState: section({
+        activeFilter: activeFilter ?? 'all',
+        selectedTripId: null,
+        selectedLegId: null,
+        isSessionMenuOpen,
+        isHeaderCompact,
+        isDebugOpen: true,
+        expandedTripIds: Object.keys(expandedTripLegs),
+      }, 'DashboardSessionSurface component state at panel open'),
+      environment: section({
+        dataMode: portfolioMode?.isDemo ? 'demo' : 'live',
+        storageBackend: portfolioStorage?.configured ? 'vercel-blob' : 'local-fixture',
+        devicePixelRatio: pixelRatio,
+      }, 'client-assembled display-safe environment summary'),
+      notes: section([], 'reserved for future non-fatal client warnings', 'v1 always emits an empty array.'),
+    };
+  }
+
+  function handleToggleDebug() {
+    if (isDebugOpen) {
+      setIsDebugOpen(false);
+      setDebugSnapshot(null);
+    } else {
+      setDebugSnapshot(buildDebugSnapshot());
+      setIsDebugOpen(true);
+    }
+    handleSessionMenuClose();
+  }
+
+  function handleDebugClose() {
+    setIsDebugOpen(false);
+    setDebugSnapshot(null);
+  }
+
   useEffect(() => {
     function handlePointerDown(event) {
       if (!sessionMenuRef.current) return;
@@ -280,9 +369,15 @@ export function DashboardSessionSurface({
   const blockers = metricValue(portfolio, trip => trip.planning?.nextAction != null);
   const filteredTrips = activeFilter ? trips.filter(TRIP_FILTERS[activeFilter].predicate) : trips;
   const activeFilterLabel = activeFilter ? TRIP_FILTERS[activeFilter].label : null;
+  const buildInfo = formatBuildInfo(builtAt);
 
   return (
     <main className="dashboard-shell" data-theme={theme}>
+      <DebugPanel
+        isOpen={isDebugOpen}
+        onClose={handleDebugClose}
+        debugSnapshot={debugSnapshot}
+      />
       <section aria-labelledby="dashboard-title" className="dashboard-panel">
         <div className={`session-header ${isHeaderCompact ? 'session-header--compact' : ''}`}>
           <div className="session-brand">
@@ -330,6 +425,19 @@ export function DashboardSessionSurface({
                   onClick={handleSessionSignOut}
                 >
                   🔐 Sign out
+                </button>
+                <button
+                  aria-label="Open debug panel"
+                  className="secondary-action session-menu-item"
+                  type="button"
+                  role="menuitem"
+                  onClick={handleToggleDebug}
+                >
+                  <span className="session-menu-item-icon" aria-hidden="true">🛠</span>
+                  <span className="session-menu-item-label">
+                    Debug
+                    {isDebugOpen ? ' ✓' : ''}
+                  </span>
                 </button>
               </div>
             ) : null}
@@ -406,6 +514,9 @@ export function DashboardSessionSurface({
               <span>{portfolioStale ? '⚠️ Portfolio stale' : '✅ Portfolio current'}</span>
               {generatedAt ? <span>🕒 Generated {formatUtcDateTime(generatedAt)} UTC</span> : <span>🕒 Not generated yet</span>}
               {portfolioMessage ? <span>ℹ️ {portfolioMessage}</span> : null}
+              <span className={`portfolio-build-info ${buildInfo.missing ? 'portfolio-build-info--missing' : ''}`}>
+                {buildInfo.label}
+              </span>
             </div>
 
             {trips.length === 0 ? (

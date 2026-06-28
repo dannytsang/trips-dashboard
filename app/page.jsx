@@ -6,6 +6,7 @@ import {
   readTripsDashboardPortfolio,
   TripsPortfolioStorageError,
 } from '@/lib/trips-storage';
+import { readBuildInfo } from '@/app/api/build-info/route';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -42,6 +43,9 @@ export default async function HomePage() {
     }
   }
 
+  // Build/deployment metadata for FR-035 / FR-036.
+  const { builtAt } = await readBuildInfo();
+
   return (
     <DashboardSessionSurface
       userName={userName}
@@ -53,6 +57,7 @@ export default async function HomePage() {
       portfolioStale={portfolioStale}
       portfolioMessage={portfolioMessage}
       portfolioError={portfolioError}
+      builtAt={builtAt}
     />
   );
 }
