@@ -425,6 +425,7 @@ assert.doesNotMatch(dashboardSurface, /<Link[^>]*className="trip-card-link"[\s\S
 assert.match(dashboardSurface, /\{formatLegModeEmoji\(leg\.mode\)\} \{leg\.label\}/, 'leg rows must render the transport-mode emoji helper adjacent to the leg label');
 assert.match(dashboardSurface, /function WeatherSummaryChip\(\{ weather \}\)/, 'summary cards must define a compact weather chip component');
 assert.match(dashboardSurface, /<WeatherSummaryChip weather=\{trip\.weather\} \/>/, 'summary cards must render weather condition icons when trip.weather.summary is present');
+assert.match(dashboardSurface, /<WeatherSummaryChip weather=\{trip\.weather\} \/>\s*<span className="status-pill">\{statusLabel\(trip\)\}<\/span>/, 'summary cards must render weather before the trip status badge');
 assert.match(dashboardSurface, /aria-label=\{label\}/, 'summary weather icon must expose accessible text');
 assert.doesNotMatch(dashboardSurface, /weather\?\.summary\?\.code|summary\.code/, 'summary weather must not render raw provider condition codes');
 assert.doesNotMatch(dashboardSurface, /<span>🛣️ \{leg\.label\}<\/span>/, 'leg rows must not hard-code the road emoji next to every leg label');

@@ -602,8 +602,8 @@ export function DashboardSessionSurface({
                           <h2>{trip.title}</h2>
                           <span className="trip-card-view-details">View trip details →</span>
                         </Link>
-                        <span className="status-pill">{statusLabel(trip)}</span>
                         <WeatherSummaryChip weather={trip.weather} />
+                        <span className="status-pill">{statusLabel(trip)}</span>
                       </div>
                       <dl className="trip-details">
                         <div>
