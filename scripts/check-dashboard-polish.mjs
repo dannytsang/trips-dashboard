@@ -382,7 +382,7 @@ assert.match(dashboardSurface, /handleSessionThemeToggle/, 'account menu must in
 assert.match(dashboardSurface, /handleSessionSignOut/, 'account menu must include a sign-out action');
 assert.match(dashboardSurface, /className="session-user session-user-trigger"/, 'welcome control must use the session-user trigger styling');
 assert.match(dashboardSurface, /className="secondary-action session-menu-item theme-toggle"/, 'theme toggle must move into the account menu');
-assert.match(dashboardSurface, /className="secondary-action session-menu-item"/, 'sign-out must move into the account menu');
+assert.match(dashboardSurface, /className="secondary-action session-menu-item session-menu-item--sign-out"/, 'sign-out must move into the account menu as the bottom menu item');
 assert.doesNotMatch(dashboardSurface, /className="secondary-action theme-toggle"/, 'theme toggle must no longer live inline in the header');
 assert.doesNotMatch(dashboardSurface, /<button className="secondary-action" type="button" onClick=\{handleSignOut\}>/, 'sign-out must no longer live inline in the header');
 assert.match(dashboardSurface, /session-user-label/, 'welcome trigger must render a single label span');
@@ -1019,6 +1019,21 @@ assert.match(
   dashboardSurface,
   /onClick=\{handleToggleDebug\}[\s\S]*?onClick=\{handleSessionSignOut\}/,
   'Debug menu item must appear above Sign out in the account menu'
+);
+assert.match(
+  dashboardSurface,
+  /session-menu-item--debug[\s\S]*?session-menu-item--sign-out/,
+  'Debug menu item must be rendered before the sign-out menu item'
+);
+assert.match(
+  globalCss,
+  /\.session-menu\s*\{[\s\S]*?display:\s*flex;[\s\S]*?flex-direction:\s*column;/,
+  'Account menu must stack items vertically in DOM/order order'
+);
+assert.match(
+  globalCss,
+  /\.session-menu-item--sign-out\s*\{[\s\S]*?order:\s*100;/,
+  'Sign out menu item must be forced to the bottom of the account menu'
 );
 assert.match(
   dashboardSurface,

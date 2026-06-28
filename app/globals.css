@@ -354,7 +354,8 @@ p {
   top: calc(100% + 0.5rem);
   right: 0;
   z-index: 10;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.45rem;
   min-width: 15rem;
   padding: 0.65rem;
@@ -380,6 +381,15 @@ p {
 
 .session-menu-item-label {
   flex: 1;
+}
+
+.session-menu-item--debug {
+  order: 90;
+}
+
+.session-menu-item--sign-out {
+  order: 100;
+  margin-top: 0.1rem;
 }
 
 .secondary-action {

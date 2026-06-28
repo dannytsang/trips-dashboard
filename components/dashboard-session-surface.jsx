@@ -410,7 +410,7 @@ export function DashboardSessionSurface({
                 </button>
                 <button
                   aria-label={isDebugOpen ? 'Turn dashboard debug mode off' : 'Turn dashboard debug mode on'}
-                  className="secondary-action session-menu-item"
+                  className="secondary-action session-menu-item session-menu-item--debug"
                   type="button"
                   role="menuitem"
                   aria-pressed={isDebugOpen}
@@ -422,12 +422,14 @@ export function DashboardSessionSurface({
                   </span>
                 </button>
                 <button
-                  className="secondary-action session-menu-item"
+                  className="secondary-action session-menu-item session-menu-item--sign-out"
                   type="button"
                   role="menuitem"
+                  aria-label="Sign out"
                   onClick={handleSessionSignOut}
                 >
-                  🔐 Sign out
+                  <span className="session-menu-item-icon" aria-hidden="true">🔐</span>
+                  <span className="session-menu-item-label">Sign out</span>
                 </button>
               </div>
             ) : null}

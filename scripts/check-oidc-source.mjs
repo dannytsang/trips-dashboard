@@ -84,7 +84,7 @@ assert.match(dashboardSurface, /handleSessionThemeToggle/, 'dashboard summary ac
 assert.match(dashboardSurface, /handleSessionSignOut/, 'dashboard summary account menu must include sign-out action');
 assert.match(dashboardSurface, /className="session-user session-user-trigger"/, 'welcome control must use the session-user trigger styling');
 assert.match(dashboardSurface, /className="secondary-action session-menu-item theme-toggle"/, 'theme toggle must move into the account menu');
-assert.match(dashboardSurface, /className="secondary-action session-menu-item"/, 'sign-out must move into the account menu');
+assert.match(dashboardSurface, /className="secondary-action session-menu-item session-menu-item--sign-out"/, 'sign-out must move into the account menu as the bottom menu item');
 assert.doesNotMatch(dashboardSurface, /className="secondary-action theme-toggle"/, 'theme toggle must no longer live inline in the header');
 assert.doesNotMatch(dashboardSurface, /<button className="secondary-action" type="button" onClick=\{handleSignOut\}>/, 'sign-out must no longer live inline in the header');
 assert.match(dashboardSurface, /session-user-label/, 'welcome trigger must render a single label span');
