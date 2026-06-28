@@ -2009,6 +2009,37 @@ p {
   max-height: 24rem;
 }
 
+.debug-pre-wrapper {
+  position: relative;
+  border-top: 1px solid color-mix(in srgb, var(--accent-cyan), transparent 70%);
+}
+
+.debug-copy-btn {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.55rem;
+  z-index: 1;
+  border: 1px solid color-mix(in srgb, var(--accent-cyan), transparent 50%);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-primary), transparent 8%);
+  color: var(--accent-cyan);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.25rem 0.55rem;
+}
+
+.debug-copy-btn:hover,
+.debug-copy-btn:focus-visible {
+  border-color: var(--accent-cyan);
+  outline: none;
+}
+
+.debug-pre-wrapper .debug-inline-pre {
+  padding-top: 2.1rem;
+}
+
 @media (max-width: 600px) {
   .detail-panel {
     --detail-panel-inline-pad: 0.75rem;

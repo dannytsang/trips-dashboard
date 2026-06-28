@@ -106,6 +106,27 @@ function writeFilterToUrl(filter) {
 }
 
 function DebugDisclosure({ id, title, summary, data, open, onToggle }) {
+  const [copyState, setCopyState] = useState('idle');
+
+  function handleCopy() {
+    const payload = JSON.stringify(data, null, 2);
+    if (!navigator?.clipboard?.writeText) {
+      setCopyState('failed');
+      setTimeout(() => setCopyState('idle'), 2000);
+      return;
+    }
+    navigator.clipboard.writeText(payload).then(
+      () => {
+        setCopyState('copied');
+        setTimeout(() => setCopyState('idle'), 2000);
+      },
+      () => {
+        setCopyState('failed');
+        setTimeout(() => setCopyState('idle'), 2000);
+      },
+    );
+  }
+
   return (
     <section className="debug-inline-panel" data-debug-disclosure>
       <button
@@ -119,7 +140,17 @@ function DebugDisclosure({ id, title, summary, data, open, onToggle }) {
         {summary ? <small>{summary}</small> : null}
       </button>
       {open ? (
-        <pre id={id} className="debug-pre debug-inline-pre">{JSON.stringify(data, null, 2)}</pre>
+        <div className="debug-pre-wrapper">
+          <button
+            type="button"
+            className="debug-copy-btn"
+            onClick={handleCopy}
+            aria-label={`Copy ${title} debug payload to clipboard`}
+          >
+            {copyState === 'copied' ? '✓ Copied' : copyState === 'failed' ? 'Copy failed' : 'Copy'}
+          </button>
+          <pre id={id} className="debug-pre debug-inline-pre">{JSON.stringify(data, null, 2)}</pre>
+        </div>
       ) : null}
     </section>
   );
