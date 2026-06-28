@@ -421,6 +421,8 @@ assert.match(dashboardSurface, /visibleLegs\s*=\s*isLegListExpanded \? trip\.leg
 assert.match(dashboardSurface, /className="leg-list-toggle"/, 'summary trip cards with more than three legs must render an explicit expand/collapse control');
 assert.match(dashboardSurface, /aria-expanded=\{isLegListExpanded\}/, 'leg-list expand/collapse control must expose aria-expanded');
 assert.match(dashboardSurface, /className="trip-card-title-link"/, 'trip-card detail navigation must be a title link so the card can also contain an expand button');
+assert.match(dashboardSurface, /className="trip-card-header-top"/, 'trip-card header must separate the date/chip row from the full-width title row');
+assert.match(dashboardSurface, /className="trip-card-chip-row"/, 'summary trip cards must group weather and status chips in one aligned row');
 assert.doesNotMatch(dashboardSurface, /<Link[^>]*className="trip-card-link"[\s\S]*?<button[\s\S]*?className="leg-list-toggle"/, 'trip-card expand button must not be nested inside the card detail link');
 assert.match(dashboardSurface, /\{formatLegModeEmoji\(leg\.mode\)\} \{leg\.label\}/, 'leg rows must render the transport-mode emoji helper adjacent to the leg label');
 assert.match(dashboardSurface, /function WeatherSummaryChip\(\{ weather \}\)/, 'summary cards must define a compact weather chip component');
@@ -528,7 +530,10 @@ assert.match(tripCardHover[1], /box-shadow:/, '.trip-card:hover must include a b
 const tripCardBase = globalCss.match(/\.trip-card\s*\{([\s\S]*?)\}/);
 assert.ok(tripCardBase, '.trip-card base rule must exist');
 assert.match(tripCardBase[1], /transition:[\s\S]*?box-shadow/, '.trip-card must declare a CSS transition that includes box-shadow so the hover effect animates without JS');
-assert.match(globalCss, /\.trip-card-title-link\s*\{/, '.trip-card-title-link must style the detail navigation link after the whole-card link wrapper is removed');
+assert.match(globalCss, /\.trip-card-title-link\s*\{[^}]*width:\s*100%/, '.trip-card-title-link must span the full summary-card width so long trip names are not capped by the chip row');
+assert.match(globalCss, /\.trip-card-header-top\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto/, '.trip-card header top row must reserve flexible date space and a right-aligned chip row');
+assert.match(globalCss, /\.trip-card-chip-row\s*\{[^}]*align-items:\s*center/, '.trip-card chip row must vertically align weather and status chips');
+assert.match(globalCss, /\.weather-summary-chip\s*\{[^}]*min-height:\s*2\.35rem[\s\S]*?\.status-pill\s*\{[^}]*min-height:\s*2\.35rem|\.status-pill\s*\{[^}]*min-height:\s*2\.35rem[\s\S]*?\.weather-summary-chip\s*\{[^}]*min-height:\s*2\.35rem/, 'weather and status summary chips must declare matching min-height');
 assert.match(globalCss, /\.leg-list-toggle\s*\{/, '.leg-list-toggle must style the leg-list expand/collapse control');
 
 // SC-021 — trip-list default card sizing: cards must size to their own content

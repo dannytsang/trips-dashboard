@@ -597,13 +597,19 @@ export function DashboardSessionSurface({
                   return (
                     <article className="trip-card" key={trip.id}>
                       <div className="trip-card-header">
+                        <div className="trip-card-header-top">
+                          <Link href={`/trips/${trip.id}`} prefetch={false} className="trip-card-date-link">
+                            <p className="trip-date">🗓️ {formatDateRange(trip.start, trip.end)}</p>
+                          </Link>
+                          <div className="trip-card-chip-row">
+                            <WeatherSummaryChip weather={trip.weather} />
+                            <span className="status-pill">{statusLabel(trip)}</span>
+                          </div>
+                        </div>
                         <Link href={`/trips/${trip.id}`} prefetch={false} className="trip-card-title-link">
-                          <p className="trip-date">🗓️ {formatDateRange(trip.start, trip.end)}</p>
                           <h2>{trip.title}</h2>
                           <span className="trip-card-view-details">View trip details →</span>
                         </Link>
-                        <WeatherSummaryChip weather={trip.weather} />
-                        <span className="status-pill">{statusLabel(trip)}</span>
                       </div>
                       <dl className="trip-details">
                         <div>
