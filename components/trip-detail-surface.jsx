@@ -1257,6 +1257,12 @@ export function TripDetailSurface({
                   <dd>{trip.monitoring.recommendation}</dd>
                 </>
               )}
+              {trip.monitoring.fallbackStopThreshold && (
+                <>
+                  <dt>Fallback stop threshold</dt>
+                  <dd>{trip.monitoring.fallbackStopThreshold.label}</dd>
+                </>
+              )}
             </dl>
             {hasMonitoringChecks ? (
               <div className="monitoring-checks">

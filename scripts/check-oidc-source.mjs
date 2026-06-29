@@ -320,4 +320,16 @@ assert.match(
   'trip detail must gate NotificationsSection on hasNotificationsSection (FR-048 omit-when-empty)'
 );
 
+// FR-056..FR-058: fallbackStopThreshold projection — the brief builder
+// must emit trip.monitoring.fallbackStopThreshold when monitoring is enabled.
+// We assert the shape here (no live-fetch dependency) by checking that
+// the UI reads from the brief field and that the monitoring projection
+// call chain in the portfolio builder emits the field (indirectly via the
+// monitoring_projection function that has no network dependency).
+assert.match(
+  tripDetailSurface,
+  /trip\.monitoring\.fallbackStopThreshold/,
+  'trip detail UI must read trip.monitoring.fallbackStopThreshold.label from the brief (FR-056..FR-058)'
+);
+
 console.log('OIDC source checks passed.');

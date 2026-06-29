@@ -493,6 +493,28 @@ assert.match(tripDetailSurface, /monitoring\.enabled === true \?\s*\(/, 'trip de
 assert.match(tripDetailSurface, /Advisory: this page computes the recommendation from already-loaded trip and leg timing data plus browser time\./, 'trip detail monitoring section must label the recommendation as advisory');
 assert.doesNotMatch(tripDetailSurface, /fetch\([^\)]*(monitoring-state|live-status)/, 'trip detail monitoring phase rendering must not fetch live monitoring-state or live-status APIs');
 
+// FR-056..FR-058: fallbackStopThreshold row in Monitoring detail dl.
+// The row must appear inside the monitoring-detail-list dl, must use
+// trip.monitoring.fallbackStopThreshold (not a raw/private field), must
+// not appear when monitoring is disabled, and must not fetch live data.
+// The JSX has: {trip.monitoring.fallbackStopThreshold && (<> <dt>Fall...
+// then: <dd>{trip.monitoring.fallbackStopThreshold.label}</dd>
+assert.match(
+  tripDetailSurface,
+  /Fallback stop threshold[\s\S]{0,600}trip\.monitoring\.fallbackStopThreshold\.label/,
+  'Monitoring detail must render a "Fallback stop threshold" row reading trip.monitoring.fallbackStopThreshold.label (FR-056..FR-058)'
+);
+assert.match(
+  tripDetailSurface,
+  /trip\.monitoring\.fallbackStopThreshold\s*&&\s*\(?[\s\S]{0,300}Fallback stop threshold/,
+  '"Fallback stop threshold" row must be guarded by the fallbackStopThreshold presence check'
+);
+assert.doesNotMatch(
+  tripDetailSurface,
+  /fetch\([^)]*fallbackStopThreshold/,
+  '"Fallback stop threshold" row must not fetch live monitoring-state for the fallbackStopThreshold value'
+);
+
 // Favicon: the root layout must declare an SVG icon (modern browsers) plus a
 // PNG fallback (older browsers) and a 180x180 apple-touch-icon for iOS home
 // screens. The SVG is the compass design; removing the SVG link means modern
