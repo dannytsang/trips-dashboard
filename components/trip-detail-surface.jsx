@@ -309,13 +309,10 @@ function buildTripDetailDebugPayload(trip, { tripId, dashboardMode, monitoringPh
   };
 }
 
-function LegCollapsible({ leg, index }) {
+function LegCollapsible({ leg, index, children }) {
   const [open, setOpen] = useState(false);
   const label = leg.label || 'Unknown leg';
   const mode = leg.mode || 'unknown';
-  const cju = leg.contactJourneyUpdate;
-  const notif = leg.notification;
-  const review = leg.planningReview;
 
   return (
     <li className="leg-collapsible-row">
@@ -335,9 +332,7 @@ function LegCollapsible({ leg, index }) {
         <div className="leg-collapsible-body">
           <div className="leg-detail-content">
             <LegDetailBlock leg={leg} />
-            {cju ? <ContactJourneyUpdateBlock cju={cju} /> : null}
-            {notif ? <NotificationBlock notif={notif} /> : null}
-            {review ? <PlanningReviewBlock review={review} /> : null}
+            {children}
             <LegRouteMap leg={leg} />
           </div>
           {leg.flight ? (
@@ -602,8 +597,6 @@ function ItineraryStageCard({ leg, index, programme, weather, monitoringPhase })
           {cju ? <ContactJourneyUpdateBlock cju={cju} /> : null}
           {notif ? <NotificationBlock notif={notif} /> : null}
           {review ? <PlanningReviewBlock review={review} /> : null}
-          {/* Per-leg route map (FR-036) */}
-          <LegRouteMap leg={leg} />
         </LegCollapsible>
       </div>
     </article>

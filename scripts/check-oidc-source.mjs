@@ -207,8 +207,8 @@ assert.doesNotMatch(
 // SectionCollapsible remains. defaultOpen is false (collapsed by default).
 assert.match(
   tripDetailSurface,
-  /function LegCollapsible\(\{ leg, index \}\)/,
-  'trip detail must define LegCollapsible component (FR-041)'
+  /function LegCollapsible\(\{ leg, index, children \}\)/,
+  'trip detail must define LegCollapsible component accepting children for nested stage-card detail blocks (FR-041, FR-061)'
 );
 assert.match(
   tripDetailSurface,
@@ -367,8 +367,13 @@ assert.match(
 // the stage card rather than at the top-level leg list.
 assert.match(
   tripDetailSurface,
-  /function LegCollapsible\(\{ leg, index \}\)/,
-  'trip detail must still define LegCollapsible (FR-041 — nested inside stage card in Phase 8)'
+  /function LegCollapsible\(\{ leg, index, children \}\)/,
+  'trip detail must still define LegCollapsible and accept children so nested CJU/notification/planning-review blocks are preserved (FR-041, FR-061, FR-066)'
+);
+assert.match(
+  tripDetailSurface,
+  /<LegDetailBlock leg=\{leg\} \/>\s*\{children\}\s*<LegRouteMap leg=\{leg\} \/>/,
+  'LegCollapsible must render children between LegDetailBlock and LegRouteMap so nested stage-card detail blocks are not silently dropped (FR-061, FR-066)'
 );
 assert.match(
   tripDetailSurface,
@@ -404,6 +409,16 @@ assert.match(
   tripDetailSurface,
   /<CompactTravellersSection\s+travellers=\{trip\.travellers\}\s*\/>/,
   'journey board must render CompactTravellersSection in the board header (FR-065)'
+);
+assert.match(
+  globalCss,
+  /\.compact-travellers-section\s*\{/,
+  'globals.css must style the compact travellers section so FR-063/FR-065 does not degrade to unstyled spans'
+);
+assert.match(
+  globalCss,
+  /\.traveller-chip--compact\s*\{/,
+  'globals.css must style the compact traveller chip modifier (FR-063/FR-065)'
 );
 // Planning + Transport group (FR-066): rationale and transport decision
 // are grouped into one collapsible section at the board level.

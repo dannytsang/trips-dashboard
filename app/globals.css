@@ -1191,6 +1191,25 @@ p {
   font-size: 0.78rem;
   color: var(--text-secondary);
 }
+.compact-travellers-section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.35rem 0 0.75rem;
+}
+.traveller-chip--compact {
+  padding: 0.16rem 0.5rem;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  background: color-mix(in srgb, var(--accent-blue) 10%, var(--bg-tertiary));
+  border-color: color-mix(in srgb, var(--accent-blue) 28%, var(--border-color));
+}
+.travellers-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
 .travellers-expand-btn {
   background: none;
   border: none;
