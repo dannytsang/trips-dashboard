@@ -435,6 +435,8 @@ assert.match(dashboardSurface, /formatStatusFlowReminder\(trip\.status, \{ activ
 assert.match(dashboardSurface, /role="tooltip"/, 'summary status badge must expose hover/focus/click text, not an emoji alone');
 assert.match(dashboardSurface, /onClick=\{\(\) => setOpen\(value => !value\)\}/, 'summary status badge must support click/tap disclosure');
 assert.doesNotMatch(dashboardSurface, /className="status-pill status-pill--emoji"[\s\S]{0,300}?title=/, 'summary status badge must not also use a native title tooltip because it creates duplicate hover text');
+assert.match(dashboardSurface, /formatTripStartToken\(trip\.start\)/, 'summary header must expose a compact trip start time when trip.start includes a clock time');
+assert.match(dashboardSurface, /className="trip-start-token"/, 'summary header must render the compact trip start token alongside the date');
 assert.match(dashboardSurface, /formatLegStartToken\(leg\.start, trip\.start\)/, 'summary leg rows must derive compact start-time tokens from legs[].start');
 assert.match(dashboardSurface, /return 'Time TBC'/, 'summary leg rows must show a neutral Time TBC token instead of fabricating missing start times');
 assert.match(dashboardSurface, /className="leg-start-token"/, 'summary leg rows must render compact start-time tokens inline');

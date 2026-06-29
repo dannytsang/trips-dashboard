@@ -15,7 +15,7 @@ import {
   formatWeatherCondition,
   toDisplayLabel,
 } from '@/lib/display-labels.mjs';
-import { formatUtcDateRange, formatUtcDateTime, formatUtcDateShort, formatUtcTime } from '@/lib/format-utc.mjs';
+import { formatUtcDateRange, formatUtcDateTime } from '@/lib/format-utc.mjs';
 import { computeMonitoringPhase } from '@/lib/monitoring-phase.mjs';
 import { MonitoringPhaseHelp } from '@/components/monitoring-phase-help';
 
@@ -66,23 +66,39 @@ function nextActionLabel(trip) {
   return formatNextActionLabel(trip.planning?.nextAction);
 }
 
-// FR-038: Compact leg start-time token derived from legs[].start.
-// Same-day legs → time-only "09:30". Cross-day legs → "Tue 09:30" or "29 Jun 09:30".
-// Missing/invalid start → neutral "Time TBC" token; never infer a time.
-function utcDateKey(date) {
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+function isoLocalParts(iso) {
+  if (typeof iso !== 'string') return null;
+  const match = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!match) return null;
+  const [, year, month, day, hour, minute] = match;
+  return { year, month, day, dateKey: `${year}-${month}-${day}`, time: `${hour}:${minute}` };
 }
 
+const MONTH_SHORT_BY_NUMBER = {
+  '01': 'Jan', '02': 'Feb', '03': 'Mar', '04': 'Apr', '05': 'May', '06': 'Jun',
+  '07': 'Jul', '08': 'Aug', '09': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec',
+};
+
+function formatIsoLocalDateShort(parts) {
+  if (!parts) return '';
+  return `${Number(parts.day)} ${MONTH_SHORT_BY_NUMBER[parts.month] || parts.month}`;
+}
+
+function formatTripStartToken(tripStartIso) {
+  return isoLocalParts(tripStartIso)?.time || null;
+}
+
+// FR-038: Compact leg start-time token derived from legs[].start.
+// Same-day legs → time-only "09:30". Cross-day legs → "29 Jun 09:30".
+// Missing/invalid start → neutral "Time TBC" token; never infer a time.
 function formatLegStartToken(legStartIso, tripStartIso) {
-  if (!legStartIso) return 'Time TBC';
-  const leg = new Date(legStartIso);
-  if (Number.isNaN(leg.getTime())) return 'Time TBC';
-  const trip = tripStartIso ? new Date(tripStartIso) : null;
-  const sameDay = trip && !Number.isNaN(trip.getTime()) && utcDateKey(leg) === utcDateKey(trip);
-  if (sameDay) {
-    return formatUtcTime(legStartIso);
+  const leg = isoLocalParts(legStartIso);
+  if (!leg) return 'Time TBC';
+  const trip = isoLocalParts(tripStartIso);
+  if (trip && leg.dateKey === trip.dateKey) {
+    return leg.time;
   }
-  return `${formatUtcDateShort(legStartIso)} ${formatUtcTime(legStartIso)}`;
+  return `${formatIsoLocalDateShort(leg)} ${leg.time}`;
 }
 
 // FR-040 + FR-037: Emoji-only status badge with accessible disclosure of the
@@ -660,6 +676,7 @@ export function DashboardSessionSurface({
                   const isLegListExpanded = Boolean(expandedTripLegs[trip.id]);
                   const visibleLegs = isLegListExpanded ? trip.legs : trip.legs?.slice(0, 3);
                   const hiddenLegCount = Math.max(0, legCount - 3);
+                  const tripStartToken = formatTripStartToken(trip.start);
                   const monitoringPhase = trip.monitoring?.enabled === true ? computeMonitoringPhase(trip, browserNow) : null;
                   const monitoringPhaseTone = monitoringPhase?.started ? 'started' : 'neutral';
                   const isTripDebugOpen = Boolean(debugExpandedTripIds[trip.id]);
@@ -671,7 +688,10 @@ export function DashboardSessionSurface({
                       <div className="trip-card-header">
                         <div className="trip-card-header-top">
                           <Link href={`/trips/${trip.id}`} prefetch={false} className="trip-card-date-link">
-                            <p className="trip-date">🗓️ {formatDateRange(trip.start, trip.end)}</p>
+                            <p className="trip-date">
+                              🗓️ {formatDateRange(trip.start, trip.end)}
+                              {tripStartToken ? <span className="trip-start-token"> · Starts {tripStartToken}</span> : null}
+                            </p>
                           </Link>
                           <div className="trip-card-chip-row">
                             <StatusBadge trip={trip} />

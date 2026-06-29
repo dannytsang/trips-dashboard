@@ -828,10 +828,15 @@ p {
   transform: translateY(0);
 }
 
-/* FR-038: Compact start-time token appended to leg label. */
+/* FR-038: Compact trip and leg start-time tokens. */
+.trip-start-token,
 .leg-start-token {
   color: var(--text-muted);
   font-size: 0.82em;
+}
+
+.trip-start-token {
+  font-weight: 800;
 }
 
 .trip-details {
