@@ -753,6 +753,87 @@ p {
   text-overflow: ellipsis;
 }
 
+/* FR-039: Weather forecast strip — slim full-width row below the trip title. */
+.forecast-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--accent-cyan), transparent 92%);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.2rem;
+  min-height: 0;
+}
+
+.forecast-strip-icons {
+  letter-spacing: -0.1rem;
+  flex-shrink: 0;
+}
+
+.forecast-strip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* FR-040: Emoji-only status badge — visible emoji, text via hover/focus/tap tooltip. */
+.status-pill-tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.status-pill--emoji {
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 0.35rem 0.5rem;
+  background: color-mix(in srgb, var(--bg-secondary), white 4%);
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: help;
+}
+
+.status-pill--emoji:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent-cyan));
+  outline-offset: 2px;
+}
+
+.status-pill-tooltip {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  z-index: 20;
+  display: grid;
+  gap: 0.2rem;
+  width: min(17rem, 75vw);
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.6rem;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.24);
+  font-size: 0.75rem;
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-0.15rem);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.status-pill-tooltip-wrap:hover .status-pill-tooltip,
+.status-pill-tooltip-wrap:focus-within .status-pill-tooltip,
+.status-pill-tooltip--open {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* FR-038: Compact start-time token appended to leg label. */
+.leg-start-token {
+  color: var(--text-muted);
+  font-size: 0.82em;
+}
+
 .trip-details {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -981,7 +1062,58 @@ p {
 .detail-destination {
   font-size: 0.9rem;
   color: var(--text-secondary);
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.5rem;
+}
+
+/* FR-053/054/055: Status milestone — compact lifecycle flow in trip detail header. */
+.status-milestone {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.6rem;
+  background: color-mix(in srgb, var(--bg-secondary), white 3%);
+}
+
+.status-milestone-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.status-milestone-step {
+  color: var(--text-muted);
+}
+
+.status-milestone-step--current {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.status-milestone-step--cancelled {
+  color: var(--accent-red, #f87171);
+}
+
+.status-milestone-arrow {
+  color: var(--border-color);
+  margin: 0 0.1rem;
+  user-select: none;
+}
+
+.status-milestone-current {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 0.1rem;
 }
 
 .detail-badges {

@@ -422,13 +422,20 @@ assert.match(dashboardSurface, /className="leg-list-toggle"/, 'summary trip card
 assert.match(dashboardSurface, /aria-expanded=\{isLegListExpanded\}/, 'leg-list expand/collapse control must expose aria-expanded');
 assert.match(dashboardSurface, /className="trip-card-title-link"/, 'trip-card detail navigation must be a title link so the card can also contain an expand button');
 assert.match(dashboardSurface, /className="trip-card-header-top"/, 'trip-card header must separate the date/chip row from the full-width title row');
-assert.match(dashboardSurface, /className="trip-card-chip-row"/, 'summary trip cards must group weather and status chips in one aligned row');
+assert.match(dashboardSurface, /className="trip-card-chip-row"/, 'summary trip cards must keep a compact header chip row');
 assert.doesNotMatch(dashboardSurface, /<Link[^>]*className="trip-card-link"[\s\S]*?<button[\s\S]*?className="leg-list-toggle"/, 'trip-card expand button must not be nested inside the card detail link');
 assert.match(dashboardSurface, /\{formatLegModeEmoji\(leg\.mode\)\} \{leg\.label\}/, 'leg rows must render the transport-mode emoji helper adjacent to the leg label');
-assert.match(dashboardSurface, /function WeatherSummaryChip\(\{ weather \}\)/, 'summary cards must define a compact weather chip component');
-assert.match(dashboardSurface, /<WeatherSummaryChip weather=\{trip\.weather\} \/>/, 'summary cards must render weather condition icons when trip.weather.summary is present');
-assert.match(dashboardSurface, /<WeatherSummaryChip weather=\{trip\.weather\} \/>\s*<span className="status-pill">\{statusLabel\(trip\)\}<\/span>/, 'summary cards must render weather before the trip status badge');
-assert.match(dashboardSurface, /aria-label=\{label\}/, 'summary weather icon must expose accessible text');
+assert.match(dashboardSurface, /function WeatherSummaryStrip\(\{ weather \}\)/, 'summary cards must define the full-width forecast strip component');
+assert.match(dashboardSurface, /<WeatherSummaryStrip weather=\{trip\.weather\} \/>/, 'summary cards must render weather in a full-width strip below the title when trip.weather.summary is present');
+assert.doesNotMatch(dashboardSurface, /<WeatherSummaryChip weather=\{trip\.weather\} \/>\s*<span className="status-pill">\{statusLabel\(trip\)\}<\/span>/, 'summary cards must not keep weather and text status crowded together in the header row');
+assert.match(dashboardSurface, /aria-label=\{label\}/, 'summary weather forecast strip must expose accessible text');
+assert.match(dashboardSurface, /function StatusBadge\(\{ trip \}\)/, 'summary cards must render status through the emoji status badge component');
+assert.match(dashboardSurface, /formatStatusEmoji\(trip\.status, \{ active \}\)/, 'summary status badge must derive its emoji from the mapped trip status');
+assert.match(dashboardSurface, /formatStatusFlowReminder\(trip\.status, \{ active \}\)/, 'summary status badge must expose the canonical status-flow reminder');
+assert.match(dashboardSurface, /role="tooltip"/, 'summary status badge must expose hover/focus/click text, not an emoji alone');
+assert.match(dashboardSurface, /onClick=\{\(\) => setOpen\(value => !value\)\}/, 'summary status badge must support click/tap disclosure');
+assert.match(dashboardSurface, /formatLegStartToken\(leg\.start, trip\.start\)/, 'summary leg rows must derive compact start-time tokens from legs[].start');
+assert.match(dashboardSurface, /className="leg-start-token"/, 'summary leg rows must render compact start-time tokens inline');
 assert.doesNotMatch(dashboardSurface, /weather\?\.summary\?\.code|summary\.code/, 'summary weather must not render raw provider condition codes');
 assert.doesNotMatch(dashboardSurface, /<span>🛣️ \{leg\.label\}<\/span>/, 'leg rows must not hard-code the road emoji next to every leg label');
 assert.doesNotMatch(dashboardSurface, />\{trip\.status \|\| 'Unknown'\}</, 'raw trip status must not render directly');
@@ -492,6 +499,14 @@ assert.match(tripDetailSurface, /monitoring-status-row/, 'trip detail monitoring
 assert.match(tripDetailSurface, /monitoring\.enabled === true \?\s*\(/, 'trip detail must gate the advisory monitoring phase on enabled monitoring');
 assert.match(tripDetailSurface, /Advisory: this page computes the recommendation from already-loaded trip and leg timing data plus browser time\./, 'trip detail monitoring section must label the recommendation as advisory');
 assert.doesNotMatch(tripDetailSurface, /fetch\([^\)]*(monitoring-state|live-status)/, 'trip detail monitoring phase rendering must not fetch live monitoring-state or live-status APIs');
+
+// FR-053..FR-055: trip detail status milestone visualisation.
+assert.match(tripDetailSurface, /function StatusMilestone\(\{ trip \}\)/, 'trip detail must define the Status milestone component');
+assert.match(tripDetailSurface, /<StatusMilestone trip=\{trip\} \/>/, 'trip detail must render Status milestone near the header');
+assert.match(tripDetailSurface, /CANONICAL_STATUS_FLOW\.map/, 'Status milestone must render the canonical lifecycle flow');
+assert.match(tripDetailSurface, /aria-current=\{stepActive \? 'step' : undefined\}/, 'Status milestone must mark the current status with aria-current');
+assert.match(tripDetailSurface, /status-milestone-step--cancelled/, 'Status milestone must render cancelled as a terminal exit branch');
+assert.doesNotMatch(tripDetailSurface, /fetch\([^)]*(status|milestone|monitoring-state|live-status)/, 'Status milestone must not fetch live status or monitoring state');
 
 // FR-056..FR-058: fallbackStopThreshold row in Monitoring detail dl.
 // The row must appear inside the monitoring-detail-list dl, must use
@@ -1122,6 +1137,26 @@ assert.doesNotMatch(
   dashboardSurface,
   /debug.*env|featureFlag.*debug|query.*debug/i,
   'Debug menu item must not be gated on env/query/feature-flag (FR-006)'
+);
+assert.match(
+  dashboardSurface,
+  /className="debug-copy-btn"[\s\S]*aria-label=\{`Copy \$\{title\} debug payload to clipboard`\}/,
+  'Dashboard debug disclosures must expose accessible copy-to-clipboard controls (FR-009)'
+);
+assert.match(
+  tripDetailSurface,
+  /className="debug-copy-btn"[\s\S]*aria-label=\{`Copy \$\{title\} debug payload to clipboard`\}/,
+  'Trip detail debug disclosures must expose accessible copy-to-clipboard controls (FR-009)'
+);
+assert.match(
+  dashboardSurface + tripDetailSurface,
+  /navigator\.clipboard\.writeText\(payload\)/,
+  'Debug copy controls must copy deterministic debug JSON through the clipboard API'
+);
+assert.match(
+  dashboardSurface + tripDetailSurface,
+  /copyState === 'copied' \? '✓ Copied' : copyState === 'failed' \? 'Copy failed' : 'Copy'/,
+  'Debug copy controls must report non-disruptive success and failure states'
 );
 
 console.log('Dashboard polish checks passed.');

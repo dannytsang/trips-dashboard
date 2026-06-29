@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import {
@@ -10,10 +10,12 @@ import {
   formatNextActionLabel,
   formatReadinessLabel,
   formatStatusLabel,
+  formatStatusEmoji,
+  formatStatusFlowReminder,
   formatWeatherCondition,
   toDisplayLabel,
 } from '@/lib/display-labels.mjs';
-import { formatUtcDateRange, formatUtcDateTime } from '@/lib/format-utc.mjs';
+import { formatUtcDateRange, formatUtcDateTime, formatUtcDateShort, formatUtcTime } from '@/lib/format-utc.mjs';
 import { computeMonitoringPhase } from '@/lib/monitoring-phase.mjs';
 import { MonitoringPhaseHelp } from '@/components/monitoring-phase-help';
 
@@ -62,6 +64,78 @@ function monitoringLabel(trip) {
 
 function nextActionLabel(trip) {
   return formatNextActionLabel(trip.planning?.nextAction);
+}
+
+// FR-038: Compact leg start-time token derived from legs[].start.
+// Same-day legs → time-only "09:30". Cross-day legs → "Tue 09:30" or "29 Jun 09:30".
+// Missing/invalid start → null (caller skips the token).
+function utcDateKey(date) {
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+}
+
+function formatLegStartToken(legStartIso, tripStartIso) {
+  if (!legStartIso) return null;
+  const leg = new Date(legStartIso);
+  if (Number.isNaN(leg.getTime())) return null;
+  const trip = tripStartIso ? new Date(tripStartIso) : null;
+  const sameDay = trip && !Number.isNaN(trip.getTime()) && utcDateKey(leg) === utcDateKey(trip);
+  if (sameDay) {
+    return formatUtcTime(legStartIso);
+  }
+  return `${formatUtcDateShort(legStartIso)} ${formatUtcTime(legStartIso)}`;
+}
+
+// FR-040 + FR-037: Emoji-only status badge with accessible disclosure of the
+// text status label and canonical status-flow reminder on hover/focus/tap.
+function StatusBadge({ trip }) {
+  const [open, setOpen] = useState(false);
+  const active = Boolean(trip.monitoring?.active);
+  const { emoji, label } = formatStatusEmoji(trip.status, { active });
+  const reminder = formatStatusFlowReminder(trip.status, { active });
+  const id = useId();
+  const title = `Status: ${label}. ${reminder}`;
+  return (
+    <span className="status-pill-tooltip-wrap">
+      <button
+        type="button"
+        className="status-pill status-pill--emoji"
+        aria-label={`Status: ${label}`}
+        aria-describedby={id}
+        aria-expanded={open}
+        title={title}
+        onClick={() => setOpen(value => !value)}
+        onBlur={() => setOpen(false)}
+      >
+        <span aria-hidden="true">{emoji}</span>
+      </button>
+      <span
+        id={id}
+        role="tooltip"
+        className={`status-pill-tooltip ${open ? 'status-pill-tooltip--open' : ''}`}
+      >
+        <strong>Status: {label}</strong>
+        <span>{reminder}</span>
+      </span>
+    </span>
+  );
+}
+
+// FR-039: Weather summary rendered as a compact full-width strip below the
+// trip title/details link — not in the header chip row.
+function WeatherSummaryStrip({ weather }) {
+  const summary = weather?.summary;
+  if (!summary) return null;
+  const fallback = formatWeatherCondition(summary.label, { icon: summary.icon });
+  const label = summary.accessibleLabel || fallback.accessibleLabel;
+  const icons = Array.isArray(summary.icons) && summary.icons.length > 0
+    ? summary.icons.slice(0, 2)
+    : [summary.icon || fallback.icon];
+  return (
+    <div className="forecast-strip" aria-label={label}>
+      <span aria-hidden="true" className="forecast-strip-icons">{icons.join('')}</span>
+      <span className="forecast-strip-text">{summary.label || fallback.label}</span>
+    </div>
+  );
 }
 
 function WeatherSummaryChip({ weather }) {
@@ -602,14 +676,14 @@ export function DashboardSessionSurface({
                             <p className="trip-date">🗓️ {formatDateRange(trip.start, trip.end)}</p>
                           </Link>
                           <div className="trip-card-chip-row">
-                            <WeatherSummaryChip weather={trip.weather} />
-                            <span className="status-pill">{statusLabel(trip)}</span>
+                            <StatusBadge trip={trip} />
                           </div>
                         </div>
                         <Link href={`/trips/${trip.id}`} prefetch={false} className="trip-card-title-link">
                           <h2>{trip.title}</h2>
                           <span className="trip-card-view-details">View trip details →</span>
                         </Link>
+                        <WeatherSummaryStrip weather={trip.weather} />
                       </div>
                       <dl className="trip-details">
                         <div>
@@ -644,12 +718,20 @@ export function DashboardSessionSurface({
                       {legCount ? (
                         <div className="trip-card-leg-summary">
                           <ul className="leg-list" aria-label={`${trip.title} legs`}>
-                            {visibleLegs.map((leg, index) => (
-                              <li key={`${trip.id}-leg-${index}`}>
-                                <span>{formatLegModeEmoji(leg.mode)} {leg.label}</span>
-                                <small>{formatLegModeLabel(leg.mode)}</small>
-                              </li>
-                            ))}
+                            {visibleLegs.map((leg, index) => {
+                              const startToken = formatLegStartToken(leg.start, trip.start);
+                              return (
+                                <li key={`${trip.id}-leg-${index}`}>
+                                  <span>
+                                    {formatLegModeEmoji(leg.mode)} {leg.label}
+                                    {startToken ? (
+                                      <span className="leg-start-token" aria-label={`Starts ${startToken}`}> · {startToken}</span>
+                                    ) : null}
+                                  </span>
+                                  <small>{formatLegModeLabel(leg.mode)}</small>
+                                </li>
+                              );
+                            })}
                           </ul>
                           {hiddenLegCount > 0 ? (
                             <button

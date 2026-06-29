@@ -17,6 +17,8 @@ import {
   formatLegModeEmoji,
   formatLegModeLabel,
   formatStatusLabel,
+  formatStatusEmoji,
+  CANONICAL_STATUS_FLOW,
   formatWeatherCondition,
   toDisplayLabel,
 } from '@/lib/display-labels.mjs';
@@ -903,6 +905,50 @@ function PlanningReviewBlock({ review }) {
   );
 }
 
+// FR-053/054/055: Compact status milestone visualisation showing the canonical
+// trip lifecycle with the current status highlighted. Read-only, derived from
+// already-loaded trip status. Cancelled renders as a terminal branch/exit.
+function StatusMilestone({ trip }) {
+  const active = Boolean(trip.monitoring?.active);
+  const { emoji, label } = formatStatusEmoji(trip.status, { active });
+  const isCancelled = label === 'Cancelled';
+
+  return (
+    <div className="status-milestone" aria-label={`Trip status: ${label}`}>
+      <div className="status-milestone-flow">
+        {CANONICAL_STATUS_FLOW.map((step, i) => {
+          const stepActive = label.toLowerCase() === step.label.toLowerCase();
+          return (
+            <span key={step.key}>
+              <span
+                className={`status-milestone-step ${stepActive ? 'status-milestone-step--current' : ''}`}
+                aria-current={stepActive ? 'step' : undefined}
+                title={step.label}
+              >
+                {step.label}
+              </span>
+              {i < CANONICAL_STATUS_FLOW.length - 1 && (
+                <span className="status-milestone-arrow" aria-hidden="true"> → </span>
+              )}
+            </span>
+          );
+        })}
+        {isCancelled && (
+          <>
+            <span className="status-milestone-arrow" aria-hidden="true"> | </span>
+            <span className="status-milestone-step status-milestone-step--cancelled" title="Cancelled">
+              ⛔ Cancelled
+            </span>
+          </>
+        )}
+      </div>
+      <div className="status-milestone-current">
+        {emoji} <span>{label}</span>
+      </div>
+    </div>
+  );
+}
+
 export function TripDetailSurface({
   trip,
   tripId,
@@ -1092,6 +1138,7 @@ export function TripDetailSurface({
             <p className="trip-date">🗓️ {formatDateRange(trip.start, trip.end)}</p>
             <h1 className="detail-title">{trip.title || tripId}</h1>
             <p className="detail-destination">📍 {trip.destinationLabel || 'Destination TBC'}</p>
+            <StatusMilestone trip={trip} />
             <div className="detail-badges">
               <span className={`status-pill ${rbc}`}>{rl}</span>
               <span className={`status-pill ${mlc}`}>{ml}</span>
