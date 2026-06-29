@@ -409,13 +409,18 @@ assert.match(
 // are grouped into one collapsible section at the board level.
 assert.match(
   tripDetailSurface,
-  /function PlanningTransportGroup\(\{ planning, decision \}\)/,
-  'trip detail must define PlanningTransportGroup combining rationale + transport decision (FR-066)'
+  /function PlanningTransportGroup\(\{ planning \}\)/,
+  'trip detail must define PlanningTransportGroup combining rationale + transport decision from planning.transportDecision (FR-066)'
 );
 assert.match(
   tripDetailSurface,
-  /<PlanningTransportGroup\s+planning=\{trip\.planning\}\s+decision=\{trip\.transport\}\s*\/>/,
-  'journey board must render PlanningTransportGroup (FR-066)'
+  /<PlanningTransportGroup\s+planning=\{trip\.planning\}\s*\/>/,
+  'journey board must render PlanningTransportGroup from trip.planning (FR-066)'
+);
+assert.match(
+  tripDetailSurface,
+  /const transportDecision = planning\?\.transportDecision/,
+  'PlanningTransportGroup must source the transport decision from planning.transportDecision, not a non-existent trip.transport field (FR-066)'
 );
 // Section ordering preserved: All existing detail sections remain.
 // The board renders between the compact header (trip title / travellers /

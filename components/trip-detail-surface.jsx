@@ -613,14 +613,15 @@ function ItineraryStageCard({ leg, index, programme, weather, monitoringPhase })
 // Phase 8 FR-066: PlanningTransportGroup combines Planning rationale and
 // Transport decision into one collapsible area because both explain
 // why the current plan was chosen.
-function PlanningTransportGroup({ planning, decision }) {
+function PlanningTransportGroup({ planning }) {
   const assumptions = planning?.assumptions || [];
   const missing = planning?.missing || [];
   const questions = planning?.questionsForDanny || [];
+  const transportDecision = planning?.transportDecision;
   const hasAssumptions = assumptions.length > 0;
   const hasMissing = missing.length > 0;
   const hasQuestions = questions.length > 0;
-  const hasTransportDecision = !!(decision && decision.selectedMode);
+  const hasTransportDecision = !!(transportDecision && transportDecision.selectedMode);
   const hasContent = hasAssumptions || hasMissing || hasQuestions;
 
   if (!hasContent && !hasTransportDecision) return null;
@@ -654,7 +655,7 @@ function PlanningTransportGroup({ planning, decision }) {
       {hasTransportDecision ? (
         <div className="rationale-block">
           <h3 className="rationale-heading">Transport decision</h3>
-          <TransportDecisionInline decision={planning.transportDecision} />
+          <TransportDecisionInline decision={transportDecision} />
         </div>
       ) : null}
     </SectionCollapsible>
@@ -1496,7 +1497,6 @@ export function TripDetailSurface({
         {/* Planning rationale + Transport decision grouped (FR-066) */}
         <PlanningTransportGroup
           planning={trip.planning}
-          decision={trip.transport}
         />
 
         {/* Monitoring detail */}
