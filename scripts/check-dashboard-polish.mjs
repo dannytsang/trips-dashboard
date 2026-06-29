@@ -436,6 +436,7 @@ assert.match(dashboardSurface, /role="tooltip"/, 'summary status badge must expo
 assert.match(dashboardSurface, /onClick=\{\(\) => setOpen\(value => !value\)\}/, 'summary status badge must support click/tap disclosure');
 assert.doesNotMatch(dashboardSurface, /className="status-pill status-pill--emoji"[\s\S]{0,300}?title=/, 'summary status badge must not also use a native title tooltip because it creates duplicate hover text');
 assert.match(dashboardSurface, /formatLegStartToken\(leg\.start, trip\.start\)/, 'summary leg rows must derive compact start-time tokens from legs[].start');
+assert.match(dashboardSurface, /return 'Time TBC'/, 'summary leg rows must show a neutral Time TBC token instead of fabricating missing start times');
 assert.match(dashboardSurface, /className="leg-start-token"/, 'summary leg rows must render compact start-time tokens inline');
 assert.doesNotMatch(dashboardSurface, /weather\?\.summary\?\.code|summary\.code/, 'summary weather must not render raw provider condition codes');
 assert.doesNotMatch(dashboardSurface, /<span>🛣️ \{leg\.label\}<\/span>/, 'leg rows must not hard-code the road emoji next to every leg label');

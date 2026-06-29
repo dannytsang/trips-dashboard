@@ -68,15 +68,15 @@ function nextActionLabel(trip) {
 
 // FR-038: Compact leg start-time token derived from legs[].start.
 // Same-day legs → time-only "09:30". Cross-day legs → "Tue 09:30" or "29 Jun 09:30".
-// Missing/invalid start → null (caller skips the token).
+// Missing/invalid start → neutral "Time TBC" token; never infer a time.
 function utcDateKey(date) {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
 }
 
 function formatLegStartToken(legStartIso, tripStartIso) {
-  if (!legStartIso) return null;
+  if (!legStartIso) return 'Time TBC';
   const leg = new Date(legStartIso);
-  if (Number.isNaN(leg.getTime())) return null;
+  if (Number.isNaN(leg.getTime())) return 'Time TBC';
   const trip = tripStartIso ? new Date(tripStartIso) : null;
   const sameDay = trip && !Number.isNaN(trip.getTime()) && utcDateKey(leg) === utcDateKey(trip);
   if (sameDay) {
