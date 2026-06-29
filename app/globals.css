@@ -959,6 +959,380 @@ p {
   padding: 0 var(--detail-panel-inline-pad) 3rem;
 }
 
+/* ── Phase 8: Map-led journey board (FR-059..FR-066) ──────────────────── */
+
+.detail-journey-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  grid-template-rows: auto;
+  gap: 1.25rem;
+  align-items: start;
+  margin-bottom: 1.25rem;
+}
+
+/* Left: chronological itinerary stage cards */
+.detail-journey-stages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  min-width: 0;
+}
+
+/* Right: sticky overview map column */
+.detail-journey-map-col {
+  position: sticky;
+  top: calc(3.5rem + 0.75rem);
+  max-height: calc(100vh - 4.5rem);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.detail-journey-map-col .trip-overview-map {
+  margin-bottom: 0;
+}
+
+/* Itinerary stage card */
+.itinerary-stage-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: box-shadow 0.15s;
+}
+.itinerary-stage-card:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.itinerary-stage-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 0.875rem;
+  cursor: default;
+}
+
+.itinerary-stage-idx {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.itinerary-stage-mode {
+  font-size: 1rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.itinerary-stage-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.itinerary-stage-leg-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itinerary-stage-leg-sub {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.itinerary-stage-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.itinerary-stage-body {
+  padding: 0.5rem 0.875rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Per-leg monitoring phase row inside a stage card (FR-062) */
+.stage-monitoring-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 0.375rem;
+  font-size: 0.78rem;
+}
+
+.stage-monitoring-row.monitoring-status-row--started {
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+}
+
+.stage-monitoring-row.monitoring-status-row--neutral {
+  background: rgba(107, 114, 128, 0.12);
+  color: #9ca3af;
+}
+
+.stage-monitoring-row.monitoring-status-row--error {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+}
+
+/* Programme items inside a stage card */
+.stage-programme-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+@media (max-width: 900px) {
+  .detail-journey-board {
+    grid-template-columns: 1fr;
+  }
+  gap: 0.35rem;
+}
+
+.stage-programme-item {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  align-items: flex-start;
+}
+.stage-programme-item-icon {
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+  font-size: 0.85rem;
+}
+.stage-programme-item-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.stage-programme-item-title {
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stage-programme-item-meta {
+  color: var(--text-muted);
+  font-size: 0.73rem;
+}
+.stage-programme-item-unconfirmed .stage-programme-item-title {
+  color: var(--text-muted);
+}
+
+/* Leg detail fields inside stage card */
+.stage-leg-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.3rem 0.75rem;
+}
+.stage-leg-field {
+  display: contents;
+}
+.stage-leg-field dt {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  align-self: baseline;
+  padding-top: 0.05rem;
+}
+.stage-leg-field dd {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0;
+  align-self: baseline;
+}
+
+/* Weather pill inside stage card */
+.stage-weather-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  align-self: flex-start;
+}
+
+/* Compact travellers chip row */
+.travellers-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+.traveller-chip {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+.travellers-expand-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: var(--accent-blue);
+  padding: 0.1rem 0.25rem;
+  text-decoration: underline;
+}
+.travellers-expand-btn:hover {
+  color: var(--text-primary);
+}
+
+/* Programme section — non-collapsible, always visible */
+.programme-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.programme-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.625rem 0.875rem;
+}
+.programme-item-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.programme-item-header strong {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+.programme-item-unconfirmed .programme-item-header strong {
+  color: var(--text-muted);
+}
+.programme-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+.programme-item-location {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-top: 0.2rem;
+}
+.programme-item-notes {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0.3rem 0 0;
+  line-height: 1.5;
+}
+
+/* Planning + Transport rationale group */
+.rationale-block + .transport-decision-inline {
+  margin-top: 0.75rem;
+}
+.transport-decision-inline {
+  background: color-mix(in srgb, var(--bg-tertiary), transparent 30%);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.85rem;
+}
+.transport-decision-inline p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0 0 0.4rem;
+}
+.transport-decision-inline ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+.transport-decision-inline li + li {
+  margin-top: 0.2rem;
+}
+
+/* Notifications per-leg table */
+.notifications-perleg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.notifications-perleg-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+.notifications-perleg-pill {
+  font-size: 0.75rem;
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid;
+}
+.notifications-perleg-pill[data-state="pre_approved"] {
+  background: color-mix(in srgb, var(--accent-emerald), transparent 85%);
+  border-color: var(--accent-emerald);
+  color: var(--accent-emerald);
+}
+.notifications-perleg-pill[data-state="disabled"] {
+  background: color-mix(in srgb, var(--bg-tertiary), transparent 20%);
+  border-color: var(--border-color);
+  color: var(--text-muted);
+}
+.notifications-perleg-pill[data-state="pending"] {
+  background: color-mix(in srgb, var(--accent-amber), transparent 85%);
+  border-color: var(--accent-amber);
+  color: var(--accent-amber);
+}
+.notifications-perleg-detail {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+}
+
+/* Responsive: stack journey board on narrow screens */
+@media (max-width: 900px) {
+  .detail-journey-board {
+    grid-template-columns: 1fr;
+  }
+  .detail-journey-map-col {
+    position: static;
+    max-height: none;
+    order: -1;
+  }
+}
+
+/* Back link inside detail-panel (still used by error/loading states) */
 .back-link {
   display: inline-block;
   margin-bottom: 1.25rem;

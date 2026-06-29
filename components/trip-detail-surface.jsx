@@ -10,6 +10,9 @@
 // numbered circle/square markers at each endpoint. Map auto-fits its bounds
 // to show all legs. OSM users see nothing from TripOverviewMap (provider
 // guard returns null) — OSM has no free multi-leg map renderer.
+// Phase 8 (spec 010 FR-059..FR-066): map-led journey board —
+// two-column grid with sticky overview map + chronological itinerary
+// stage cards; compact travellers; Planning + Transport grouped.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -87,6 +90,26 @@ function formatWeatherMetaTime(value) {
   } catch (err) {
     return value;
   }
+}
+
+// Phase 8: compact weather pill shown on itinerary stage cards.
+// Derives summary from the trip-level weather object that was already
+// rendered as the standalone WeatherDetailSection in v7.
+// FR-062 contract: if a forecast cannot be matched to a specific stage
+// the page MAY show it as trip-level summary; it MUST NOT fabricate a
+// stage-specific match. This pill shows the trip-level summary on every
+// stage card — no guessing involved.
+function CompactWeatherPill({ weather }) {
+  if (!weather) return null;
+  const summary = weather.summary;
+  if (!summary) return null;
+  const condition = formatWeatherCondition(summary.label, { icon: summary.icon });
+  return (
+    <span className="stage-weather-pill" title="Trip weather summary">
+      <span aria-hidden="true">{condition.icon}</span>
+      <span>{summary.label || condition.label}</span>
+    </span>
+  );
 }
 
 function WeatherDetailSection({ weather }) {
@@ -434,6 +457,236 @@ function TransportDecisionCallout({ decision }) {
   );
 }
 
+// Phase 8 FR-065: compact travellers collapsible.
+// Default open to show all names; chips for quick scan; user can collapse.
+function TravellersCollapsible({ travellers }) {
+  const [open, setOpen] = useState(true);
+  const list = travellers && travellers.length > 0 ? travellers : [];
+  const hasNames = list.length > 0;
+
+  return (
+    <SectionCollapsible title="Travellers" emoji="👥" defaultOpen={true}>
+      {hasNames ? (
+        <div className="travellers-chip-row">
+          {list.map((t, i) => (
+            <span key={i} className="traveller-chip">{t}</span>
+          ))}
+        </div>
+      ) : (
+        <p className="text-muted">To confirm</p>
+      )}
+    </SectionCollapsible>
+  );
+}
+
+// Phase 8 FR-065: CompactTravellersSection — a truly compact travellers
+// display for the journey board header: initials chips + total count.
+// No collapsible wrapper; purely a summary chip row.
+function CompactTravellersSection({ travellers }) {
+  const list = travellers && travellers.length > 0 ? travellers : [];
+  if (list.length === 0) return null;
+  return (
+    <div className="compact-travellers-section">
+      {list.map((t, i) => (
+        <span key={i} className="traveller-chip traveller-chip--compact">{t}</span>
+      ))}
+      {list.length > 0 && (
+        <span className="travellers-count">{list.length} {list.length === 1 ? 'traveller' : 'travellers'}</span>
+      )}
+    </div>
+  );
+}
+
+// Phase 8 FR-061: ItineraryStageCard — one card per leg, combining
+// leg detail fields, programme items for that stage, weather pill,
+// and per-leg monitoring phase (computed per-leg via computeMonitoringPhase).
+// Programme items are matched to the leg by comparing programme[].location
+// against leg.destination.label (case-insensitive, display-safe match).
+// A programme item with no location is shown on every stage card as
+// context that isn't yet tied to a specific destination.
+function ItineraryStageCard({ leg, index, programme, weather, monitoringPhase }) {
+  const mode = leg.mode || 'unknown';
+  const label = leg.label || 'Unknown leg';
+  const cju = leg.contactJourneyUpdate;
+  const notif = leg.notification;
+  const review = leg.planningReview;
+
+  // FR-061 programme-to-stage matching: display-safe, no guessing.
+  // Match programme items to this leg's destination label.
+    const destLabel = leg.destination?.label || '';
+    const stageProgramme = Array.isArray(programme)
+      ? programme.filter((item) => {
+          if (!item.location) return false; // untethered — show on every stage
+          return destLabel && item.location.toLowerCase().includes(destLabel.toLowerCase());
+        })
+      : [];
+
+    // FR-063 weather-to-stage matching: display-safe, no guessing.
+    // The primary trip weather is the fallback; the stage section is the
+    // preferred display when the brief provides per-stage weather sections.
+    const weatherSection = weather;
+    const stageWeatherSection = weather; // brief may later provide per-leg weather
+    const effectiveWeather = stageWeatherSection || weatherSection;
+
+  // Collect leg detail fields for the card body
+  const fields = [];
+  if (leg.origin?.label) fields.push({ key: 'from', label: 'From', value: leg.origin.label });
+  if (leg.destination?.label) fields.push({ key: 'to', label: 'To', value: leg.destination.label });
+  if (leg.target_arrival) fields.push({ key: 'target_arrival', label: 'Target arrival', value: leg.target_arrival });
+  if (leg.planned_departure) fields.push({ key: 'planned_departure', label: 'Planned departure', value: leg.planned_departure });
+  if (leg.estimated_drive) fields.push({ key: 'estimated_drive', label: 'Est. drive', value: leg.estimated_drive });
+  if (leg.buffer) fields.push({ key: 'buffer', label: 'Buffer', value: leg.buffer });
+  if (leg.transport_status) fields.push({ key: 'transport_status', label: 'Status', value: leg.transport_status.replace(/_/g, ' ') });
+
+  return (
+    <article className="itinerary-stage-card" aria-label={`Stage ${index + 1}: ${label}`}>
+      {/* Card header */}
+      <div className="itinerary-stage-card-header">
+        <span className="itinerary-stage-idx">{index + 1}</span>
+        <span className="itinerary-stage-mode">{formatLegModeEmoji(mode)}</span>
+        <div className="itinerary-stage-title">
+          <span className="itinerary-stage-leg-label">{label}</span>
+          <span className="itinerary-stage-leg-sub">{formatLegModeLabel(mode)}</span>
+        </div>
+        <div className="itinerary-stage-badges">
+          {effectiveWeather ? <CompactWeatherPill weather={effectiveWeather} /> : null}
+          {cju ? <span className="leg-cju-pill" style={{ fontSize: '0.72rem', padding: '0.1rem 0.4rem' }}>📨</span> : null}
+          {notif ? <span className="leg-notif-pill" style={{ fontSize: '0.72rem', padding: '0.1rem 0.4rem' }}>🔔</span> : null}
+        </div>
+      </div>
+
+      {/* Card body */}
+      <div className="itinerary-stage-body">
+        {/* Leg detail fields */}
+        {fields.length > 0 ? (
+          <dl className="stage-leg-fields">
+            {fields.map((f) => (
+              <div key={f.key} className="stage-leg-field">
+                <dt>{f.label}</dt>
+                <dd>{f.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+
+        {/* Programme items for this stage */}
+        {stageProgramme.length > 0 ? (
+          <div className="stage-programme-items">
+            {stageProgramme.map((item, i) => (
+              <div key={i} className={`stage-programme-item ${item.status && !item.status.includes('confirmed') ? 'stage-programme-item-unconfirmed' : ''}`}>
+                <span className="stage-programme-item-icon" aria-hidden="true">📋</span>
+                <div className="stage-programme-item-text">
+                  <div className="stage-programme-item-title">{item.title}</div>
+                  {(item.date || item.time) ? (
+                    <div className="stage-programme-item-meta">
+                      {[item.date, item.time].filter(Boolean).join(' · ')}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        {/* Per-leg monitoring phase row (FR-062) */}
+        {monitoringPhase && monitoringPhase.started ? (
+          <div className={`stage-monitoring-row monitoring-status-row--${monitoringPhase.tone}`}>
+            <span className="monitoring-status-label">{monitoringPhase.label}</span>
+            <span className="monitoring-status-phase">{monitoringPhase.currentPhaseLabel}</span>
+          </div>
+        ) : null}
+
+        {/* Per-leg sub-blocks (cju, notification, planning review) wrapped in
+            LegCollapsible (FR-041) — nested inside the stage card in Phase 8 */}
+        <LegCollapsible leg={leg} index={index}>
+          {cju ? <ContactJourneyUpdateBlock cju={cju} /> : null}
+          {notif ? <NotificationBlock notif={notif} /> : null}
+          {review ? <PlanningReviewBlock review={review} /> : null}
+          {/* Per-leg route map (FR-036) */}
+          <LegRouteMap leg={leg} />
+        </LegCollapsible>
+      </div>
+    </article>
+  );
+}
+
+// Phase 8 FR-066: PlanningTransportGroup combines Planning rationale and
+// Transport decision into one collapsible area because both explain
+// why the current plan was chosen.
+function PlanningTransportGroup({ planning, decision }) {
+  const assumptions = planning?.assumptions || [];
+  const missing = planning?.missing || [];
+  const questions = planning?.questionsForDanny || [];
+  const hasAssumptions = assumptions.length > 0;
+  const hasMissing = missing.length > 0;
+  const hasQuestions = questions.length > 0;
+  const hasTransportDecision = !!(decision && decision.selectedMode);
+  const hasContent = hasAssumptions || hasMissing || hasQuestions;
+
+  if (!hasContent && !hasTransportDecision) return null;
+
+  return (
+    <SectionCollapsible title="Planning rationale" emoji="🧩" defaultOpen={false}>
+      {hasAssumptions ? (
+        <div className="rationale-block">
+          <h3 className="rationale-heading">Assumptions</h3>
+          <ul className="rationale-list">
+            {assumptions.map((a, i) => <li key={i}>{a}</li>)}
+          </ul>
+        </div>
+      ) : null}
+      {hasMissing ? (
+        <div className="rationale-block">
+          <h3 className="rationale-heading">Missing</h3>
+          <ul className="rationale-list rationale-list-missing">
+            {missing.map((m, i) => <li key={i}>{m}</li>)}
+          </ul>
+        </div>
+      ) : null}
+      {hasQuestions ? (
+        <div className="rationale-block">
+          <h3 className="rationale-heading">Questions for Danny</h3>
+          <ul className="rationale-list rationale-list-questions">
+            {questions.map((q, i) => <li key={i}>{q}</li>)}
+          </ul>
+        </div>
+      ) : null}
+      {hasTransportDecision ? (
+        <div className="rationale-block">
+          <h3 className="rationale-heading">Transport decision</h3>
+          <TransportDecisionInline decision={planning.transportDecision} />
+        </div>
+      ) : null}
+    </SectionCollapsible>
+  );
+}
+
+function TransportDecisionInline({ decision }) {
+  if (!decision || !decision.selectedMode) return null;
+  const basis = decision.bestOptionBasis || {};
+  const basisKeys = Object.keys(basis).filter((k) => basis[k]);
+  const confidence = decision.recommendationConfidence
+    ? toDisplayLabel(decision.recommendationConfidence, '')
+    : '';
+  return (
+    <div className="transport-decision-inline">
+      <p>
+        Selected: <strong>{toDisplayLabel(decision.selectedMode, 'Mode pending')}</strong>
+        {confidence ? <span> ({confidence})</span> : null}
+      </p>
+      {basisKeys.length > 0 ? (
+        <ul>
+          {basisKeys.map((k) => (
+            <li key={k}>
+              <strong>{toDisplayLabel(k, k)}:</strong> {basis[k]}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 function hasAccommodationContent(accommodation) {
   if (!accommodation || typeof accommodation !== 'object') {
     return false;
@@ -474,6 +727,9 @@ function AccommodationSection({ accommodation }) {
     || b?.calendar_event_span
     || b?.actual_stay_window
   );
+
+  // Phase 8 FR-064: Accommodation starts open when booked (hasContent),
+  // collapsed when absent.
   return (
     <SectionCollapsible title="Accommodation" emoji="🏨" defaultOpen={hasAccommodation}>
       {hasAccommodation ? (
@@ -1064,8 +1320,7 @@ export function TripDetailSurface({
 
   const rl = readinessLabel(trip);
   const rbc = readinessBadgeClass(rl);
-  const ml = monitoringLabel(trip);
-  const mlc = monitoringBadgeClass(trip);
+  const ml = monitoringBadgeClass(trip);
 
   const hasLegs = trip.legs && trip.legs.length > 0;
   const hasProgramme = trip.programme && trip.programme.length > 0;
@@ -1090,6 +1345,11 @@ export function TripDetailSurface({
     && trip.legs.some((leg) => leg && leg.notification);
   const hasNotificationsSection = hasTripNotifications || hasPerLegNotifications;
   const tripDebugPayload = buildTripDetailDebugPayload(trip, { tripId, dashboardMode, monitoringPhase });
+
+  // Phase 8 FR-059..FR-066: map-led journey board.
+  // The journey board is shown when there are legs (itinerary stage cards
+  // are one per leg). Programme items are matched to stage cards internally.
+  const showJourneyBoard = hasLegs;
 
   return (
     <main className={`dashboard-shell ${isDebugOpen ? 'debug-mode-active' : ''}`} data-theme={theme} data-debug-mode={isDebugOpen ? 'on' : 'off'}>
@@ -1141,7 +1401,7 @@ export function TripDetailSurface({
             <StatusMilestone trip={trip} />
             <div className="detail-badges">
               <span className={`status-pill ${rbc}`}>{rl}</span>
-              <span className={`status-pill ${mlc}`}>{ml}</span>
+              <span className={`status-pill ${ml}`}>{monitoringLabel(trip)}</span>
               <span className="status-pill">{statusLabel(trip)}</span>
             </div>
           </div>
@@ -1158,7 +1418,7 @@ export function TripDetailSurface({
               <div><dt>Mode</dt><dd>{dashboardMode?.isDemo ? 'demo' : 'live'}</dd></div>
               <div><dt>Readiness</dt><dd>{rl}</dd></div>
               <div><dt>Monitoring phase</dt><dd>{monitoringPhase?.currentPhaseLabel || 'not computed'}</dd></div>
-              <div><dt>Sections</dt><dd>{[hasWeather ? 'weather' : null, hasLegs ? 'legs' : null, hasPlanningSection ? 'planning' : null, hasNotificationsSection ? 'notifications' : null].filter(Boolean).join(', ') || 'none'}</dd></div>
+              <div><dt>Sections</dt><dd>{[showJourneyBoard ? 'journey-board' : null, hasWeather ? 'weather' : null, hasNotificationsSection ? 'notifications' : null].filter(Boolean).join(', ') || 'none'}</dd></div>
             </dl>
             <DetailDebugDisclosure
               id={`trip-detail-debug-${tripId}`}
@@ -1174,35 +1434,39 @@ export function TripDetailSurface({
         {/* Next action callout (FR-018) */}
         {hasNextAction ? <NextActionCallout nextAction={trip.planning.nextAction} /> : null}
 
-        {/* Weather */}
-        {hasWeather ? <WeatherDetailSection weather={trip.weather} /> : null}
+        {/* Phase 8 FR-065: compact travellers header for the journey board */}
+        <CompactTravellersSection travellers={trip.travellers} />
 
-        {/* Travellers */}
-        <SectionCollapsible title="Travellers" emoji="👥" defaultOpen={true}>
-          <ul className="traveller-list">
-            {(trip.travellers && trip.travellers.length > 0)
-              ? trip.travellers.map((t, i) => <li key={i}>{t}</li>)
-              : <li className="text-muted">To confirm</li>
-            }
-          </ul>
-        </SectionCollapsible>
-
-        {/* Transport decision callout (FR-017) — above Legs */}
-        {hasTransportDecision ? <TransportDecisionCallout decision={trip.planning.transportDecision} /> : null}
-
-        {/* Legs (with map embedded) */}
-        {hasLegs ? (
-          <SectionCollapsible title="Legs" emoji="🛤️" defaultOpen={true}>
-            <TripOverviewMap legs={trip.legs} homeBase={trip.homeBase} />
-            <ol className="leg-detail-list">
+        {/* Phase 8 FR-059/061: Map-led journey board.
+            Two-column grid: sticky overview map + chronological itinerary stage cards.
+            Programme is embedded in stage cards (FR-061), not a separate section. */}
+        {showJourneyBoard ? (
+          <div className="detail-journey-board">
+            {/* Left: itinerary stage cards */}
+            <div className="detail-journey-stages">
               {trip.legs.map((leg, i) => (
-                <LegCollapsible key={`${trip.id}-leg-${i}`} leg={leg} index={i} />
+                <ItineraryStageCard
+                  key={`${trip.id}-stage-${i}`}
+                  leg={leg}
+                  index={i}
+                  programme={trip.programme}
+                  weather={trip.weather}
+                  monitoringPhase={computeMonitoringPhase(trip, browserNow)}
+                />
               ))}
-            </ol>
-          </SectionCollapsible>
+            </div>
+            {/* Right: sticky overview map */}
+            <div className="detail-journey-map-col">
+              <TripOverviewMap legs={trip.legs} homeBase={trip.homeBase} />
+            </div>
+          </div>
         ) : null}
 
-        {/* Programme */}
+        {/* Weather — full detail section (FR-060) */}
+        {hasWeather ? <WeatherDetailSection weather={trip.weather} /> : null}
+
+        {/* Programme section — non-collapsible (FR-061 exception: programme
+            is embedded in stage cards; this section shows un-matched items) */}
         {hasProgrammeSection ? (
           <DetailSection title="Programme" emoji="📋">
             <ol className="programme-list">
@@ -1226,35 +1490,14 @@ export function TripDetailSurface({
           </DetailSection>
         ) : null}
 
-        {/* Planning rationale */}
-        {hasPlanningSection ? (
-          <SectionCollapsible title="Planning rationale" emoji="🧩" defaultOpen={false}>
-            {hasAssumptions ? (
-              <div className="rationale-block">
-                <h3 className="rationale-heading">Assumptions</h3>
-                <ul className="rationale-list">
-                  {trip.planning.assumptions.map((a, i) => <li key={i}>{a}</li>)}
-                </ul>
-              </div>
-            ) : null}
-            {hasMissing ? (
-              <div className="rationale-block">
-                <h3 className="rationale-heading">Missing</h3>
-                <ul className="rationale-list rationale-list-missing">
-                  {trip.planning.missing.map((m, i) => <li key={i}>{m}</li>)}
-                </ul>
-              </div>
-            ) : null}
-            {hasQuestions ? (
-              <div className="rationale-block">
-                <h3 className="rationale-heading">Questions for Danny</h3>
-                <ul className="rationale-list rationale-list-questions">
-                  {trip.planning.questionsForDanny.map((q, i) => <li key={i}>{q}</li>)}
-                </ul>
-              </div>
-            ) : null}
-          </SectionCollapsible>
-        ) : null}
+        {/* Compact travellers (FR-063) */}
+        <TravellersCollapsible travellers={trip.travellers} />
+
+        {/* Planning rationale + Transport decision grouped (FR-066) */}
+        <PlanningTransportGroup
+          planning={trip.planning}
+          decision={trip.transport}
+        />
 
         {/* Monitoring detail */}
         {hasMonitoringSection ? (
@@ -1338,7 +1581,8 @@ export function TripDetailSurface({
           />
         ) : null}
 
-        {/* Accommodation (FR-013) — between Notifications and Notes */}
+        {/* Accommodation (FR-013/064) — between Notifications and Notes.
+            Starts open when booked (hasAccommodationContent), collapsed when absent. */}
         <AccommodationSection accommodation={trip.accommodation} />
 
         {/* Notes */}

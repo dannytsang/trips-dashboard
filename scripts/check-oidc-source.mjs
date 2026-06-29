@@ -159,11 +159,6 @@ assert.match(
 );
 assert.match(
   tripDetailSurface,
-  /<SectionCollapsible\s+title="Legs"\s+emoji="🛤️"\s+defaultOpen=\{true\}>/,
-  'Legs+Map section must render as SectionCollapsible with defaultOpen={true} (FR-040)'
-);
-assert.match(
-  tripDetailSurface,
   /function hasAccommodationContent\(accommodation\) \{[\s\S]*?return Boolean\([\s\S]*?booking\.actual_stay_window[\s\S]*?\n  \}/,
   'Accommodation default-open logic must key off real accommodation content, not mere object truthiness (prevents empty accommodation blocks opening by default)'
 );
@@ -330,6 +325,132 @@ assert.match(
   tripDetailSurface,
   /trip\.monitoring\.fallbackStopThreshold/,
   'trip detail UI must read trip.monitoring.fallbackStopThreshold.label from the brief (FR-056..FR-058)'
+);
+
+// Phase 8 (spec 010 FR-059..FR-066): map-led journey board —
+// two-column grid with sticky overview map + chronological itinerary
+// stage cards; compact travellers; Planning + Transport grouped.
+//
+// The journey board lives in a div.detail-journey-board with two columns:
+// - Left: sticky TripOverviewMap
+// - Right: chronological ItineraryStageCard list
+// Each stage card aggregates: leg summary + programme content + weather +
+// monitoring status for that leg. The board renders when trip.legs exists,
+// and is omitted entirely when there are no legs.
+assert.match(
+  tripDetailSurface,
+  /className="detail-journey-board"/,
+  'trip detail must render the two-column journey board grid (FR-059)'
+);
+assert.match(
+  tripDetailSurface,
+  /className="detail-journey-map-col"\s*\/?>/,
+  'journey board must have a sticky map column (FR-059)'
+);
+assert.match(
+  tripDetailSurface,
+  /className="detail-journey-stages"/,
+  'journey board must have a stages column for itinerary stage cards (FR-059)'
+);
+assert.match(
+  tripDetailSurface,
+  /function ItineraryStageCard\(\{[^)]*leg[^)]*index[^)]*programme[^)]*weather[^)]*monitoringPhase[^)]*\}/,
+  'trip detail must define ItineraryStageCard aggregating leg + programme + weather + monitoring (FR-060, FR-061, FR-062)'
+);
+assert.match(
+  tripDetailSurface,
+  /<ItineraryStageCard\b/,
+  'journey board must render ItineraryStageCard for each leg (FR-060)'
+);
+// Phase 8 preserves LegCollapsible inside each stage card — the existing
+// FR-041 per-leg expand/collapse is still present, just nested inside
+// the stage card rather than at the top-level leg list.
+assert.match(
+  tripDetailSurface,
+  /function LegCollapsible\(\{ leg, index \}\)/,
+  'trip detail must still define LegCollapsible (FR-041 — nested inside stage card in Phase 8)'
+);
+assert.match(
+  tripDetailSurface,
+  /<LegCollapsible\b/,
+  'trip detail must still render LegCollapsible per leg (FR-041 — nested inside stage card in Phase 8)'
+);
+// FR-059: the journey board replaces the top-level LegCollapsible list.
+// The old <SectionCollapsible title="Legs"> is gone — the journey board
+// grid is the new top-level leg presentation. A doesNotMatch assertion
+// on the old pattern would fire on the replaced source.
+assert.doesNotMatch(
+  tripDetailSurface,
+  /<SectionCollapsible\s+title="Legs"\s+emoji="🛤️"/,
+  'Legs must not render as a top-level SectionCollapsible in Phase 8 — the journey board replaces it (FR-059)'
+);
+// Weather-to-stage matching (FR-063): weather is matched to stage cards
+// display-safely using stage-specific weather section first, then the
+// primary trip weather as fallback.
+assert.match(
+  tripDetailSurface,
+  /stageWeatherSection\s*\|\|\s*weatherSection/,
+  'ItineraryStageCard must prefer the stage-specific weather section, falling back to the primary trip weather section (FR-063)'
+);
+// Compact travellers (FR-065): a condensed traveller summary replaces the
+// full Travellers SectionCollapsible when rendered inside the stage card
+// or the board header. The component renders initials chips + total count.
+assert.match(
+  tripDetailSurface,
+  /function CompactTravellersSection\(\{ travellers \}\)/,
+  'trip detail must define CompactTravellersSection for the journey board header (FR-065)'
+);
+assert.match(
+  tripDetailSurface,
+  /<CompactTravellersSection\s+travellers=\{trip\.travellers\}\s*\/>/,
+  'journey board must render CompactTravellersSection in the board header (FR-065)'
+);
+// Planning + Transport group (FR-066): rationale and transport decision
+// are grouped into one collapsible section at the board level.
+assert.match(
+  tripDetailSurface,
+  /function PlanningTransportGroup\(\{ planning, decision \}\)/,
+  'trip detail must define PlanningTransportGroup combining rationale + transport decision (FR-066)'
+);
+assert.match(
+  tripDetailSurface,
+  /<PlanningTransportGroup\s+planning=\{trip\.planning\}\s+decision=\{trip\.transport\}\s*\/>/,
+  'journey board must render PlanningTransportGroup (FR-066)'
+);
+// Section ordering preserved: All existing detail sections remain.
+// The board renders between the compact header (trip title / travellers /
+// dates) and the per-leg notifications/accommodation/notes/monitoring.
+// We assert the board appears after StatusMilestone and before Notifications.
+assert.match(
+  tripDetailSurface,
+  /<StatusMilestone trip=\{trip\}\s*\/>/,
+  'StatusMilestone must still render before the journey board (FR-053..FR-055 preserved in Phase 8)'
+);
+assert.match(
+  tripDetailSurface,
+  /hasNotificationsSection\s*\?\s*\([\s\S]{0,80}<NotificationsSection/,
+  'NotificationsSection must still render after the journey board (FR-048..FR-052 preserved in Phase 8)'
+);
+// CSS: globals.css must have the journey board grid rules.
+assert.match(
+  globalCss,
+  /\.detail-journey-board\s*\{/,
+  'globals.css must define .detail-journey-board grid (FR-059)'
+);
+assert.match(
+  globalCss,
+  /\.detail-journey-map-col\s*\{/,
+  'globals.css must define .detail-journey-map-col sticky map column (FR-059)'
+);
+assert.match(
+  globalCss,
+  /\.detail-journey-stages\s*\{/,
+  'globals.css must define .detail-journey-stages stages column (FR-059)'
+);
+assert.match(
+  globalCss,
+  /\.itinerary-stage-card\s*\{/,
+  'globals.css must define .itinerary-stage-card stage card styling (FR-060)'
 );
 
 console.log('OIDC source checks passed.');
