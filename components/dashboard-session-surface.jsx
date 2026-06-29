@@ -93,7 +93,6 @@ function StatusBadge({ trip }) {
   const { emoji, label } = formatStatusEmoji(trip.status, { active });
   const reminder = formatStatusFlowReminder(trip.status, { active });
   const id = useId();
-  const title = `Status: ${label}. ${reminder}`;
   return (
     <span className="status-pill-tooltip-wrap">
       <button
@@ -102,7 +101,6 @@ function StatusBadge({ trip }) {
         aria-label={`Status: ${label}`}
         aria-describedby={id}
         aria-expanded={open}
-        title={title}
         onClick={() => setOpen(value => !value)}
         onBlur={() => setOpen(false)}
       >
