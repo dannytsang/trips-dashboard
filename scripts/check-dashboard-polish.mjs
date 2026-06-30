@@ -1279,6 +1279,11 @@ assert.match(
   /<StageFactTile label="End" value=\{stageEndLabel\} tone="timing" \/>/,
   'ItineraryStageCard must render an End fact tile from stageEndLabel'
 );
+assert.doesNotMatch(
+  tripDetailSurface,
+  /Planned departure/,
+  'Trip detail leg cards must not render the planned departure section'
+);
 assert.match(
   tripDetailSurface,
   /className="itinerary-stage-summary-bar"/,

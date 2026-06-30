@@ -284,9 +284,6 @@ function LegDetailBlock({ leg }) {
   if (leg.target_arrival) {
     fields.push({ key: 'target_arrival', label: 'Target arrival', value: leg.target_arrival });
   }
-  if (leg.planned_departure) {
-    fields.push({ key: 'planned_departure', label: 'Planned departure', value: leg.planned_departure });
-  }
   if (leg.estimated_drive) {
     fields.push({ key: 'estimated_drive', label: 'Estimated drive', value: leg.estimated_drive });
   }
@@ -505,9 +502,6 @@ function ItineraryStageCard({ leg, index, programme, weather, monitoringPhase })
     const effectiveWeather = stageWeatherSection || weatherSection;
 
   const operationalFields = [];
-  if (leg.planned_departure) {
-    operationalFields.push({ key: 'planned_departure', label: 'Planned departure', value: formatDateTime(leg.planned_departure) });
-  }
   if (leg.target_arrival) {
     operationalFields.push({ key: 'target_arrival', label: 'Target arrival', value: formatDateTime(leg.target_arrival) });
   }
