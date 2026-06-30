@@ -402,15 +402,25 @@ assert.match(
   /stageWeatherSection\s*\|\|\s*weatherSection/,
   'ItineraryStageCard must prefer the stage-specific weather section, falling back to the primary trip weather section (FR-063)'
 );
-assert.match(
+assert.doesNotMatch(
   tripDetailSurface,
-  /<DetailSection title="Programme" emoji="📋">[\s\S]*?<WeatherProgrammeBlock weather=\{trip\.weather\} \/>/,
-  'Programme section must include the folded-in weather block (FR-060/FR-061)'
+  /<WeatherProgrammeBlock weather=\{trip\.weather\} \/>/,
+  'Programme section must not repeat the weather forecast already shown on itinerary/leg cards (FR-060/FR-061)'
+);
+assert.doesNotMatch(
+  tripDetailSurface,
+  /function WeatherProgrammeBlock\(\{ weather \}\)/,
+  'trip detail must not define a separate Programme weather forecast block'
 );
 assert.doesNotMatch(
   tripDetailSurface,
   /<SectionCollapsible title="Weather" emoji="🌦️"/,
-  'Weather must not render as a standalone section after being folded into Programme (FR-060/FR-061)'
+  'Weather must not render as a standalone section (FR-060/FR-061)'
+);
+assert.match(
+  tripDetailSurface,
+  /<CompactWeatherPill weather=\{effectiveWeather\} \/>/,
+  'Itinerary stage cards must still render the effective weather summary on legs/stages (FR-062)'
 );
 // Compact travellers (FR-065): a condensed traveller summary replaces the
 // full Travellers SectionCollapsible when rendered inside the stage card

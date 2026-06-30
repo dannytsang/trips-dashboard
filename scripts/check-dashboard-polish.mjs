@@ -458,16 +458,13 @@ assert.doesNotMatch(tripDetailSurface, /String\(decision\.selectedMode\)\.replac
 assert.doesNotMatch(tripDetailSurface, /k\.replace\(\/\[A-Z\]\/g, ' '\$1'\)/, 'transport decision basis keys must not be humanised with the camelCase-only regex; use toDisplayLabel so snake_case also collapses');
 assert.match(tripDetailSurface, /toDisplayLabel\(decision\.selectedMode/, 'transport decision must humanise the selected mode through toDisplayLabel');
 assert.match(tripDetailSurface, /toDisplayLabel\(k, k\)/, 'transport decision must humanise basis keys through toDisplayLabel');
-assert.match(tripDetailSurface, /function WeatherProgrammeBlock\(\{ weather \}\)/, 'trip detail must define weather content folded into the Programme section');
-assert.match(tripDetailSurface, /<DetailSection title="Programme" emoji="📋">[\s\S]*?<WeatherProgrammeBlock weather=\{trip\.weather\} \/>/, 'trip detail must render weather inside the Programme section');
-assert.doesNotMatch(tripDetailSurface, /<SectionCollapsible title="Weather" emoji="🌦️"/, 'trip detail must not render Weather as a standalone section after folding it into Programme');
-assert.match(tripDetailSurface, /weather\.locationLabel/, 'programme weather detail must show the forecast location label');
-assert.match(tripDetailSurface, /weather\.source/, 'programme weather detail must show the forecast source/provider');
-assert.match(tripDetailSurface, /formatWeatherMetaTime\(weather\.generatedAt \|\| weather\.updatedAt\)/, 'programme weather detail must show generated or updated time deterministically');
-assert.match(tripDetailSurface, /weather\.coverageNote/, 'programme weather detail must render useful unavailable/stale/out-of-range coverage notes');
-assert.match(tripDetailSurface, /period\.temperatureMinC/, 'weather period rows must include temperature range fields when present');
-assert.match(tripDetailSurface, /period\.precipitationChancePercent/, 'weather period rows must include precipitation values when present');
-assert.match(tripDetailSurface, /period\.windSpeedMph|period\.wind/, 'weather period rows must include wind values when present');
+assert.doesNotMatch(tripDetailSurface, /function WeatherProgrammeBlock\(\{ weather \}\)/, 'trip detail must not define a separate Programme weather forecast block');
+assert.doesNotMatch(tripDetailSurface, /<WeatherProgrammeBlock weather=\{trip\.weather\} \/>/, 'Programme section must not repeat the weather forecast already shown on itinerary/leg cards');
+assert.doesNotMatch(tripDetailSurface, /<SectionCollapsible title="Weather" emoji="🌦️"/, 'trip detail must not render Weather as a standalone section');
+assert.match(tripDetailSurface, /function CompactWeatherPill\(\{ weather \}\)/, 'weather summary must remain available on itinerary stage cards');
+assert.match(tripDetailSurface, /<CompactWeatherPill weather=\{effectiveWeather\} \/>/, 'itinerary stage cards must still receive the effective weather summary');
+assert.doesNotMatch(tripDetailSurface, /weather-detail-card--programme/, 'removed Programme weather forecast styling must not be referenced');
+assert.doesNotMatch(globalCss, /\.weather-detail-card--programme/, 'removed Programme weather forecast CSS must not remain');
 
 for (const emoji of ['✈️', '🧭', '👤', '🔐', '🧳', '🚦', '📡', '✅', '🕒', '📍', '👥', '🧩', '➡️']) {
   assert.match(dashboardSurface, new RegExp(emoji), `dashboard surface must include emoji accent ${emoji}`);

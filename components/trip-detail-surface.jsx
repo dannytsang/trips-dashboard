@@ -83,8 +83,9 @@ function formatWeatherMetaTime(value) {
 }
 
 // Phase 8: compact weather pill shown on itinerary stage cards.
-// Derives summary from the trip-level weather object that is also folded
-// into the Programme section for full weather detail.
+// Derives summary from the trip-level weather object. Weather forecast
+// detail is intentionally kept with the leg/stage cards rather than repeated
+// in the Programme section.
 // FR-062 contract: if a forecast cannot be matched to a specific stage
 // the page MAY show it as trip-level summary; it MUST NOT fabricate a
 // stage-specific match. This pill shows the trip-level summary on every
@@ -99,64 +100,6 @@ function CompactWeatherPill({ weather }) {
       <span aria-hidden="true">{condition.icon}</span>
       <span>{summary.label || condition.label}</span>
     </span>
-  );
-}
-
-function WeatherProgrammeBlock({ weather }) {
-  if (!weather) return null;
-  const summary = weather.summary;
-  const periods = Array.isArray(weather.periods) ? weather.periods : [];
-  const hasAvailableForecast = weather.status === 'available' && (summary || periods.length > 0);
-  const statusLabel = toDisplayLabel(weather.status, 'Weather unavailable');
-  const generated = formatWeatherMetaTime(weather.generatedAt || weather.updatedAt);
-  const coverageNote = weather.coverageNote || (!hasAvailableForecast ? 'Forecast is not available for this trip window yet.' : null);
-
-  return (
-      <div className="weather-detail-card weather-detail-card--programme">
-        <div className="weather-detail-meta">
-          {summary ? (
-            <span className="weather-detail-summary" aria-label={summary.accessibleLabel || formatWeatherCondition(summary.label, { icon: summary.icon }).accessibleLabel}>
-              <span aria-hidden="true">{summary.icon || formatWeatherCondition(summary.label).icon}</span>
-              <strong>{summary.label || formatWeatherCondition(summary.label).label}</strong>
-            </span>
-          ) : (
-            <span className="weather-detail-summary weather-detail-summary-muted">🌡️ {statusLabel}</span>
-          )}
-          {weather.locationLabel ? <span>📍 {weather.locationLabel}</span> : null}
-          {weather.source ? <span>Source: {weather.source}</span> : null}
-          {generated ? <span>Updated {generated} UTC</span> : null}
-        </div>
-        {coverageNote ? <p className="weather-coverage-note">{coverageNote}</p> : null}
-        {periods.length > 0 ? (
-          <ol className="weather-period-list">
-            {periods.map((period, index) => {
-              const condition = formatWeatherCondition(period.label, { icon: period.icon });
-              const temp = [period.temperatureMinC, period.temperatureMaxC].filter(v => v !== undefined && v !== null).join('–');
-              const temperature = period.temperature || (temp ? `${temp}°C` : null);
-              const precipitation = period.precipitation
-                || (period.precipitationChancePercent !== undefined ? `${period.precipitationChancePercent}% precipitation` : null)
-                || (period.precipitationAmountMm !== undefined ? `${period.precipitationAmountMm} mm` : null);
-              const wind = period.wind
-                || [period.windSpeedMph !== undefined ? `${period.windSpeedMph} mph` : null, period.windDirection].filter(Boolean).join(' ')
-                || null;
-              return (
-                <li key={`${period.periodLabel || period.start || 'period'}-${index}`} className="weather-period-row">
-                  <div className="weather-period-heading">
-                    <span aria-hidden="true">{period.icon || condition.icon}</span>
-                    <strong>{period.periodLabel || period.start || `Period ${index + 1}`}</strong>
-                    <span>{period.label || condition.label}</span>
-                  </div>
-                  <dl className="weather-period-facts">
-                    {temperature ? <><dt>Temp</dt><dd>{temperature}</dd></> : null}
-                    {precipitation ? <><dt>Rain</dt><dd>{precipitation}</dd></> : null}
-                    {wind ? <><dt>Wind</dt><dd>{wind}</dd></> : null}
-                  </dl>
-                </li>
-              );
-            })}
-          </ol>
-        ) : null}
-      </div>
   );
 }
 
@@ -1347,8 +1290,7 @@ export function TripDetailSurface({
   const hasQuestions = trip.planning?.questionsForDanny && trip.planning.questionsForDanny.length > 0;
   const hasNotes = trip.notes && trip.notes.length > 0;
   const hasMonitoringChecks = trip.monitoring?.checks && trip.monitoring.checks.length > 0;
-  const hasWeather = Boolean(trip.weather);
-  const hasProgrammeSection = hasProgramme || hasWeather;
+  const hasProgrammeSection = hasProgramme;
   const hasPlanningSection = hasAssumptions || hasMissing || hasQuestions;
   const hasNotesSection = hasNotes;
   const hasMonitoringSection = trip.monitoring?.enabled || trip.monitoring?.active || hasMonitoringChecks;
@@ -1478,7 +1420,7 @@ export function TripDetailSurface({
               <div><dt>Mode</dt><dd>{dashboardMode?.isDemo ? 'demo' : 'live'}</dd></div>
               <div><dt>Readiness</dt><dd>{rl}</dd></div>
               <div><dt>Monitoring phase</dt><dd>{monitoringPhase?.currentPhaseLabel || 'not computed'}</dd></div>
-              <div><dt>Sections</dt><dd>{[showJourneyBoard ? 'journey-board' : null, hasWeather ? 'weather' : null, hasNotificationsSection ? 'notifications' : null].filter(Boolean).join(', ') || 'none'}</dd></div>
+              <div><dt>Sections</dt><dd>{[showJourneyBoard ? 'journey-board' : null, trip.weather ? 'weather-on-legs' : null, hasNotificationsSection ? 'notifications' : null].filter(Boolean).join(', ') || 'none'}</dd></div>
             </dl>
             <DetailDebugDisclosure
               id={`trip-detail-debug-${tripId}`}
@@ -1522,12 +1464,10 @@ export function TripDetailSurface({
           </div>
         ) : null}
 
-        {/* Programme section now owns full weather detail (FR-060/061). */}
+        {/* Programme section — weather forecast remains on itinerary/leg cards. */}
         {hasProgrammeSection ? (
           <DetailSection title="Programme" emoji="📋">
-            {hasWeather ? <WeatherProgrammeBlock weather={trip.weather} /> : null}
-            {hasProgramme ? (
-              <ol className="programme-list">
+            <ol className="programme-list">
               {trip.programme.map((item, i) => (
                 <li key={i} className={`programme-item ${item.status?.includes('confirmed') ? '' : 'programme-item-unconfirmed'}`}>
                   <div className="programme-item-header">
@@ -1545,9 +1485,6 @@ export function TripDetailSurface({
                 </li>
               ))}
             </ol>
-            ) : (
-              <p className="text-muted">No programme items recorded for this trip.</p>
-            )}
           </DetailSection>
         ) : null}
 
