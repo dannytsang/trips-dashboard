@@ -422,7 +422,109 @@ function prettifyNotificationToken(value) {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function StageNotificationTriggerStrip({ contactJourneyUpdate, notification }) {
+// Shortens a location label to a compact form for the rail.
+function railShortLabel(label) {
+  if (!label) return null;
+  const normalized = String(label)
+    .replace(/\bInternational\b/i, '')
+    .replace(/\bRailway Station\b/i, '')
+    .replace(/\bStation\b/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  // Preserve well-known compound locations, e.g. Milton Keynes / New Street.
+  if (/milton keynes/i.test(normalized)) return 'Milton Keynes';
+  if (/new street/i.test(normalized)) return 'New Street';
+  const parts = normalized.split(' ');
+  if (parts.length > 2) return parts.slice(-2).join(' ');
+  return normalized;
+}
+
+function scopeRailText(keep) {
+  return [
+    keep?.routeWindow,
+    keep?.approvalScope,
+    ...(Array.isArray(keep?.triggers) ? keep.triggers : []),
+    ...(Array.isArray(keep?.exclusions) ? keep.exclusions : []),
+  ].filter(Boolean).join(' ');
+}
+
+function inferScopeBoundaryLabel(keep) {
+  const source = scopeRailText(keep);
+  if (/milton[\s_-]?keynes|\bmk\b/i.test(source)) return 'Milton Keynes';
+  const arrowMatch = source.match(/(?:->|→)\s*([^.;,()]+)/);
+  if (arrowMatch?.[1]) return arrowMatch[1].replace(/\binclusive\b/i, '').trim();
+  return null;
+}
+
+function hasBlockedBeyondBoundary(keep, destination, boundaryLabel) {
+  const source = scopeRailText(keep);
+  if (/after[\s_-]?milton[\s_-]?keynes|after[\s_-]?mk|post[\s_-]?milton[\s_-]?keynes|post[\s_-]?mk/i.test(source)) return true;
+  if (destination && boundaryLabel && railShortLabel(destination) !== railShortLabel(boundaryLabel)) return true;
+  if (/birmingham/i.test(source) && !/birmingham/i.test(boundaryLabel || '')) return true;
+  return false;
+}
+
+// Renders Mockup A — Route Rail: a compact horizontal stop sequence showing
+// which stops are in the approved scope and where the boundary falls.
+function NotificationScopeRail({ stops }) {
+  if (!stops || stops.length < 2) return null;
+  return (
+    <ol className="stage-notification-rail" aria-label="Notification scope rail">
+      {stops.map((stop, i) => {
+        const isFirst = i === 0;
+        const connType = stop.phase === 'allowed' ? 'allowed'
+          : stop.phase === 'boundary' ? 'boundary'
+          : 'blocked';
+        return (
+          <li key={`${stop.label}-${i}`} className="stage-notification-rail-stop">
+            {!isFirst ? (
+              <div className="stage-notification-rail-track" aria-hidden="true">
+                <div className={`stage-notification-rail-track-line stage-notification-rail-connector--${connType}`} />
+              </div>
+            ) : null}
+            <div
+              className={`stage-notification-rail-marker stage-notification-rail-marker--${stop.phase}`}
+              aria-hidden="true"
+            />
+            <span className={`stage-notification-rail-label stage-notification-rail-label--${stop.phase}`}>
+              {railShortLabel(stop.label)}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+// Derives a compact stop sequence from keepInformed data + leg origin/destination.
+// Returns null when geography cannot be determined safely.
+function buildScopeRail(keep, leg) {
+  if (!keep) return null;
+
+  const origin = leg?.origin?.label;
+  const destination = leg?.destination?.label;
+  const boundaryLabel = inferScopeBoundaryLabel(keep);
+  const railEndLabel = boundaryLabel || destination;
+
+  if (!origin && !railEndLabel) return null;
+
+  const stops = [];
+  if (origin) {
+    stops.push({ label: origin, phase: 'allowed' });
+  }
+
+  if (railEndLabel && railEndLabel !== origin) {
+    stops.push({ label: railEndLabel, phase: boundaryLabel ? 'boundary' : 'allowed' });
+  }
+
+  if (hasBlockedBeyondBoundary(keep, destination, boundaryLabel) && destination && destination !== railEndLabel) {
+    stops.push({ label: destination, phase: 'blocked' });
+  }
+
+  return stops.length >= 2 ? stops : null;
+}
+
+function StageNotificationTriggerStrip({ contactJourneyUpdate, notification, leg }) {
   const keep = contactJourneyUpdate?.keepInformed;
   const recipient = contactJourneyUpdate?.recipient;
   const policy = notification?.policy;
@@ -438,6 +540,8 @@ function StageNotificationTriggerStrip({ contactJourneyUpdate, notification }) {
   const displayedTriggers = triggerItems.slice(0, 3);
   const displayedExclusions = exclusions.slice(0, 1);
 
+  const railStops = buildScopeRail(keep, leg);
+
   return (
     <aside className="stage-notification-strip" aria-label="Pre-approved notification trigger path">
       <div className="stage-notification-strip-header">
@@ -445,6 +549,11 @@ function StageNotificationTriggerStrip({ contactJourneyUpdate, notification }) {
         <span className="stage-notification-recipient">{recipientLabel}</span>
         {scopeLabel ? <span className="stage-notification-scope">{scopeLabel}</span> : null}
       </div>
+
+      {/* Mockup A — Route rail: geographic scope visual (when geography is available). */}
+      {railStops ? <NotificationScopeRail stops={railStops} /> : null}
+
+      {/* Mockup G — Trigger chips: allowed and excluded triggers. */}
       <div className="stage-notification-trigger-row">
         {displayedTriggers.map((trigger) => (
           <span key={trigger} className="stage-notification-trigger stage-notification-trigger--allowed">
@@ -541,7 +650,7 @@ function ItineraryStageCard({ leg, index, programme, weather, monitoringPhase })
           <StageFactTile label="End" value={stageEndLabel} tone="timing" />
         </dl>
 
-        <StageNotificationTriggerStrip contactJourneyUpdate={cju} notification={notif} />
+        <StageNotificationTriggerStrip contactJourneyUpdate={cju} notification={notif} leg={leg} />
 
         {operationalFields.length > 0 ? (
           <dl className="stage-operational-grid" aria-label="Leg operational details">

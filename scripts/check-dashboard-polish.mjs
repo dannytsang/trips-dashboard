@@ -1311,13 +1311,28 @@ assert.match(
 );
 assert.match(
   tripDetailSurface,
-  /function StageNotificationTriggerStrip\(\{ contactJourneyUpdate, notification \}\)/,
-  'Selected notification Mockup G must define a folded in-card trigger strip'
+  /function StageNotificationTriggerStrip\(\{\s*contactJourneyUpdate,\s*notification,\s*leg\s*\}\)/,
+  'Selected notification Mockup G must define a folded in-card trigger strip with leg prop'
 );
 assert.match(
   tripDetailSurface,
-  /<StageNotificationTriggerStrip contactJourneyUpdate=\{cju\} notification=\{notif\} \/>/,
-  'ItineraryStageCard must render the folded notification strip inside the leg card'
+  /function NotificationScopeRail\(\{ stops \}\)/,
+  'Selected notification Mockup A must define the route rail presentation component'
+);
+assert.match(
+  tripDetailSurface,
+  /function buildScopeRail\(keep, leg\)/,
+  'Selected notification Mockup A must derive route rail stops from keepInformed data and the leg'
+);
+assert.match(
+  tripDetailSurface,
+  /function inferScopeBoundaryLabel\(keep\)[\s\S]*Milton Keynes/,
+  'Selected notification Mockup A must infer the Milton Keynes boundary from display-safe scope text'
+);
+assert.match(
+  tripDetailSurface,
+  /<StageNotificationTriggerStrip contactJourneyUpdate=\{cju\} notification=\{notif\} leg=\{leg\} \/>/,
+  'ItineraryStageCard must render the folded notification strip inside the leg card with leg prop'
 );
 assert.match(
   tripDetailSurface,
@@ -1333,6 +1348,21 @@ assert.match(
   globalCss,
   /\.stage-notification-strip[\s\S]*border:[\s\S]*#22c55e/,
   'Selected notification Mockup G must style the folded strip as an in-card notification panel'
+);
+assert.match(
+  globalCss,
+  /\.stage-notification-rail[\s\S]*display:\s*flex/,
+  'Selected notification Mockup A must style the route rail as a compact flex track'
+);
+assert.match(
+  globalCss,
+  /\.stage-notification-rail-marker--boundary[\s\S]*border-color:\s*#f59e0b/,
+  'Selected notification Mockup A must style the route boundary marker distinctly'
+);
+assert.match(
+  globalCss,
+  /\.stage-notification-rail-label--blocked[\s\S]*text-decoration:\s*line-through/,
+  'Selected notification Mockup A must visually strike through blocked downstream stops'
 );
 
 console.log('Dashboard polish checks passed.');
