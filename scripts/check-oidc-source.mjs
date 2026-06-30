@@ -460,6 +460,16 @@ assert.match(
   /<StatusMilestone trip=\{trip\}\s*\/>/,
   'StatusMilestone must still render before the journey board (FR-053..FR-055 preserved in Phase 8)'
 );
+assert.doesNotMatch(
+  tripDetailSurface,
+  /status-milestone-current|statusLabel\(trip\)|detail-badges/,
+  'Trip detail header must not duplicate the milestone current status with a current-status row, status chip, or old detached badge row'
+);
+assert.match(
+  tripDetailSurface,
+  /className="detail-context-strip"[\s\S]*?detail-context-label">Readiness[\s\S]*?detail-context-label">Monitoring/,
+  'Readiness and monitoring must be integrated into the detail header context strip instead of large status chips'
+);
 assert.match(
   tripDetailSurface,
   /hasNotificationsSection\s*\?\s*\([\s\S]{0,80}<NotificationsSection/,

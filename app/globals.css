@@ -1504,21 +1504,36 @@ p {
   user-select: none;
 }
 
-.status-milestone-current {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-top: 0.1rem;
+.detail-context-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
 }
 
-.detail-badges {
+.detail-context-item {
   display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-top: 0.5rem;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid color-mix(in srgb, var(--border-color), transparent 35%);
+  color: var(--text-secondary);
+}
+
+.detail-context-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.detail-context-item strong {
+  color: var(--text-primary);
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-align: right;
 }
 
 .detail-actions {
@@ -2619,7 +2634,8 @@ p {
   .leg-detail-flight {
     display: none;
   }
-  .detail-badges {
-    gap: 0.35rem;
+  .detail-context-strip {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
   }
 }

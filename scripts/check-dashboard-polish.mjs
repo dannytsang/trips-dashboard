@@ -511,6 +511,12 @@ assert.match(tripDetailSurface, /<StatusMilestone trip=\{trip\} \/>/, 'trip deta
 assert.match(tripDetailSurface, /CANONICAL_STATUS_FLOW\.map/, 'Status milestone must render the canonical lifecycle flow');
 assert.match(tripDetailSurface, /aria-current=\{stepActive \? 'step' : undefined\}/, 'Status milestone must mark the current status with aria-current');
 assert.match(tripDetailSurface, /status-milestone-step--cancelled/, 'Status milestone must render cancelled as a terminal exit branch');
+assert.doesNotMatch(tripDetailSurface, /className="status-milestone-current"/, 'Status milestone must not repeat the current status below the lifecycle because the active step is already highlighted');
+assert.doesNotMatch(tripDetailSurface, /<span className="status-pill">\{statusLabel\(trip\)\}<\/span>/, 'Trip detail header must not render a duplicate trip status chip after the milestone');
+assert.match(tripDetailSurface, /className="detail-context-strip"/, 'Trip detail readiness and monitoring context must be integrated into a subdued header strip rather than large pills');
+assert.match(tripDetailSurface, /<span className="detail-context-label">Readiness<\/span>[\s\S]*?<strong>\{rl\}<\/strong>/, 'Trip detail context strip must retain readiness text');
+assert.match(tripDetailSurface, /<span className="detail-context-label">Monitoring<\/span>[\s\S]*?<strong>\{monitoringLabel\(trip\)\}<\/strong>/, 'Trip detail context strip must retain monitoring text');
+assert.doesNotMatch(tripDetailSurface, /className="detail-badges"/, 'Trip detail header must not use the old detached chip row');
 assert.doesNotMatch(tripDetailSurface, /fetch\([^)]*(status|milestone|monitoring-state|live-status)/, 'Status milestone must not fetch live status or monitoring state');
 
 // FR-056..FR-058: fallbackStopThreshold row in Monitoring detail dl.

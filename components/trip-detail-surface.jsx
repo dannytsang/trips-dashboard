@@ -20,7 +20,6 @@ import {
   formatLegModeEmoji,
   formatLegModeLabel,
   formatStatusLabel,
-  formatStatusEmoji,
   CANONICAL_STATUS_FLOW,
   formatWeatherCondition,
   toDisplayLabel,
@@ -50,10 +49,6 @@ function formatDateRange(start, end) {
   return formatUtcDateRange(start, end);
 }
 
-function statusLabel(trip) {
-  return formatStatusLabel(trip.status, { active: Boolean(trip.monitoring?.active) });
-}
-
 function readinessLabel(trip) {
   // planning.readiness may already be a short display label (portfolio builder sets it)
   return trip.planning?.readiness || 'Needs info';
@@ -64,12 +59,6 @@ function monitoringLabel(trip) {
   if (trip.monitoring?.active) return 'Monitoring active';
   if (trip.monitoring?.enabled) return 'Monitoring configured';
   return 'Monitoring not enabled';
-}
-
-function monitoringBadgeClass(trip) {
-  if (trip.monitoring?.active) return 'badge-active';
-  if (trip.monitoring?.enabled) return 'badge-enabled';
-  return 'badge-neutral';
 }
 
 const ACCOMMODATION_STATUS_LABELS = {
@@ -168,16 +157,6 @@ function WeatherProgrammeBlock({ weather }) {
         ) : null}
       </div>
   );
-}
-
-function readinessBadgeClass(readiness) {
-  const lower = (readiness || '').toLowerCase();
-  if (lower === 'finalised') return 'badge-active';
-  if (lower === 'confirmed') return 'badge-active';
-  if (lower === 'planned') return 'badge-enabled';
-  if (lower === 'provisional') return 'badge-neutral';
-  if (lower === 'not needed') return 'badge-neutral';
-  return 'badge-neutral';
 }
 
 function SectionCollapsible({ title, emoji, children, defaultOpen = false }) {
@@ -1136,7 +1115,7 @@ function PlanningReviewBlock({ review }) {
 // already-loaded trip status. Cancelled renders as a terminal branch/exit.
 function StatusMilestone({ trip }) {
   const active = Boolean(trip.monitoring?.active);
-  const { emoji, label } = formatStatusEmoji(trip.status, { active });
+  const label = formatStatusLabel(trip.status, { active });
   const isCancelled = label === 'Cancelled';
 
   return (
@@ -1167,9 +1146,6 @@ function StatusMilestone({ trip }) {
             </span>
           </>
         )}
-      </div>
-      <div className="status-milestone-current">
-        {emoji} <span>{label}</span>
       </div>
     </div>
   );
@@ -1289,8 +1265,6 @@ export function TripDetailSurface({
   }
 
   const rl = readinessLabel(trip);
-  const rbc = readinessBadgeClass(rl);
-  const ml = monitoringBadgeClass(trip);
 
   const hasLegs = trip.legs && trip.legs.length > 0;
   const hasProgramme = trip.programme && trip.programme.length > 0;
@@ -1299,6 +1273,7 @@ export function TripDetailSurface({
   const hasQuestions = trip.planning?.questionsForDanny && trip.planning.questionsForDanny.length > 0;
   const hasNotes = trip.notes && trip.notes.length > 0;
   const hasMonitoringChecks = trip.monitoring?.checks && trip.monitoring.checks.length > 0;
+  const hasWeather = Boolean(trip.weather);
   const hasProgrammeSection = hasProgramme || hasWeather;
   const hasPlanningSection = hasAssumptions || hasMissing || hasQuestions;
   const hasNotesSection = hasNotes;
@@ -1307,7 +1282,6 @@ export function TripDetailSurface({
   const monitoringPhaseTone = monitoringPhase?.started ? 'started' : 'neutral';
   const hasTransportDecision = trip.planning?.transportDecision && trip.planning.transportDecision.selectedMode;
   const hasNextAction = typeof trip.planning?.nextAction === 'string' && trip.planning.nextAction.trim().length > 0;
-  const hasWeather = Boolean(trip.weather);
   const hasTripNotifications = trip.notifications
     && typeof trip.notifications === 'object'
     && Object.keys(trip.notifications).length > 0;
@@ -1369,10 +1343,15 @@ export function TripDetailSurface({
             <h1 className="detail-title">{trip.title || tripId}</h1>
             <p className="detail-destination">📍 {trip.destinationLabel || 'Destination TBC'}</p>
             <StatusMilestone trip={trip} />
-            <div className="detail-badges">
-              <span className={`status-pill ${rbc}`}>{rl}</span>
-              <span className={`status-pill ${ml}`}>{monitoringLabel(trip)}</span>
-              <span className="status-pill">{statusLabel(trip)}</span>
+            <div className="detail-context-strip" aria-label="Trip planning and monitoring context">
+              <div className="detail-context-item">
+                <span className="detail-context-label">Readiness</span>
+                <strong>{rl}</strong>
+              </div>
+              <div className="detail-context-item">
+                <span className="detail-context-label">Monitoring</span>
+                <strong>{monitoringLabel(trip)}</strong>
+              </div>
             </div>
           </div>
         </header>
