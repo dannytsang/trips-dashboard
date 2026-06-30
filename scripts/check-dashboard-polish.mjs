@@ -1259,27 +1259,50 @@ assert.match(
   /const stageEnd\s+=\s+leg\.end\s+\|\|\s+leg\.monitoring_timing\?\.end;/,
   'ItineraryStageCard must compute stageEnd preferring leg.end with monitoring_timing fallback'
 );
-// ItineraryStageCard renders Start and End fields via formatUtcWeekdayDateTime.
 assert.match(
   tripDetailSurface,
-  /if \(stageStart\) fields\.push\(\{ key: 'start', label: 'Start', value: formatUtcWeekdayDateTime\(stageStart\) \}\)/,
-  'ItineraryStageCard must render a Start field from stageStart via formatUtcWeekdayDateTime'
+  /const stageStartLabel\s+=\s+stageStart \? formatUtcWeekdayDateTime\(stageStart\) : null;/,
+  'ItineraryStageCard must format the Start tile from stageStart via formatUtcWeekdayDateTime'
 );
 assert.match(
   tripDetailSurface,
-  /if \(stageEnd\)[\s\S]{0,30}fields\.push\(\{ key: 'end',\s+label: 'End',\s+value: formatUtcWeekdayDateTime\(stageEnd\) \}\)/,
-  'ItineraryStageCard must render an End field from stageEnd via formatUtcWeekdayDateTime'
-);
-// ItineraryStageCard Start/End are gated on truthiness — no fabrication when genuinely absent.
-assert.match(
-  tripDetailSurface,
-  /if \(stageStart\)[\s\S]{0,30}key: 'start'/,
-  'ItineraryStageCard Start field must be gated on stageStart being truthy'
+  /const stageEndLabel\s+=\s+stageEnd \? formatUtcWeekdayDateTime\(stageEnd\) : null;/,
+  'ItineraryStageCard must format the End tile from stageEnd via formatUtcWeekdayDateTime'
 );
 assert.match(
   tripDetailSurface,
-  /if \(stageEnd\)[\s\S]{0,30}key: 'end'/,
-  'ItineraryStageCard End field must be gated on stageEnd being truthy'
+  /<StageFactTile label="Start" value=\{stageStartLabel\} tone="timing" \/>/,
+  'ItineraryStageCard must render a Start fact tile from stageStartLabel'
+);
+assert.match(
+  tripDetailSurface,
+  /<StageFactTile label="End" value=\{stageEndLabel\} tone="timing" \/>/,
+  'ItineraryStageCard must render an End fact tile from stageEndLabel'
+);
+assert.match(
+  tripDetailSurface,
+  /className="itinerary-stage-summary-bar"/,
+  'Selected mockup D must use a compact summary bar for each leg card'
+);
+assert.match(
+  tripDetailSurface,
+  /className="stage-fact-grid"/,
+  'Selected mockup D must use a structured fact-tile grid for leg route and timing'
+);
+assert.match(
+  tripDetailSurface,
+  /className="stage-operational-note"/,
+  'Selected mockup D must render buffer as an operational note instead of competing with core timing tiles'
+);
+assert.match(
+  globalCss,
+  /\.itinerary-stage-summary-bar[\s\S]*background:\s*#0f172a/,
+  'Selected mockup D summary bar must use the dark compact treatment'
+);
+assert.match(
+  globalCss,
+  /\.stage-fact-grid[\s\S]*grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)/,
+  'Selected mockup D fact tiles must use a four-column desktop grid'
 );
 
 console.log('Dashboard polish checks passed.');

@@ -995,12 +995,22 @@ p {
 .itinerary-stage-card {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
-  transition: box-shadow 0.15s;
+  transition: box-shadow 0.15s, transform 0.15s;
 }
 .itinerary-stage-card:hover {
   box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.itinerary-stage-summary-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.8rem 0.95rem;
+  background: #0f172a;
+  color: #f8fafc;
 }
 
 .itinerary-stage-card-header {
@@ -1039,11 +1049,15 @@ p {
 .itinerary-stage-leg-label {
   display: block;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.itinerary-stage-summary-bar .itinerary-stage-leg-label {
+  color: #f8fafc;
+  font-size: 0.95rem;
 }
 
 .itinerary-stage-leg-sub {
@@ -1051,12 +1065,50 @@ p {
   font-size: 0.75rem;
   color: var(--text-muted);
 }
+.itinerary-stage-summary-bar .itinerary-stage-leg-sub {
+  color: #cbd5e1;
+}
 
 .itinerary-stage-badges {
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem;
   flex-shrink: 0;
+}
+
+.itinerary-stage-summary-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+}
+
+.stage-summary-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #f8fafc;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.stage-summary-pill--timing {
+  color: #dbeafe;
+}
+.stage-summary-pill--monitoring {
+  color: #dcfce7;
+}
+
+.itinerary-stage-summary-bar .stage-weather-pill {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
 }
 
 .itinerary-stage-body {
@@ -1103,7 +1155,23 @@ p {
   .detail-journey-board {
     grid-template-columns: 1fr;
   }
-  gap: 0.35rem;
+  .itinerary-stage-summary-bar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .itinerary-stage-summary-pills {
+    justify-content: flex-start;
+    width: 100%;
+  }
+  .stage-fact-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .stage-fact-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .stage-programme-item {
@@ -1138,6 +1206,77 @@ p {
 }
 
 /* Leg detail fields inside stage card */
+.stage-fact-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0;
+}
+.stage-fact-tile {
+  min-width: 0;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, var(--bg-tertiary), transparent 20%);
+}
+.stage-fact-tile dt,
+.stage-operational-field dt {
+  margin: 0 0 0.25rem;
+  font-size: 0.66rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.stage-fact-tile dd,
+.stage-operational-field dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 650;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.stage-fact-tile--timing {
+  background: color-mix(in srgb, var(--accent-blue) 10%, var(--bg-tertiary));
+  border-color: color-mix(in srgb, var(--accent-blue) 35%, var(--border-color));
+}
+.stage-fact-tile--timing dd {
+  color: var(--accent-blue);
+}
+.stage-operational-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+.stage-operational-field {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.6rem;
+  background: var(--bg-secondary);
+}
+.stage-operational-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  align-items: baseline;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid color-mix(in srgb, #f59e0b 45%, var(--border-color));
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, #f59e0b 12%, var(--bg-secondary));
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+.stage-operational-note-label {
+  color: #d97706;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.72rem;
+}
+
 .stage-leg-fields {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));

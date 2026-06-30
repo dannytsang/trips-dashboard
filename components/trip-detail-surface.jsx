@@ -398,6 +398,25 @@ function CompactTravellersSection({ travellers }) {
   );
 }
 
+function formatStageTimeToken(value) {
+  if (!value) return null;
+  try {
+    return formatUtcTime(value);
+  } catch (err) {
+    return value;
+  }
+}
+
+function StageFactTile({ label, value, tone = 'default' }) {
+  if (!value) return null;
+  return (
+    <div className={`stage-fact-tile stage-fact-tile--${tone}`}>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </div>
+  );
+}
+
 // Phase 8 FR-061: ItineraryStageCard — one card per leg, combining
 // leg detail fields, programme items for that stage, weather pill,
 // and per-leg monitoring phase (computed per-leg via computeMonitoringPhase).
@@ -411,6 +430,15 @@ function ItineraryStageCard({ leg, index, programme, weather, monitoringPhase })
   const cju = leg.contactJourneyUpdate;
   const notif = leg.notification;
   const review = leg.planningReview;
+  // Effective start/end: prefer leg.start/leg.end; fall back to monitoring_timing.
+  // Do NOT fabricate times when both sources are absent.
+  const stageStart = leg.start || leg.monitoring_timing?.start;
+  const stageEnd = leg.end || leg.monitoring_timing?.end;
+  const stageStartLabel = stageStart ? formatUtcWeekdayDateTime(stageStart) : null;
+  const stageEndLabel = stageEnd ? formatUtcWeekdayDateTime(stageEnd) : null;
+  const stageTimeRange = [formatStageTimeToken(stageStart), formatStageTimeToken(stageEnd)]
+    .filter(Boolean)
+    .join(' → ');
 
   // FR-061 programme-to-stage matching: display-safe, no guessing.
   // Match programme items to this leg's destination label.
@@ -429,51 +457,65 @@ function ItineraryStageCard({ leg, index, programme, weather, monitoringPhase })
     const stageWeatherSection = weather; // brief may later provide per-leg weather
     const effectiveWeather = stageWeatherSection || weatherSection;
 
-  // Collect leg detail fields for the card body
-  const fields = [];
-  if (leg.origin?.label) fields.push({ key: 'from', label: 'From', value: leg.origin.label });
-  if (leg.destination?.label) fields.push({ key: 'to', label: 'To', value: leg.destination.label });
-  if (leg.target_arrival) fields.push({ key: 'target_arrival', label: 'Target arrival', value: leg.target_arrival });
-  if (leg.planned_departure) fields.push({ key: 'planned_departure', label: 'Planned departure', value: leg.planned_departure });
-  if (leg.estimated_drive) fields.push({ key: 'estimated_drive', label: 'Est. drive', value: leg.estimated_drive });
-  if (leg.buffer) fields.push({ key: 'buffer', label: 'Buffer', value: leg.buffer });
-  if (leg.transport_status) fields.push({ key: 'transport_status', label: 'Status', value: leg.transport_status.replace(/_/g, ' ') });
-  // Effective start/end: prefer leg.start/leg.end; fall back to monitoring_timing.
-  // Do NOT fabricate times when both sources are absent.
-  const stageStart = leg.start || leg.monitoring_timing?.start;
-  const stageEnd   = leg.end   || leg.monitoring_timing?.end;
-  if (stageStart) fields.push({ key: 'start', label: 'Start', value: formatUtcWeekdayDateTime(stageStart) });
-  if (stageEnd)   fields.push({ key: 'end',   label: 'End',   value: formatUtcWeekdayDateTime(stageEnd) });
+  const operationalFields = [];
+  if (leg.planned_departure) {
+    operationalFields.push({ key: 'planned_departure', label: 'Planned departure', value: formatDateTime(leg.planned_departure) });
+  }
+  if (leg.target_arrival) {
+    operationalFields.push({ key: 'target_arrival', label: 'Target arrival', value: formatDateTime(leg.target_arrival) });
+  }
+  if (leg.estimated_drive) {
+    operationalFields.push({ key: 'estimated_drive', label: 'Est. drive', value: leg.estimated_drive });
+  }
+  if (leg.transport_status) {
+    operationalFields.push({ key: 'transport_status', label: 'Status', value: leg.transport_status.replace(/_/g, ' ') });
+  }
 
   return (
     <article className="itinerary-stage-card" aria-label={`Stage ${index + 1}: ${label}`}>
-      {/* Card header */}
-      <div className="itinerary-stage-card-header">
-        <span className="itinerary-stage-idx">{index + 1}</span>
-        <span className="itinerary-stage-mode">{formatLegModeEmoji(mode)}</span>
+      {/* Card header — selected mockup D: compact summary bar with timing chips. */}
+      <div className="itinerary-stage-summary-bar">
+        <span className="itinerary-stage-idx itinerary-stage-idx--summary">{index + 1}</span>
+        <span className="itinerary-stage-mode" aria-hidden="true">{formatLegModeEmoji(mode)}</span>
         <div className="itinerary-stage-title">
           <span className="itinerary-stage-leg-label">{label}</span>
           <span className="itinerary-stage-leg-sub">{formatLegModeLabel(mode)}</span>
         </div>
-        <div className="itinerary-stage-badges">
+        <div className="itinerary-stage-summary-pills">
+          {stageTimeRange ? <span className="stage-summary-pill stage-summary-pill--timing">{stageTimeRange}</span> : null}
           {effectiveWeather ? <CompactWeatherPill weather={effectiveWeather} /> : null}
-          {cju ? <span className="leg-cju-pill" style={{ fontSize: '0.72rem', padding: '0.1rem 0.4rem' }}>📨</span> : null}
-          {notif ? <span className="leg-notif-pill" style={{ fontSize: '0.72rem', padding: '0.1rem 0.4rem' }}>🔔</span> : null}
+          {monitoringPhase?.label ? <span className="stage-summary-pill stage-summary-pill--monitoring">📡 {monitoringPhase.label}</span> : null}
+          {cju ? <span className="stage-summary-pill" aria-label="Contact journey update configured">📨</span> : null}
+          {notif ? <span className="stage-summary-pill" aria-label="Notification configured">🔔</span> : null}
         </div>
       </div>
 
       {/* Card body */}
       <div className="itinerary-stage-body">
-        {/* Leg detail fields */}
-        {fields.length > 0 ? (
-          <dl className="stage-leg-fields">
-            {fields.map((f) => (
-              <div key={f.key} className="stage-leg-field">
+        {/* Mockup D: route/timing fact tiles first, then supporting operational notes. */}
+        <dl className="stage-fact-grid" aria-label="Leg route and timing">
+          <StageFactTile label="From" value={leg.origin?.label} />
+          <StageFactTile label="To" value={leg.destination?.label} />
+          <StageFactTile label="Start" value={stageStartLabel} tone="timing" />
+          <StageFactTile label="End" value={stageEndLabel} tone="timing" />
+        </dl>
+
+        {operationalFields.length > 0 ? (
+          <dl className="stage-operational-grid" aria-label="Leg operational details">
+            {operationalFields.map((f) => (
+              <div key={f.key} className="stage-operational-field">
                 <dt>{f.label}</dt>
                 <dd>{f.value}</dd>
               </div>
             ))}
           </dl>
+        ) : null}
+
+        {leg.buffer ? (
+          <div className="stage-operational-note">
+            <span className="stage-operational-note-label">⚠ Buffer</span>
+            <span>{leg.buffer}</span>
+          </div>
         ) : null}
 
         {/* Programme items for this stage */}
