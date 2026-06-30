@@ -15,6 +15,7 @@
 // stage cards; compact travellers; Planning + Transport grouped.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import {
   formatLegModeEmoji,
@@ -1160,14 +1161,18 @@ export function TripDetailSurface({
   notFound,
   errorMessage,
   dashboardMode = null,
+  userName = 'User',
 }) {
   const [theme, setTheme] = useState('dark');
   const [showTopbarTitle, setShowTopbarTitle] = useState(false);
   const [browserNow, setBrowserNow] = useState(null);
   const [isDebugOpen, setIsDebugOpen] = useState(false);
   const [isTripDebugExpanded, setIsTripDebugExpanded] = useState(false);
+  const [isSessionMenuOpen, setIsSessionMenuOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const topbarRef = useRef(null);
   const headerRef = useRef(null);
+  const sessionMenuRef = useRef(null);
 
   useEffect(() => {
     const initial = getInitialTheme();
@@ -1215,7 +1220,66 @@ export function TripDetailSurface({
     return () => window.clearInterval(intervalId);
   }, []);
 
+  useEffect(() => {
+    function handlePointerDown(event) {
+      if (!sessionMenuRef.current) return;
+      if (!sessionMenuRef.current.contains(event.target)) {
+        setIsSessionMenuOpen(false);
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        setIsSessionMenuOpen(false);
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   const nextTheme = theme === 'dark' ? 'light' : 'dark';
+  const themeToggleLabel = useMemo(
+    () => `Switch to ${nextTheme} mode`,
+    [nextTheme],
+  );
+
+  function handleSessionMenuToggle() {
+    setIsSessionMenuOpen(open => !open);
+  }
+
+  function handleSessionMenuClose() {
+    setIsSessionMenuOpen(false);
+  }
+
+  function handleSessionSignOut() {
+    handleSessionMenuClose();
+    setIsSigningOut(true);
+    void signOut({ callbackUrl: '/auth/signin?signedOut=1' });
+  }
+
+  function handleThemeToggle() {
+    setTheme(t => t === 'dark' ? 'light' : 'dark');
+  }
+
+  const userLabel = userName || 'User';
+
+  if (isSigningOut) {
+    return (
+      <main className="dashboard-shell" data-theme={theme}>
+        <section className="auth-card" aria-labelledby="detail-signout-heading">
+          <p className="eyebrow">Tsang Travel</p>
+          <h1 id="detail-signout-heading">🔐 Signing out</h1>
+          <p>Ending the local dashboard session and returning to the protected sign-in flow.</p>
+        </section>
+      </main>
+    );
+  }
 
   if (storageConfigurationIncomplete) {
     return (
@@ -1317,23 +1381,52 @@ export function TripDetailSurface({
             <span className="detail-topbar-date">{formatDateRange(trip.start, trip.end)}</span>
             <span className="detail-topbar-name">{trip.title || tripId}</span>
           </div>
-          <button
-            type="button"
-            className={`secondary-action debug-mode-toggle ${isDebugOpen ? 'debug-mode-toggle--active' : ''}`}
-            aria-pressed={isDebugOpen}
-            aria-label={isDebugOpen ? 'Turn trip detail debug mode off' : 'Turn trip detail debug mode on'}
-            onClick={() => setIsDebugOpen(open => !open)}
-          >
-            🛠 Debug {isDebugOpen ? 'on' : 'off'}
-          </button>
-          <button
-            type="button"
-            className="secondary-action theme-toggle"
-            aria-label={`Switch to ${nextTheme} mode`}
-            onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-          >
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </button>
+          <div className="detail-topbar-actions">
+            <button
+              type="button"
+              className={`secondary-action debug-mode-toggle ${isDebugOpen ? 'debug-mode-toggle--active' : ''}`}
+              aria-pressed={isDebugOpen}
+              aria-label={isDebugOpen ? 'Turn trip detail debug mode off' : 'Turn trip detail debug mode on'}
+              onClick={() => setIsDebugOpen(open => !open)}
+            >
+              🛠 Debug {isDebugOpen ? 'on' : 'off'}
+            </button>
+            <button
+              type="button"
+              className="secondary-action theme-toggle"
+              aria-label={themeToggleLabel}
+              onClick={handleThemeToggle}
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+            <div className="session-actions detail-session-actions" ref={sessionMenuRef}>
+              <button
+                aria-expanded={isSessionMenuOpen}
+                aria-haspopup="menu"
+                aria-label={`Open account menu for ${userLabel}`}
+                className="session-user session-user-trigger detail-session-user"
+                type="button"
+                onClick={handleSessionMenuToggle}
+              >
+                <span className="session-user-label session-user-label--compact">{userLabel}</span>
+                <span className="session-user-caret" aria-hidden="true">▾</span>
+              </button>
+              {isSessionMenuOpen ? (
+                <div className="session-menu detail-session-menu" role="menu" aria-label="Account menu">
+                  <button
+                    className="secondary-action session-menu-item session-menu-item--sign-out"
+                    type="button"
+                    role="menuitem"
+                    aria-label="Sign out"
+                    onClick={handleSessionSignOut}
+                  >
+                    <span className="session-menu-item-icon" aria-hidden="true">🔐</span>
+                    <span className="session-menu-item-label">Sign out</span>
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
         </div>
 
         {/* Header */}

@@ -7,6 +7,7 @@ const signInPage = readFileSync('components/auth-signin-page.jsx', 'utf8');
 const homePage = readFileSync('app/page.jsx', 'utf8');
 const dashboardSurface = readFileSync('components/dashboard-session-surface.jsx', 'utf8');
 const tripDetailSurface = readFileSync('components/trip-detail-surface.jsx', 'utf8');
+const tripDetailPage = readFileSync('app/trips/[tripId]/page.jsx', 'utf8');
 const globalCss = readFileSync('app/globals.css', 'utf8');
 const syncRoute = readFileSync('app/api/trips/sync/route.js', 'utf8');
 const tripsRoute = readFileSync('app/api/trips/route.js', 'utf8');
@@ -469,6 +470,21 @@ assert.match(
   tripDetailSurface,
   /className="detail-context-strip"[\s\S]*?detail-context-label">Readiness[\s\S]*?detail-context-label">Monitoring/,
   'Readiness and monitoring must be integrated into the detail header context strip instead of large status chips'
+);
+assert.match(
+  tripDetailPage,
+  /userName=\{session\.user\?\.name \|\| session\.user\?\.email \|\| 'User'\}/,
+  'Trip detail route must pass authenticated user name/email into TripDetailSurface'
+);
+assert.match(
+  tripDetailSurface,
+  /className="session-user session-user-trigger detail-session-user"[\s\S]*?\{userLabel\}/,
+  'Trip detail topbar must render the logged-in user account control'
+);
+assert.match(
+  tripDetailSurface,
+  /role="menu" aria-label="Account menu"[\s\S]*?handleSessionSignOut/,
+  'Trip detail account menu must expose sign-out from the authenticated user menu'
 );
 assert.match(
   tripDetailSurface,

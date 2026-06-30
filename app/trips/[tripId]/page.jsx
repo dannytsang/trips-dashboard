@@ -48,6 +48,7 @@ export default async function TripDetailPage({ params }) {
       dashboardMode={dashboardMode}
       notFound={notFound}
       errorMessage={errorMessage}
+      userName={session.user?.name || session.user?.email || 'User'}
     />
   );
 }

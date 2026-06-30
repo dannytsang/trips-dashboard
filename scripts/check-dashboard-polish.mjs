@@ -18,6 +18,7 @@ import {
 
 const dashboardSurface = readFileSync('components/dashboard-session-surface.jsx', 'utf8');
 const tripDetailSurface = readFileSync('components/trip-detail-surface.jsx', 'utf8');
+const tripDetailPage = readFileSync('app/trips/[tripId]/page.jsx', 'utf8');
 const monitoringPhaseHelpSource = readFileSync('components/monitoring-phase-help.jsx', 'utf8');
 const globalCss = readFileSync('app/globals.css', 'utf8');
 const monitoringPhaseLib = readFileSync('lib/monitoring-phase.mjs', 'utf8');
@@ -518,6 +519,14 @@ assert.match(tripDetailSurface, /<span className="detail-context-label">Readines
 assert.match(tripDetailSurface, /<span className="detail-context-label">Monitoring<\/span>[\s\S]*?<strong>\{monitoringLabel\(trip\)\}<\/strong>/, 'Trip detail context strip must retain monitoring text');
 assert.doesNotMatch(tripDetailSurface, /className="detail-badges"/, 'Trip detail header must not use the old detached chip row');
 assert.doesNotMatch(tripDetailSurface, /fetch\([^)]*(status|milestone|monitoring-state|live-status)/, 'Status milestone must not fetch live status or monitoring state');
+assert.match(tripDetailPage, /userName=\{session\.user\?\.name \|\| session\.user\?\.email \|\| 'User'\}/, 'trip detail route must pass the authenticated user name/email into TripDetailSurface');
+assert.match(tripDetailSurface, /userName = 'User'/, 'TripDetailSurface must accept a userName prop with a safe fallback');
+assert.match(tripDetailSurface, /aria-label=\{`Open account menu for \$\{userLabel\}`\}/, 'trip detail topbar must expose an account menu button for the logged-in user');
+assert.match(tripDetailSurface, /className="session-user session-user-trigger detail-session-user"/, 'trip detail account control must reuse the session-user trigger styling');
+assert.match(tripDetailSurface, /role="menu" aria-label="Account menu"/, 'trip detail account menu must expose menu semantics');
+assert.match(tripDetailSurface, /handleSessionSignOut/, 'trip detail account menu must provide a sign-out action');
+assert.match(tripDetailSurface, /document\.addEventListener\('pointerdown', handlePointerDown\)/, 'trip detail account menu must close on outside click');
+assert.match(globalCss, /\.detail-topbar-actions\s*\{/, 'trip detail topbar must style the grouped actions including user controls');
 
 // FR-056..FR-058: fallbackStopThreshold row in Monitoring detail dl.
 // The row must appear inside the monitoring-detail-list dl, must use
