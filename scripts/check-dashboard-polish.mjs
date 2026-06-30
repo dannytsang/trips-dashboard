@@ -1196,14 +1196,90 @@ assert.match(
   'Trip detail debug disclosures must expose accessible copy-to-clipboard controls (FR-009)'
 );
 assert.match(
-  dashboardSurface + tripDetailSurface,
+  tripDetailSurface + tripDetailPage,
   /navigator\.clipboard\.writeText\(payload\)/,
   'Debug copy controls must copy deterministic debug JSON through the clipboard API'
 );
 assert.match(
-  dashboardSurface + tripDetailSurface,
+  tripDetailSurface + tripDetailPage,
   /copyState === 'copied' \? '✓ Copied' : copyState === 'failed' \? 'Copy failed' : 'Copy'/,
   'Debug copy controls must report non-disruptive success and failure states'
+);
+
+// SC-022 / spec 010 — LegDetailBlock (inside LegCollapsible) and
+// ItineraryStageCard must surface Start and End for every leg that
+// carries projected timing. Source priority: leg.start/leg.end first,
+// then leg.monitoring_timing.start/end as fallback. No fabrication when
+// both are absent. Formatting uses formatUtcWeekdayDateTime.
+// St Pancras → Euston transfer: leg.start 09:44, leg.end 10:16 → End
+// must be visible in the rendered detail fields.
+
+// LegDetailBlock computes effectiveStart/effectiveEnd from leg.start || monitoring_timing.start.
+assert.match(
+  tripDetailSurface,
+  /const effectiveStart\s+=\s+leg\.start\s+\|\|\s+leg\.monitoring_timing\?\.start;/,
+  'LegDetailBlock must compute effectiveStart preferring leg.start with monitoring_timing fallback'
+);
+assert.match(
+  tripDetailSurface,
+  /const effectiveEnd\s+=\s+leg\.end\s+\|\|\s+leg\.monitoring_timing\?\.end;/,
+  'LegDetailBlock must compute effectiveEnd preferring leg.end with monitoring_timing fallback'
+);
+// LegDetailBlock renders Start and End fields via formatUtcWeekdayDateTime.
+assert.match(
+  tripDetailSurface,
+  /\{ key: 'start', label: 'Start', value: formatUtcWeekdayDateTime\(effectiveStart\) \}/,
+  'LegDetailBlock must render a Start field from effectiveStart via formatUtcWeekdayDateTime'
+);
+assert.match(
+  tripDetailSurface,
+  /\{ key: 'end', label: 'End', value: formatUtcWeekdayDateTime\(effectiveEnd\) \}/,
+  'LegDetailBlock must render an End field from effectiveEnd via formatUtcWeekdayDateTime'
+);
+// LegDetailBlock Start/End are gated on truthiness — no fabrication when genuinely absent.
+assert.match(
+  tripDetailSurface,
+  /if \(effectiveStart\) \{[\s\S]{0,30}fields\.push\(\{ key: 'start'/,
+  'LegDetailBlock Start field must be gated on effectiveStart being truthy'
+);
+assert.match(
+  tripDetailSurface,
+  /if \(effectiveEnd\) \{[\s\S]{0,30}fields\.push\(\{ key: 'end'/,
+  'LegDetailBlock End field must be gated on effectiveEnd being truthy'
+);
+
+// ItineraryStageCard (FR-061) independently computes stageStart/stageEnd with the same priority.
+assert.match(
+  tripDetailSurface,
+  /const stageStart\s+=\s+leg\.start\s+\|\|\s+leg\.monitoring_timing\?\.start;/,
+  'ItineraryStageCard must compute stageStart preferring leg.start with monitoring_timing fallback'
+);
+assert.match(
+  tripDetailSurface,
+  /const stageEnd\s+=\s+leg\.end\s+\|\|\s+leg\.monitoring_timing\?\.end;/,
+  'ItineraryStageCard must compute stageEnd preferring leg.end with monitoring_timing fallback'
+);
+// ItineraryStageCard renders Start and End fields via formatUtcWeekdayDateTime.
+assert.match(
+  tripDetailSurface,
+  /if \(stageStart\) fields\.push\(\{ key: 'start', label: 'Start', value: formatUtcWeekdayDateTime\(stageStart\) \}\)/,
+  'ItineraryStageCard must render a Start field from stageStart via formatUtcWeekdayDateTime'
+);
+assert.match(
+  tripDetailSurface,
+  /if \(stageEnd\)[\s\S]{0,30}fields\.push\(\{ key: 'end',\s+label: 'End',\s+value: formatUtcWeekdayDateTime\(stageEnd\) \}\)/,
+  'ItineraryStageCard must render an End field from stageEnd via formatUtcWeekdayDateTime'
+);
+// ItineraryStageCard Start/End are gated on truthiness — no fabrication when genuinely absent.
+assert.match(
+  tripDetailSurface,
+  /if \(stageStart\)[\s\S]{0,30}key: 'start'/,
+  'ItineraryStageCard Start field must be gated on stageStart being truthy'
+);
+assert.match(
+  tripDetailSurface,
+  /if \(stageEnd\)[\s\S]{0,30}key: 'end'/,
+  'ItineraryStageCard End field must be gated on stageEnd being truthy'
 );
 
 console.log('Dashboard polish checks passed.');

@@ -302,6 +302,16 @@ function LegDetailBlock({ leg }) {
   if (leg.transport_status) {
     fields.push({ key: 'transport_status', label: 'Status', value: leg.transport_status.replace(/_/g, ' ') });
   }
+  // Effective start/end: prefer leg.start/leg.end; fall back to monitoring_timing.
+  // Do NOT fabricate times when both sources are absent.
+  const effectiveStart = leg.start || leg.monitoring_timing?.start;
+  const effectiveEnd   = leg.end   || leg.monitoring_timing?.end;
+  if (effectiveStart) {
+    fields.push({ key: 'start', label: 'Start', value: formatUtcWeekdayDateTime(effectiveStart) });
+  }
+  if (effectiveEnd) {
+    fields.push({ key: 'end', label: 'End', value: formatUtcWeekdayDateTime(effectiveEnd) });
+  }
   const sources = Array.isArray(leg.monitoring_sources) ? leg.monitoring_sources.filter(Boolean) : [];
 
   if (fields.length === 0 && sources.length === 0) return null;
@@ -428,6 +438,12 @@ function ItineraryStageCard({ leg, index, programme, weather, monitoringPhase })
   if (leg.estimated_drive) fields.push({ key: 'estimated_drive', label: 'Est. drive', value: leg.estimated_drive });
   if (leg.buffer) fields.push({ key: 'buffer', label: 'Buffer', value: leg.buffer });
   if (leg.transport_status) fields.push({ key: 'transport_status', label: 'Status', value: leg.transport_status.replace(/_/g, ' ') });
+  // Effective start/end: prefer leg.start/leg.end; fall back to monitoring_timing.
+  // Do NOT fabricate times when both sources are absent.
+  const stageStart = leg.start || leg.monitoring_timing?.start;
+  const stageEnd   = leg.end   || leg.monitoring_timing?.end;
+  if (stageStart) fields.push({ key: 'start', label: 'Start', value: formatUtcWeekdayDateTime(stageStart) });
+  if (stageEnd)   fields.push({ key: 'end',   label: 'End',   value: formatUtcWeekdayDateTime(stageEnd) });
 
   return (
     <article className="itinerary-stage-card" aria-label={`Stage ${index + 1}: ${label}`}>
