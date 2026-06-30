@@ -401,6 +401,16 @@ assert.match(
   /stageWeatherSection\s*\|\|\s*weatherSection/,
   'ItineraryStageCard must prefer the stage-specific weather section, falling back to the primary trip weather section (FR-063)'
 );
+assert.match(
+  tripDetailSurface,
+  /<DetailSection title="Programme" emoji="📋">[\s\S]*?<WeatherProgrammeBlock weather=\{trip\.weather\} \/>/,
+  'Programme section must include the folded-in weather block (FR-060/FR-061)'
+);
+assert.doesNotMatch(
+  tripDetailSurface,
+  /<SectionCollapsible title="Weather" emoji="🌦️"/,
+  'Weather must not render as a standalone section after being folded into Programme (FR-060/FR-061)'
+);
 // Compact travellers (FR-065): a condensed traveller summary replaces the
 // full Travellers SectionCollapsible when rendered inside the stage card
 // or the board header. The component renders initials chips + total count.

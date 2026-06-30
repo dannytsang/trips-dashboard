@@ -1597,6 +1597,11 @@ p {
   display: grid;
   gap: 0.75rem;
 }
+.weather-detail-card--programme {
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--border-color);
+}
 .weather-detail-meta {
   display: flex;
   flex-wrap: wrap;

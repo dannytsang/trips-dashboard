@@ -93,8 +93,8 @@ function formatWeatherMetaTime(value) {
 }
 
 // Phase 8: compact weather pill shown on itinerary stage cards.
-// Derives summary from the trip-level weather object that was already
-// rendered as the standalone WeatherDetailSection in v7.
+// Derives summary from the trip-level weather object that is also folded
+// into the Programme section for full weather detail.
 // FR-062 contract: if a forecast cannot be matched to a specific stage
 // the page MAY show it as trip-level summary; it MUST NOT fabricate a
 // stage-specific match. This pill shows the trip-level summary on every
@@ -112,7 +112,7 @@ function CompactWeatherPill({ weather }) {
   );
 }
 
-function WeatherDetailSection({ weather }) {
+function WeatherProgrammeBlock({ weather }) {
   if (!weather) return null;
   const summary = weather.summary;
   const periods = Array.isArray(weather.periods) ? weather.periods : [];
@@ -122,8 +122,7 @@ function WeatherDetailSection({ weather }) {
   const coverageNote = weather.coverageNote || (!hasAvailableForecast ? 'Forecast is not available for this trip window yet.' : null);
 
   return (
-    <SectionCollapsible title="Weather" emoji="🌦️" defaultOpen={true}>
-      <div className="weather-detail-card">
+      <div className="weather-detail-card weather-detail-card--programme">
         <div className="weather-detail-meta">
           {summary ? (
             <span className="weather-detail-summary" aria-label={summary.accessibleLabel || formatWeatherCondition(summary.label, { icon: summary.icon }).accessibleLabel}>
@@ -168,7 +167,6 @@ function WeatherDetailSection({ weather }) {
           </ol>
         ) : null}
       </div>
-    </SectionCollapsible>
   );
 }
 
@@ -1301,7 +1299,7 @@ export function TripDetailSurface({
   const hasQuestions = trip.planning?.questionsForDanny && trip.planning.questionsForDanny.length > 0;
   const hasNotes = trip.notes && trip.notes.length > 0;
   const hasMonitoringChecks = trip.monitoring?.checks && trip.monitoring.checks.length > 0;
-  const hasProgrammeSection = hasProgramme;
+  const hasProgrammeSection = hasProgramme || hasWeather;
   const hasPlanningSection = hasAssumptions || hasMissing || hasQuestions;
   const hasNotesSection = hasNotes;
   const hasMonitoringSection = trip.monitoring?.enabled || trip.monitoring?.active || hasMonitoringChecks;
@@ -1434,14 +1432,12 @@ export function TripDetailSurface({
           </div>
         ) : null}
 
-        {/* Weather — full detail section (FR-060) */}
-        {hasWeather ? <WeatherDetailSection weather={trip.weather} /> : null}
-
-        {/* Programme section — non-collapsible (FR-061 exception: programme
-            is embedded in stage cards; this section shows un-matched items) */}
+        {/* Programme section now owns full weather detail (FR-060/061). */}
         {hasProgrammeSection ? (
           <DetailSection title="Programme" emoji="📋">
-            <ol className="programme-list">
+            {hasWeather ? <WeatherProgrammeBlock weather={trip.weather} /> : null}
+            {hasProgramme ? (
+              <ol className="programme-list">
               {trip.programme.map((item, i) => (
                 <li key={i} className={`programme-item ${item.status?.includes('confirmed') ? '' : 'programme-item-unconfirmed'}`}>
                   <div className="programme-item-header">
@@ -1459,6 +1455,9 @@ export function TripDetailSurface({
                 </li>
               ))}
             </ol>
+            ) : (
+              <p className="text-muted">No programme items recorded for this trip.</p>
+            )}
           </DetailSection>
         ) : null}
 
