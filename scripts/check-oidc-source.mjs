@@ -478,8 +478,13 @@ assert.doesNotMatch(
 );
 assert.match(
   tripDetailSurface,
-  /className="detail-context-strip"[\s\S]*?detail-context-label">Readiness[\s\S]*?detail-context-label">Monitoring/,
-  'Readiness and monitoring must be integrated into the detail header context strip instead of large status chips'
+  /className="detail-context-strip"[\s\S]*?detail-context-label">Monitoring/,
+  'Monitoring must remain integrated into the detail header context strip instead of large status chips'
+);
+assert.doesNotMatch(
+  tripDetailSurface,
+  /detail-context-label">Readiness/,
+  'Readiness must not be repeated in the detail header context strip because the Status milestone already carries trip status'
 );
 assert.match(
   tripDetailPage,

@@ -52,11 +52,6 @@ function formatDateRange(start, end) {
   return formatUtcDateRange(start, end);
 }
 
-function readinessLabel(trip) {
-  // planning.readiness may already be a short display label (portfolio builder sets it)
-  return trip.planning?.readiness || 'Needs info';
-}
-
 function monitoringLabel(trip) {
   if (trip.monitoring?.summary) return toDisplayLabel(trip.monitoring.summary, 'Monitoring status pending');
   if (trip.monitoring?.active) return 'Monitoring active';
@@ -1320,8 +1315,6 @@ export function TripDetailSurface({
     );
   }
 
-  const rl = readinessLabel(trip);
-
   const hasLegs = trip.legs && trip.legs.length > 0;
   const hasProgramme = trip.programme && trip.programme.length > 0;
   const hasAssumptions = trip.planning?.assumptions && trip.planning.assumptions.length > 0;
@@ -1435,11 +1428,7 @@ export function TripDetailSurface({
             <h1 className="detail-title">{trip.title || tripId}</h1>
             <p className="detail-destination">📍 {trip.destinationLabel || 'Destination TBC'}</p>
             <StatusMilestone trip={trip} />
-            <div className="detail-context-strip" aria-label="Trip planning and monitoring context">
-              <div className="detail-context-item">
-                <span className="detail-context-label">Readiness</span>
-                <strong>{rl}</strong>
-              </div>
+            <div className="detail-context-strip" aria-label="Trip monitoring context">
               <div className="detail-context-item">
                 <span className="detail-context-label">Monitoring</span>
                 <strong>{monitoringLabel(trip)}</strong>
@@ -1457,7 +1446,6 @@ export function TripDetailSurface({
             <dl className="debug-kv-grid">
               <div><dt>Route</dt><dd>/trips/{tripId}</dd></div>
               <div><dt>Mode</dt><dd>{dashboardMode?.isDemo ? 'demo' : 'live'}</dd></div>
-              <div><dt>Readiness</dt><dd>{rl}</dd></div>
               <div><dt>Monitoring phase</dt><dd>{monitoringPhase?.currentPhaseLabel || 'not computed'}</dd></div>
               <div><dt>Sections</dt><dd>{[showJourneyBoard ? 'journey-board' : null, trip.weather ? 'weather-on-legs' : null, hasNotificationsSection ? 'notifications' : null].filter(Boolean).join(', ') || 'none'}</dd></div>
             </dl>

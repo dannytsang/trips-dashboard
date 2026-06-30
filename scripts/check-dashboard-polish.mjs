@@ -529,8 +529,9 @@ assert.doesNotMatch(globalCss, /\.status-milestone-step--current\s*\{[^}]*color:
   'Status milestone current-step bounding-box must not rely on colour alone (no accent colour as primary signal)');
 assert.doesNotMatch(tripDetailSurface, /className="status-milestone-current"/, 'Status milestone must not repeat the current status below the lifecycle because the active step is already highlighted');
 assert.doesNotMatch(tripDetailSurface, /<span className="status-pill">\{statusLabel\(trip\)\}<\/span>/, 'Trip detail header must not render a duplicate trip status chip after the milestone');
-assert.match(tripDetailSurface, /className="detail-context-strip"/, 'Trip detail readiness and monitoring context must be integrated into a subdued header strip rather than large pills');
-assert.match(tripDetailSurface, /<span className="detail-context-label">Readiness<\/span>[\s\S]*?<strong>\{rl\}<\/strong>/, 'Trip detail context strip must retain readiness text');
+assert.match(tripDetailSurface, /className="detail-context-strip"/, 'Trip detail monitoring context must remain integrated into a subdued header strip rather than large pills');
+assert.doesNotMatch(tripDetailSurface, /<span className="detail-context-label">Readiness<\/span>/, 'Trip detail header must not repeat readiness below the Status milestone because the milestone already carries trip status');
+assert.doesNotMatch(tripDetailSurface, /const rl = readinessLabel\(trip\)/, 'Trip detail must not compute a duplicate readiness field for the header context strip');
 assert.match(tripDetailSurface, /<span className="detail-context-label">Monitoring<\/span>[\s\S]*?<strong>\{monitoringLabel\(trip\)\}<\/strong>/, 'Trip detail context strip must retain monitoring text');
 assert.doesNotMatch(tripDetailSurface, /className="detail-badges"/, 'Trip detail header must not use the old detached chip row');
 assert.doesNotMatch(tripDetailSurface, /fetch\([^)]*(status|milestone|monitoring-state|live-status)/, 'Status milestone must not fetch live status or monitoring state');
