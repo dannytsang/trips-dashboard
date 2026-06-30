@@ -1304,5 +1304,30 @@ assert.match(
   /\.stage-fact-grid[\s\S]*grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)/,
   'Selected mockup D fact tiles must use a four-column desktop grid'
 );
+assert.match(
+  tripDetailSurface,
+  /function StageNotificationTriggerStrip\(\{ contactJourneyUpdate, notification \}\)/,
+  'Selected notification Mockup G must define a folded in-card trigger strip'
+);
+assert.match(
+  tripDetailSurface,
+  /<StageNotificationTriggerStrip contactJourneyUpdate=\{cju\} notification=\{notif\} \/>/,
+  'ItineraryStageCard must render the folded notification strip inside the leg card'
+);
+assert.match(
+  tripDetailSurface,
+  /className="stage-notification-strip"[\s\S]*Pre-approved notification path/,
+  'Notification strip must label the pre-approved trigger path'
+);
+assert.match(
+  tripDetailSurface,
+  /stage-notification-trigger--blocked/,
+  'Notification strip must support blocked or excluded trigger chips'
+);
+assert.match(
+  globalCss,
+  /\.stage-notification-strip[\s\S]*border:[\s\S]*#22c55e/,
+  'Selected notification Mockup G must style the folded strip as an in-card notification panel'
+);
 
 console.log('Dashboard polish checks passed.');

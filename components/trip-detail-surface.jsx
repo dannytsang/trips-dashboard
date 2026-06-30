@@ -417,6 +417,53 @@ function StageFactTile({ label, value, tone = 'default' }) {
   );
 }
 
+function prettifyNotificationToken(value) {
+  if (!value) return null;
+  return String(value)
+    .replace(/^send_on_/, '')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function StageNotificationTriggerStrip({ contactJourneyUpdate, notification }) {
+  const keep = contactJourneyUpdate?.keepInformed;
+  const recipient = contactJourneyUpdate?.recipient;
+  const policy = notification?.policy;
+  const approved = keep?.status === 'approved' || policy?.approvalPolicy;
+  if (!approved) return null;
+
+  const recipientLabel = recipient?.displayName || (recipient?.type ? recipient.type.replace(/_/g, ' ') : 'Approved recipient');
+  const scopeLabel = keep?.routeWindow || keep?.approvalScope || policy?.approvalPolicy?.replace(/_/g, ' ');
+  const triggerItems = Array.isArray(keep?.triggers) && keep.triggers.length
+    ? keep.triggers
+    : Array.isArray(policy?.enabledTriggers) ? policy.enabledTriggers : [];
+  const exclusions = Array.isArray(keep?.exclusions) ? keep.exclusions : [];
+  const displayedTriggers = triggerItems.slice(0, 3);
+  const displayedExclusions = exclusions.slice(0, 1);
+
+  return (
+    <aside className="stage-notification-strip" aria-label="Pre-approved notification trigger path">
+      <div className="stage-notification-strip-header">
+        <span className="stage-notification-strip-title">Pre-approved notification path</span>
+        <span className="stage-notification-recipient">{recipientLabel}</span>
+        {scopeLabel ? <span className="stage-notification-scope">{scopeLabel}</span> : null}
+      </div>
+      <div className="stage-notification-trigger-row">
+        {displayedTriggers.map((trigger) => (
+          <span key={trigger} className="stage-notification-trigger stage-notification-trigger--allowed">
+            ✓ {prettifyNotificationToken(trigger)}
+          </span>
+        ))}
+        {displayedExclusions.map((exclusion) => (
+          <span key={exclusion} className="stage-notification-trigger stage-notification-trigger--blocked">
+            × {prettifyNotificationToken(exclusion)}
+          </span>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
 // Phase 8 FR-061: ItineraryStageCard — one card per leg, combining
 // leg detail fields, programme items for that stage, weather pill,
 // and per-leg monitoring phase (computed per-leg via computeMonitoringPhase).
@@ -499,6 +546,8 @@ function ItineraryStageCard({ leg, index, programme, weather, monitoringPhase })
           <StageFactTile label="Start" value={stageStartLabel} tone="timing" />
           <StageFactTile label="End" value={stageEndLabel} tone="timing" />
         </dl>
+
+        <StageNotificationTriggerStrip contactJourneyUpdate={cju} notification={notif} />
 
         {operationalFields.length > 0 ? (
           <dl className="stage-operational-grid" aria-label="Leg operational details">
