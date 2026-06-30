@@ -1060,6 +1060,7 @@ function StatusMilestone({ trip }) {
   const active = Boolean(trip.monitoring?.active);
   const label = formatStatusLabel(trip.status, { active });
   const { emoji } = formatStatusEmoji(trip.status, { active });
+  const monitoring = monitoringLabel(trip);
   const milestoneId = useId();
   const isCancelled = label === 'Cancelled';
   const flowReminder = formatStatusFlowReminder(trip.status, { active });
@@ -1078,52 +1079,57 @@ function StatusMilestone({ trip }) {
       className="status-milestone"
       aria-label={`Trip status: ${label}`}
     >
-      <div className="status-milestone-flow">
-        {CANONICAL_STATUS_FLOW.map((step, i) => {
-          const stepActive = label.toLowerCase() === step.label.toLowerCase();
-          const stepTooltipId = `${milestoneId}-${step.key}`;
-          const description = `${statusDescriptions[step.key]} ${stepActive ? `Current status. ${flowReminder}` : ''}`.trim();
-          return (
-            <span key={step.key}>
+      <div className="status-milestone-content">
+        <div className="status-milestone-flow">
+          {CANONICAL_STATUS_FLOW.map((step, i) => {
+            const stepActive = label.toLowerCase() === step.label.toLowerCase();
+            const stepTooltipId = `${milestoneId}-${step.key}`;
+            const description = `${statusDescriptions[step.key]} ${stepActive ? `Current status. ${flowReminder}` : ''}`.trim();
+            return (
+              <span key={step.key}>
+                <span
+                  className="status-milestone-step-wrap"
+                  aria-describedby={stepTooltipId}
+                  tabIndex={0}
+                >
+                  <span
+                    className={`status-milestone-step ${stepActive ? 'status-milestone-step--current' : ''}`}
+                    aria-current={stepActive ? 'step' : undefined}
+                  >
+                    {stepActive ? `${emoji} ` : null}
+                    {step.label}
+                  </span>
+                  <span id={stepTooltipId} role="tooltip" className="status-milestone-tooltip">
+                    {description}
+                  </span>
+                </span>
+                {i < CANONICAL_STATUS_FLOW.length - 1 && (
+                  <span className="status-milestone-arrow" aria-hidden="true"> → </span>
+                )}
+              </span>
+            );
+          })}
+          {isCancelled && (
+            <>
+              <span className="status-milestone-arrow" aria-hidden="true"> | </span>
               <span
                 className="status-milestone-step-wrap"
-                aria-describedby={stepTooltipId}
+                aria-describedby={`${milestoneId}-cancelled`}
                 tabIndex={0}
               >
-                <span
-                  className={`status-milestone-step ${stepActive ? 'status-milestone-step--current' : ''}`}
-                  aria-current={stepActive ? 'step' : undefined}
-                >
-                  {stepActive ? `${emoji} ` : null}
-                  {step.label}
+                <span className="status-milestone-step status-milestone-step--cancelled" aria-current="step">
+                  ⛔ Cancelled
                 </span>
-                <span id={stepTooltipId} role="tooltip" className="status-milestone-tooltip">
-                  {description}
+                <span id={`${milestoneId}-cancelled`} role="tooltip" className="status-milestone-tooltip">
+                  {`${statusDescriptions.cancelled} Current status.`}
                 </span>
               </span>
-              {i < CANONICAL_STATUS_FLOW.length - 1 && (
-                <span className="status-milestone-arrow" aria-hidden="true"> → </span>
-              )}
-            </span>
-          );
-        })}
-        {isCancelled && (
-          <>
-            <span className="status-milestone-arrow" aria-hidden="true"> | </span>
-            <span
-              className="status-milestone-step-wrap"
-              aria-describedby={`${milestoneId}-cancelled`}
-              tabIndex={0}
-            >
-              <span className="status-milestone-step status-milestone-step--cancelled" aria-current="step">
-                ⛔ Cancelled
-              </span>
-              <span id={`${milestoneId}-cancelled`} role="tooltip" className="status-milestone-tooltip">
-                {`${statusDescriptions.cancelled} Current status.`}
-              </span>
-            </span>
-          </>
-        )}
+            </>
+          )}
+        </div>
+        <span className="status-milestone-monitoring" aria-label={`Monitoring: ${monitoring}`}>
+          📡 Monitoring {monitoring}
+        </span>
       </div>
     </div>
   );
@@ -1428,12 +1434,6 @@ export function TripDetailSurface({
             <h1 className="detail-title">{trip.title || tripId}</h1>
             <p className="detail-destination">📍 {trip.destinationLabel || 'Destination TBC'}</p>
             <StatusMilestone trip={trip} />
-            <div className="detail-context-strip" aria-label="Trip monitoring context">
-              <div className="detail-context-item">
-                <span className="detail-context-label">Monitoring</span>
-                <strong>{monitoringLabel(trip)}</strong>
-              </div>
-            </div>
           </div>
         </header>
 

@@ -476,10 +476,15 @@ assert.doesNotMatch(
   /status-milestone-current|statusLabel\(trip\)|detail-badges/,
   'Trip detail header must not duplicate the milestone current status with a current-status row, status chip, or old detached badge row'
 );
+assert.doesNotMatch(
+  tripDetailSurface,
+  /className="detail-context-strip"/,
+  'Trip detail header must not use a dedicated context row below the Status milestone'
+);
 assert.match(
   tripDetailSurface,
-  /className="detail-context-strip"[\s\S]*?detail-context-label">Monitoring/,
-  'Monitoring must remain integrated into the detail header context strip instead of large status chips'
+  /className="status-milestone-monitoring"[\s\S]*?📡 Monitoring \{monitoring\}/,
+  'Monitoring must be integrated into the Status milestone container as a compact badge'
 );
 assert.doesNotMatch(
   tripDetailSurface,
