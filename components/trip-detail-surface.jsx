@@ -452,28 +452,6 @@ function TransportDecisionCallout({ decision }) {
   );
 }
 
-// Phase 8 FR-065: compact travellers collapsible.
-// Default open to show all names; chips for quick scan; user can collapse.
-function TravellersCollapsible({ travellers }) {
-  const [open, setOpen] = useState(true);
-  const list = travellers && travellers.length > 0 ? travellers : [];
-  const hasNames = list.length > 0;
-
-  return (
-    <SectionCollapsible title="Travellers" emoji="👥" defaultOpen={true}>
-      {hasNames ? (
-        <div className="travellers-chip-row">
-          {list.map((t, i) => (
-            <span key={i} className="traveller-chip">{t}</span>
-          ))}
-        </div>
-      ) : (
-        <p className="text-muted">To confirm</p>
-      )}
-    </SectionCollapsible>
-  );
-}
-
 // Phase 8 FR-065: CompactTravellersSection — a truly compact travellers
 // display for the journey board header: initials chips + total count.
 // No collapsible wrapper; purely a summary chip row.
@@ -1483,9 +1461,6 @@ export function TripDetailSurface({
             </ol>
           </DetailSection>
         ) : null}
-
-        {/* Compact travellers (FR-063) */}
-        <TravellersCollapsible travellers={trip.travellers} />
 
         {/* Planning rationale + Transport decision grouped (FR-066) */}
         <PlanningTransportGroup

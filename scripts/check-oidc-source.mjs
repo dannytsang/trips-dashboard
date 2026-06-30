@@ -142,15 +142,19 @@ assert.doesNotMatch(
   /fetch\([^\)]*(monitoring-state|live-status)/,
   'trip detail monitoring phase rendering must not fetch live monitoring-state or live-status APIs (FR-044)'
 );
-// v5 + v5.1 expansion (spec 010 FR-038..FR-040): Travellers, Transport
-// decision, and Legs+Map render as SectionCollapsible and start open on
-// first load. Accommodation now uses the same collapsible shell but opens
-// only when an accommodation block exists; otherwise it stays collapsed
-// with a no-accommodation message.
-assert.match(
+// v5 + v5.1 expansion (spec 010 FR-038..FR-040): Transport
+// decision and accommodation use SectionCollapsible. In Phase 8, Travellers
+// moved to the compact journey-board header only; do not render a second
+// Travellers section after Programme.
+assert.doesNotMatch(
   tripDetailSurface,
-  /<SectionCollapsible\s+title="Travellers"\s+emoji="👥"\s+defaultOpen=\{true\}>/,
-  'Travellers section must render as SectionCollapsible with defaultOpen={true} (FR-040)'
+  /<SectionCollapsible\s+title="Travellers"\s+emoji="👥"/,
+  'Trip detail must not render a duplicate Travellers SectionCollapsible after Programme; CompactTravellersSection is the sole traveller surface (FR-063)'
+);
+assert.doesNotMatch(
+  tripDetailSurface,
+  /<TravellersCollapsible\b/,
+  'Trip detail must not render the removed TravellersCollapsible call after Programme (FR-063)'
 );
 assert.match(
   tripDetailSurface,
