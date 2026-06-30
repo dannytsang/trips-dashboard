@@ -509,6 +509,13 @@ assert.match(tripDetailSurface, /<StatusMilestone trip=\{trip\} \/>/, 'trip deta
 assert.match(tripDetailSurface, /CANONICAL_STATUS_FLOW\.map/, 'Status milestone must render the canonical lifecycle flow');
 assert.match(tripDetailSurface, /aria-current=\{stepActive \? 'step' : undefined\}/, 'Status milestone must mark the current status with aria-current');
 assert.match(tripDetailSurface, /status-milestone-step--cancelled/, 'Status milestone must render cancelled as a terminal exit branch');
+// FR-054 v2: current step gets emoji prefix + bounding-box treatment
+assert.match(tripDetailSurface, /formatStatusEmoji\(trip\.status, \{ active \}\)/, 'Status milestone must call formatStatusEmoji to get the emoji for the current step');
+assert.match(tripDetailSurface, /stepActive \?[^:]*\$\{emoji\}[^:]*: null/, 'Status milestone must render the emoji inline before the active step label');
+assert.match(globalCss, /\.status-milestone-step--current\s*\{[\s\S]*?background:\s*var\(--bg-secondary\);[\s\S]*?border:\s*1px solid var\(--border-color\);[\s\S]*?border-radius:\s*4px;[\s\S]*?padding:\s*0\.1em 0\.4em;[\s\S]*?\}/,
+  'Status milestone current step must use an explicit bounding-box treatment (background, border, radius, padding)');
+assert.doesNotMatch(globalCss, /\.status-milestone-step--current\s*\{[^}]*color:\s*var\(--accent-/,
+  'Status milestone current-step bounding-box must not rely on colour alone (no accent colour as primary signal)');
 assert.doesNotMatch(tripDetailSurface, /className="status-milestone-current"/, 'Status milestone must not repeat the current status below the lifecycle because the active step is already highlighted');
 assert.doesNotMatch(tripDetailSurface, /<span className="status-pill">\{statusLabel\(trip\)\}<\/span>/, 'Trip detail header must not render a duplicate trip status chip after the milestone');
 assert.match(tripDetailSurface, /className="detail-context-strip"/, 'Trip detail readiness and monitoring context must be integrated into a subdued header strip rather than large pills');

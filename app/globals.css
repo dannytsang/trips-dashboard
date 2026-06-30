@@ -1509,6 +1509,10 @@ p {
 .status-milestone-step--current {
   color: var(--text-primary);
   font-weight: 600;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
 }
 
 .status-milestone-step--cancelled {

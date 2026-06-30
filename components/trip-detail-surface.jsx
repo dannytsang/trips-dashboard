@@ -1057,9 +1057,12 @@ function PlanningReviewBlock({ review }) {
 // FR-053/054/055: Compact status milestone visualisation showing the canonical
 // trip lifecycle with the current status highlighted. Read-only, derived from
 // already-loaded trip status. Cancelled renders as a terminal branch/exit.
+// FR-054 v2: the current step is promoted with an emoji prefix and a
+// bounding-box treatment so it is visually dominant at a glance.
 function StatusMilestone({ trip }) {
   const active = Boolean(trip.monitoring?.active);
   const label = formatStatusLabel(trip.status, { active });
+  const { emoji } = formatStatusEmoji(trip.status, { active });
   const isCancelled = label === 'Cancelled';
 
   return (
@@ -1074,6 +1077,7 @@ function StatusMilestone({ trip }) {
                 aria-current={stepActive ? 'step' : undefined}
                 title={step.label}
               >
+                {stepActive ? `${emoji} ` : null}
                 {step.label}
               </span>
               {i < CANONICAL_STATUS_FLOW.length - 1 && (
