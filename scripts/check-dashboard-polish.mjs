@@ -512,9 +512,16 @@ assert.match(tripDetailSurface, /status-milestone-step--cancelled/, 'Status mile
 // FR-054 v2: current step gets emoji prefix + bounding-box treatment
 assert.match(tripDetailSurface, /formatStatusEmoji,/, 'trip detail must import formatStatusEmoji for the Status milestone current-step emoji');
 assert.match(tripDetailSurface, /formatStatusEmoji\(trip\.status, \{ active \}\)/, 'Status milestone must call formatStatusEmoji to get the emoji for the current step');
+assert.match(tripDetailSurface, /formatStatusFlowReminder,/, 'trip detail must import formatStatusFlowReminder for the Status milestone tooltip');
+assert.match(tripDetailSurface, /formatStatusFlowReminder\(trip\.status, \{ active \}\)/, 'Status milestone tooltip must explain the mapped status flow from already-loaded status data');
+assert.match(tripDetailSurface, /aria-describedby=\{tooltipId\}/, 'Status milestone must connect the tooltip text to the milestone for assistive tech');
+assert.match(tripDetailSurface, /tabIndex=\{0\}/, 'Status milestone tooltip must be keyboard reachable, not hover-only');
+assert.match(tripDetailSurface, /role="tooltip" className="status-milestone-tooltip"/, 'Status milestone must render a custom tooltip for paragraph-length status explanation');
 assert.match(tripDetailSurface, /stepActive \?[^:]*\$\{emoji\}[^:]*: null/, 'Status milestone must render the emoji inline before the active step label');
 assert.match(globalCss, /\.status-milestone-step--current\s*\{[\s\S]*?background:\s*var\(--bg-secondary\);[\s\S]*?border:\s*1px solid var\(--border-color\);[\s\S]*?border-radius:\s*4px;[\s\S]*?padding:\s*0\.1em 0\.4em;[\s\S]*?\}/,
   'Status milestone current step must use an explicit bounding-box treatment (background, border, radius, padding)');
+assert.match(globalCss, /\.status-milestone:hover \.status-milestone-tooltip,[\s\S]*?\.status-milestone:focus-within \.status-milestone-tooltip,[\s\S]*?\.status-milestone:focus \.status-milestone-tooltip\s*\{[\s\S]*?opacity:\s*1;/,
+  'Status milestone tooltip must appear on hover and keyboard focus');
 assert.doesNotMatch(globalCss, /\.status-milestone-step--current\s*\{[^}]*color:\s*var\(--accent-/,
   'Status milestone current-step bounding-box must not rely on colour alone (no accent colour as primary signal)');
 assert.doesNotMatch(tripDetailSurface, /className="status-milestone-current"/, 'Status milestone must not repeat the current status below the lifecycle because the active step is already highlighted');

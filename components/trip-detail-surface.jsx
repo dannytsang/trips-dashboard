@@ -14,7 +14,7 @@
 // two-column grid with sticky overview map + chronological itinerary
 // stage cards; compact travellers; Planning + Transport grouped.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import {
@@ -22,6 +22,7 @@ import {
   formatLegModeLabel,
   formatStatusLabel,
   formatStatusEmoji,
+  formatStatusFlowReminder,
   CANONICAL_STATUS_FLOW,
   formatWeatherCondition,
   toDisplayLabel,
@@ -1064,10 +1065,17 @@ function StatusMilestone({ trip }) {
   const active = Boolean(trip.monitoring?.active);
   const label = formatStatusLabel(trip.status, { active });
   const { emoji } = formatStatusEmoji(trip.status, { active });
+  const tooltip = `Status: ${label}. ${formatStatusFlowReminder(trip.status, { active })}`;
+  const tooltipId = useId();
   const isCancelled = label === 'Cancelled';
 
   return (
-    <div className="status-milestone" aria-label={`Trip status: ${label}`}>
+    <div
+      className="status-milestone"
+      aria-label={`Trip status: ${label}`}
+      aria-describedby={tooltipId}
+      tabIndex={0}
+    >
       <div className="status-milestone-flow">
         {CANONICAL_STATUS_FLOW.map((step, i) => {
           const stepActive = label.toLowerCase() === step.label.toLowerCase();
@@ -1096,6 +1104,9 @@ function StatusMilestone({ trip }) {
           </>
         )}
       </div>
+      <span id={tooltipId} role="tooltip" className="status-milestone-tooltip">
+        {tooltip}
+      </span>
     </div>
   );
 }
