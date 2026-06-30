@@ -21,6 +21,7 @@ import {
   formatLegModeEmoji,
   formatLegModeLabel,
   formatStatusLabel,
+  formatStatusEmoji,
   CANONICAL_STATUS_FLOW,
   formatWeatherCondition,
   toDisplayLabel,

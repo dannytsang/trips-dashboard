@@ -510,6 +510,7 @@ assert.match(tripDetailSurface, /CANONICAL_STATUS_FLOW\.map/, 'Status milestone 
 assert.match(tripDetailSurface, /aria-current=\{stepActive \? 'step' : undefined\}/, 'Status milestone must mark the current status with aria-current');
 assert.match(tripDetailSurface, /status-milestone-step--cancelled/, 'Status milestone must render cancelled as a terminal exit branch');
 // FR-054 v2: current step gets emoji prefix + bounding-box treatment
+assert.match(tripDetailSurface, /formatStatusEmoji,/, 'trip detail must import formatStatusEmoji for the Status milestone current-step emoji');
 assert.match(tripDetailSurface, /formatStatusEmoji\(trip\.status, \{ active \}\)/, 'Status milestone must call formatStatusEmoji to get the emoji for the current step');
 assert.match(tripDetailSurface, /stepActive \?[^:]*\$\{emoji\}[^:]*: null/, 'Status milestone must render the emoji inline before the active step label');
 assert.match(globalCss, /\.status-milestone-step--current\s*\{[\s\S]*?background:\s*var\(--bg-secondary\);[\s\S]*?border:\s*1px solid var\(--border-color\);[\s\S]*?border-radius:\s*4px;[\s\S]*?padding:\s*0\.1em 0\.4em;[\s\S]*?\}/,
