@@ -1482,7 +1482,6 @@ p {
 
 /* FR-053/054/055: Status milestone — compact lifecycle flow in trip detail header. */
 .status-milestone {
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -1494,11 +1493,6 @@ p {
   cursor: help;
 }
 
-.status-milestone:focus-visible {
-  outline: 2px solid var(--focus-ring, var(--accent-cyan));
-  outline-offset: 2px;
-}
-
 .status-milestone-flow {
   display: flex;
   flex-wrap: wrap;
@@ -1507,6 +1501,18 @@ p {
   font-size: 0.72rem;
   color: var(--text-muted);
   line-height: 1.4;
+}
+
+.status-milestone-step-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 4px;
+}
+
+.status-milestone-step-wrap:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent-cyan));
+  outline-offset: 2px;
 }
 
 .status-milestone-step {
@@ -1552,9 +1558,9 @@ p {
   transition: opacity 140ms ease, transform 140ms ease;
 }
 
-.status-milestone:hover .status-milestone-tooltip,
-.status-milestone:focus-within .status-milestone-tooltip,
-.status-milestone:focus .status-milestone-tooltip {
+.status-milestone-step-wrap:hover .status-milestone-tooltip,
+.status-milestone-step-wrap:focus-within .status-milestone-tooltip,
+.status-milestone-step-wrap:focus .status-milestone-tooltip {
   opacity: 1;
   transform: translateY(0);
 }

@@ -1065,29 +1065,46 @@ function StatusMilestone({ trip }) {
   const active = Boolean(trip.monitoring?.active);
   const label = formatStatusLabel(trip.status, { active });
   const { emoji } = formatStatusEmoji(trip.status, { active });
-  const tooltip = `Status: ${label}. ${formatStatusFlowReminder(trip.status, { active })}`;
-  const tooltipId = useId();
+  const milestoneId = useId();
   const isCancelled = label === 'Cancelled';
+  const flowReminder = formatStatusFlowReminder(trip.status, { active });
+  const statusDescriptions = {
+    candidate: 'Candidate: this is a possible trip worth tracking, but key details may still be tentative or incomplete.',
+    confirmed: 'Confirmed: the trip is going ahead and the core date, destination, or attendance details are settled enough to plan around.',
+    planned: 'Planned: the practical arrangements are mostly in place, with remaining items tracked as planning notes or next actions.',
+    monitoring: 'Monitoring: the trip is close enough or important enough that travel conditions and readiness should be watched before departure.',
+    active: 'Active: the trip is currently under way, so the dashboard treats the itinerary as live context rather than future planning.',
+    completed: 'Completed: the trip has finished and is retained as historical travel context rather than an active planning item.',
+    cancelled: 'Cancelled: the trip has been stopped as a terminal exit from the normal milestone flow, not as a step after active.',
+  };
 
   return (
     <div
       className="status-milestone"
       aria-label={`Trip status: ${label}`}
-      aria-describedby={tooltipId}
-      tabIndex={0}
     >
       <div className="status-milestone-flow">
         {CANONICAL_STATUS_FLOW.map((step, i) => {
           const stepActive = label.toLowerCase() === step.label.toLowerCase();
+          const stepTooltipId = `${milestoneId}-${step.key}`;
+          const description = `${statusDescriptions[step.key]} ${stepActive ? `Current status. ${flowReminder}` : ''}`.trim();
           return (
             <span key={step.key}>
               <span
-                className={`status-milestone-step ${stepActive ? 'status-milestone-step--current' : ''}`}
-                aria-current={stepActive ? 'step' : undefined}
-                title={step.label}
+                className="status-milestone-step-wrap"
+                aria-describedby={stepTooltipId}
+                tabIndex={0}
               >
-                {stepActive ? `${emoji} ` : null}
-                {step.label}
+                <span
+                  className={`status-milestone-step ${stepActive ? 'status-milestone-step--current' : ''}`}
+                  aria-current={stepActive ? 'step' : undefined}
+                >
+                  {stepActive ? `${emoji} ` : null}
+                  {step.label}
+                </span>
+                <span id={stepTooltipId} role="tooltip" className="status-milestone-tooltip">
+                  {description}
+                </span>
               </span>
               {i < CANONICAL_STATUS_FLOW.length - 1 && (
                 <span className="status-milestone-arrow" aria-hidden="true"> → </span>
@@ -1098,15 +1115,21 @@ function StatusMilestone({ trip }) {
         {isCancelled && (
           <>
             <span className="status-milestone-arrow" aria-hidden="true"> | </span>
-            <span className="status-milestone-step status-milestone-step--cancelled" title="Cancelled">
-              ⛔ Cancelled
+            <span
+              className="status-milestone-step-wrap"
+              aria-describedby={`${milestoneId}-cancelled`}
+              tabIndex={0}
+            >
+              <span className="status-milestone-step status-milestone-step--cancelled" aria-current="step">
+                ⛔ Cancelled
+              </span>
+              <span id={`${milestoneId}-cancelled`} role="tooltip" className="status-milestone-tooltip">
+                {`${statusDescriptions.cancelled} Current status.`}
+              </span>
             </span>
           </>
         )}
       </div>
-      <span id={tooltipId} role="tooltip" className="status-milestone-tooltip">
-        {tooltip}
-      </span>
     </div>
   );
 }
