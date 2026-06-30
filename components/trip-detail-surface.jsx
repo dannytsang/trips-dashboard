@@ -1257,14 +1257,24 @@ export function TripDetailSurface({
     setIsSessionMenuOpen(false);
   }
 
+  function handleThemeToggle() {
+    setTheme(t => t === 'dark' ? 'light' : 'dark');
+  }
+
+  function handleSessionThemeToggle() {
+    handleThemeToggle();
+    handleSessionMenuClose();
+  }
+
   function handleSessionSignOut() {
     handleSessionMenuClose();
     setIsSigningOut(true);
     void signOut({ callbackUrl: '/auth/signin?signedOut=1' });
   }
 
-  function handleThemeToggle() {
-    setTheme(t => t === 'dark' ? 'light' : 'dark');
+  function handleToggleDebug() {
+    setIsDebugOpen(open => !open);
+    handleSessionMenuClose();
   }
 
   const userLabel = userName || 'User';
@@ -1382,23 +1392,6 @@ export function TripDetailSurface({
             <span className="detail-topbar-name">{trip.title || tripId}</span>
           </div>
           <div className="detail-topbar-actions">
-            <button
-              type="button"
-              className={`secondary-action debug-mode-toggle ${isDebugOpen ? 'debug-mode-toggle--active' : ''}`}
-              aria-pressed={isDebugOpen}
-              aria-label={isDebugOpen ? 'Turn trip detail debug mode off' : 'Turn trip detail debug mode on'}
-              onClick={() => setIsDebugOpen(open => !open)}
-            >
-              🛠 Debug {isDebugOpen ? 'on' : 'off'}
-            </button>
-            <button
-              type="button"
-              className="secondary-action theme-toggle"
-              aria-label={themeToggleLabel}
-              onClick={handleThemeToggle}
-            >
-              {theme === 'dark' ? '☀️' : '🌙'}
-            </button>
             <div className="session-actions detail-session-actions" ref={sessionMenuRef}>
               <button
                 aria-expanded={isSessionMenuOpen}
@@ -1413,6 +1406,31 @@ export function TripDetailSurface({
               </button>
               {isSessionMenuOpen ? (
                 <div className="session-menu detail-session-menu" role="menu" aria-label="Account menu">
+                  <button
+                    aria-label={themeToggleLabel}
+                    className="secondary-action session-menu-item theme-toggle"
+                    type="button"
+                    role="menuitem"
+                    onClick={handleSessionThemeToggle}
+                  >
+                    <span className="session-menu-item-icon" aria-hidden="true">
+                      {theme === 'dark' ? '☀️' : '🌙'}
+                    </span>
+                    <span className="session-menu-item-label">{themeToggleLabel}</span>
+                  </button>
+                  <button
+                    aria-label={isDebugOpen ? 'Turn trip detail debug mode off' : 'Turn trip detail debug mode on'}
+                    className="secondary-action session-menu-item session-menu-item--debug"
+                    type="button"
+                    role="menuitem"
+                    aria-pressed={isDebugOpen}
+                    onClick={handleToggleDebug}
+                  >
+                    <span className="session-menu-item-icon" aria-hidden="true">🛠</span>
+                    <span className="session-menu-item-label">
+                      Debug mode {isDebugOpen ? 'on' : 'off'}
+                    </span>
+                  </button>
                   <button
                     className="secondary-action session-menu-item session-menu-item--sign-out"
                     type="button"

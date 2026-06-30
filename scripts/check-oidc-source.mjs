@@ -483,8 +483,18 @@ assert.match(
 );
 assert.match(
   tripDetailSurface,
-  /role="menu" aria-label="Account menu"[\s\S]*?handleSessionSignOut/,
-  'Trip detail account menu must expose sign-out from the authenticated user menu'
+  /role="menu" aria-label="Account menu"[\s\S]*?handleSessionThemeToggle[\s\S]*?handleToggleDebug[\s\S]*?handleSessionSignOut/,
+  'Trip detail account menu must expose the same theme, debug, and sign-out actions as the summary dashboard menu'
+);
+assert.doesNotMatch(
+  tripDetailSurface,
+  /className=\{`secondary-action debug-mode-toggle/,
+  'Trip detail topbar must not render a standalone debug button outside the account menu'
+);
+assert.doesNotMatch(
+  tripDetailSurface,
+  /className="secondary-action theme-toggle"[\s\S]{0,120}onClick=\{handleThemeToggle\}/,
+  'Trip detail topbar must not render a standalone theme button outside the account menu'
 );
 assert.match(
   tripDetailSurface,

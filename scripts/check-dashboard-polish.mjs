@@ -524,7 +524,15 @@ assert.match(tripDetailSurface, /userName = 'User'/, 'TripDetailSurface must acc
 assert.match(tripDetailSurface, /aria-label=\{`Open account menu for \$\{userLabel\}`\}/, 'trip detail topbar must expose an account menu button for the logged-in user');
 assert.match(tripDetailSurface, /className="session-user session-user-trigger detail-session-user"/, 'trip detail account control must reuse the session-user trigger styling');
 assert.match(tripDetailSurface, /role="menu" aria-label="Account menu"/, 'trip detail account menu must expose menu semantics');
+assert.match(tripDetailSurface, /handleSessionThemeToggle/, 'trip detail account menu must provide the same theme toggle action as the summary dashboard menu');
+assert.match(tripDetailSurface, /handleToggleDebug/, 'trip detail account menu must provide the same debug toggle action as the summary dashboard menu');
 assert.match(tripDetailSurface, /handleSessionSignOut/, 'trip detail account menu must provide a sign-out action');
+assert.match(tripDetailSurface, /className="secondary-action session-menu-item theme-toggle"/, 'trip detail theme toggle must live inside the account menu');
+assert.match(tripDetailSurface, /className="secondary-action session-menu-item session-menu-item--debug"/, 'trip detail debug toggle must live inside the account menu');
+assert.match(tripDetailSurface, /className="secondary-action session-menu-item session-menu-item--sign-out"/, 'trip detail sign-out must live inside the account menu');
+assert.doesNotMatch(tripDetailSurface, /className=\{`secondary-action debug-mode-toggle/, 'trip detail topbar must not show a standalone debug button');
+assert.doesNotMatch(tripDetailSurface, /className="secondary-action theme-toggle"[\s\S]{0,120}onClick=\{handleThemeToggle\}/, 'trip detail topbar must not show a standalone theme button');
+assert.match(tripDetailSurface, /<div className="detail-topbar-actions">\s*<div className="session-actions detail-session-actions"/, 'trip detail topbar actions must contain only the account menu trigger');
 assert.match(tripDetailSurface, /document\.addEventListener\('pointerdown', handlePointerDown\)/, 'trip detail account menu must close on outside click');
 assert.match(globalCss, /\.detail-topbar-actions\s*\{/, 'trip detail topbar must style the grouped actions including user controls');
 
