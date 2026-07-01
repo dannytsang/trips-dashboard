@@ -15,7 +15,7 @@ import {
   formatWeatherCondition,
   toDisplayLabel,
 } from '@/lib/display-labels.mjs';
-import { formatUtcDateRange, formatUtcDateTime } from '@/lib/format-utc.mjs';
+import { formatLegTimezoneCue, formatUtcDateRange, formatUtcDateTime } from '@/lib/format-utc.mjs';
 import { computeMonitoringPhase } from '@/lib/monitoring-phase.mjs';
 import { MonitoringPhaseHelp } from '@/components/monitoring-phase-help';
 
@@ -90,15 +90,26 @@ function formatTripStartToken(tripStartIso) {
 
 // FR-038: Compact leg start-time token derived from legs[].start.
 // Same-day legs → time-only "09:30". Cross-day legs → "29 Jun 09:30".
-// Missing/invalid start → neutral "Time TBC" token; never infer a time.
-function formatLegStartToken(legStartIso, tripStartIso) {
-  const leg = isoLocalParts(legStartIso);
-  if (!leg) return 'Time TBC';
+// FR-TZ-1: append compact timezone cue when leg timezone metadata is available
+// (timezone/timeZone IANA zone, timezoneLabel, time_basis, or monitoring_timing.timezone).
+// Missing/invalid start → neutral "Time TBC" token; never fabricate a time.
+// @param {string|null} legStartIso - ISO datetime string with local offset
+// @param {string|null} tripStartIso - ISO date of the trip start (for same-day comparison)
+// @param {object} [leg]             - full leg object for timezone metadata
+function formatLegStartToken(legStartIso, tripStartIso, leg) {
+  const parts = isoLocalParts(legStartIso);
+  if (!parts) return 'Time TBC';
   const trip = isoLocalParts(tripStartIso);
-  if (trip && leg.dateKey === trip.dateKey) {
-    return leg.time;
+  const timeBase = (trip && parts.dateKey === trip.dateKey)
+    ? parts.time
+    : `${formatIsoLocalDateShort(parts)} ${parts.time}`;
+
+  // Append compact timezone cue when metadata is available and useful.
+  if (leg) {
+    const cue = formatLegTimezoneCue(leg, legStartIso);
+    if (cue) return `${timeBase} ${cue}`;
   }
-  return `${formatIsoLocalDateShort(leg)} ${leg.time}`;
+  return timeBase;
 }
 
 // FR-040 + FR-037: Emoji-only status badge with accessible disclosure of the
@@ -737,7 +748,7 @@ export function DashboardSessionSurface({
                         <div className="trip-card-leg-summary">
                           <ul className="leg-list" aria-label={`${trip.title} legs`}>
                             {visibleLegs.map((leg, index) => {
-                              const startToken = formatLegStartToken(leg.start, trip.start);
+                              const startToken = formatLegStartToken(leg.start, trip.start, leg);
                               return (
                                 <li key={`${trip.id}-leg-${index}`}>
                                   <span>

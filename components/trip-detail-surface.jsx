@@ -32,6 +32,8 @@ import { TripOverviewMap } from '@/components/trip-overview-map';
 import {
   formatUtcDateRange,
   formatUtcWeekdayDateTime,
+  formatLegTimezoneCue,
+  formatTimezoneCueFromMetadata,
   formatUtcDateTime,
   formatUtcTime,
 } from '@/lib/format-utc.mjs';
@@ -259,9 +261,23 @@ function LegCollapsible({ leg, index, children }) {
               {leg.flight.departLocal ? (
                 <span className="leg-detail-time">
                   {formatUtcTime(leg.flight.departLocal)}
+                  {(() => {
+                    const departCue = formatTimezoneCueFromMetadata(
+                      leg.flight.departTimezone || leg.timezone || leg.timeZone,
+                      leg.flight.departLocal,
+                    );
+                    return departCue ? ` ${departCue}` : '';
+                  })()}
                   {' → '}
                   {leg.flight.arriveLocal
-                    ? formatUtcTime(leg.flight.arriveLocal)
+                    ? (() => {
+                        const arriveBase = formatUtcTime(leg.flight.arriveLocal);
+                        const arriveCue = formatTimezoneCueFromMetadata(
+                          leg.flight.arriveTimezone || leg.timezone || leg.timeZone,
+                          leg.flight.arriveLocal,
+                        );
+                        return `${arriveBase}${arriveCue ? ` ${arriveCue}` : ''}`;
+                      })()
                     : '?'}
                 </span>
               ) : null}
@@ -303,11 +319,21 @@ function LegDetailBlock({ leg }) {
   // Do NOT fabricate times when both sources are absent.
   const effectiveStart = leg.start || leg.monitoring_timing?.start;
   const effectiveEnd   = leg.end   || leg.monitoring_timing?.end;
+  const effectiveStartCue = formatLegTimezoneCue(leg, effectiveStart);
+  const effectiveEndCue = formatLegTimezoneCue(leg, effectiveEnd);
   if (effectiveStart) {
-    fields.push({ key: 'start', label: 'Start', value: formatUtcWeekdayDateTime(effectiveStart) });
+    fields.push({
+      key: 'start',
+      label: 'Start',
+      value: `${formatUtcWeekdayDateTime(effectiveStart)}${effectiveStartCue ? ` ${effectiveStartCue}` : ''}`,
+    });
   }
   if (effectiveEnd) {
-    fields.push({ key: 'end', label: 'End', value: formatUtcWeekdayDateTime(effectiveEnd) });
+    fields.push({
+      key: 'end',
+      label: 'End',
+      value: `${formatUtcWeekdayDateTime(effectiveEnd)}${effectiveEndCue ? ` ${effectiveEndCue}` : ''}`,
+    });
   }
   const sources = Array.isArray(leg.monitoring_sources) ? leg.monitoring_sources.filter(Boolean) : [];
 
@@ -586,10 +612,21 @@ function ItineraryStageCard({ leg, index, programme, weather, monitoringPhase })
   // Effective start/end: prefer leg.start/leg.end; fall back to monitoring_timing.
   // Do NOT fabricate times when both sources are absent.
   const stageStart = leg.start || leg.monitoring_timing?.start;
-  const stageEnd = leg.end || leg.monitoring_timing?.end;
-  const stageStartLabel = stageStart ? formatUtcWeekdayDateTime(stageStart) : null;
-  const stageEndLabel = stageEnd ? formatUtcWeekdayDateTime(stageEnd) : null;
-  const stageTimeRange = [formatStageTimeToken(stageStart), formatStageTimeToken(stageEnd)]
+  const stageEnd   = leg.end   || leg.monitoring_timing?.end;
+  // FR-TZ-1: build compact timezone cues from leg timezone metadata.
+  const startCue  = formatLegTimezoneCue(leg, stageStart);
+  const endCue    = formatLegTimezoneCue(leg, stageEnd);
+  // Fact-tile labels: preserve existing base format; append cue when available.
+  const stageStartLabel = stageStart
+    ? `${formatUtcWeekdayDateTime(stageStart)}${startCue ? ` ${startCue}` : ''}`
+    : null;
+  const stageEndLabel = stageEnd
+    ? `${formatUtcWeekdayDateTime(stageEnd)}${endCue ? ` ${endCue}` : ''}`
+    : null;
+  const stageTimeRange = [
+    stageStart ? `${formatStageTimeToken(stageStart)}${startCue ? ` ${startCue}` : ''}` : null,
+    stageEnd ? `${formatStageTimeToken(stageEnd)}${endCue ? ` ${endCue}` : ''}` : null,
+  ]
     .filter(Boolean)
     .join(' → ');
 

@@ -21,6 +21,9 @@ import {
   formatUtcTime,
   formatUtcWeekdayDate,
   formatUtcWeekdayDateTime,
+  formatLegTimezoneCue,
+  formatTimezoneCueFromMetadata,
+  formatTimezoneCueFromOffset,
 } from '../lib/format-utc.mjs';
 
 const dashboardSurface = readFileSync('components/dashboard-session-surface.jsx', 'utf8');
@@ -227,6 +230,134 @@ assert.equal(formatMonitoringPhaseLabel('insufficient_timing_data'), 'Monitoring
 assert.equal(
   formatMonitoringPhaseTooltip('hourly'),
   'Monitoring\nCurrent phase: Hourly\nCurrent phase: Hourly\n\nHover legend:\n• Not started yet: Monitoring is configured but has not yet started.\n• Daily precheck: Current phase: Daily precheck\n• Four hourly: Current phase: Four hourly\n→ Hourly: Current phase: Hourly\n• Fifteen minute: Current phase: Fifteen minute\n• Active leg: Current phase: Active leg\n• Completed: Monitoring window has completed.\n• Insufficient timing data: Timing data is incomplete, so the dashboard cannot estimate whether monitoring should have started.'
+);
+
+// ---------------------------------------------------------------------------
+// FR-TZ-1: timezone cue utilities
+// ---------------------------------------------------------------------------
+// Principle: Calendar/provider local time first; timezone cue only when useful;
+// never silently converted.
+//
+// Fixtures cover:
+//   - BST (Europe/London, summer +01:00)
+//   - CEST (Europe/Rome, summer +02:00)
+//   - ship time
+//   - no-cue / Time TBC (missing or generic metadata)
+//   - cross-zone display (different offsets for depart vs arrive)
+// ---------------------------------------------------------------------------
+
+// BST — Europe/London summer offset
+assert.equal(
+  formatLegTimezoneCue({ timezone: 'Europe/London' }, '2026-07-24T09:30:00+01:00'),
+  'BST',
+  'Europe/London +01:00 → BST'
+);
+// CEST — Europe/Rome summer offset
+assert.equal(
+  formatLegTimezoneCue({ timeZone: 'Europe/Rome' }, '2026-07-24T09:30:00+02:00'),
+  'CEST',
+  'Europe/Rome +02:00 → CEST'
+);
+// CET — Europe/Rome winter offset
+assert.equal(
+  formatLegTimezoneCue({ timezone: 'Europe/Rome' }, '2026-01-24T09:30:00+01:00'),
+  'CET',
+  'Europe/Rome +01:00 → CET'
+);
+// Ship time — never fabricate an offset
+assert.equal(
+  formatLegTimezoneCue({ timezone: 'ship' }, '2026-07-24T09:30:00+01:00'),
+  'ship time',
+  'ship zone → ship time'
+);
+assert.equal(
+  formatLegTimezoneCue({ timezoneLabel: 'ship time' }, '2026-07-24T09:30:00+01:00'),
+  'ship time',
+  'ship time label → ship time'
+);
+// No cue — ISO with no offset can't be localised, so no fabrication
+assert.equal(
+  formatLegTimezoneCue({}, '2026-07-24T09:30:00'),
+  null,
+  'no timezone metadata + no ISO offset → null (no fabrication)'
+);
+// Time TBC — null ISO
+assert.equal(
+  formatLegTimezoneCue({ timezone: 'Europe/London' }, null),
+  null,
+  'null ISO → null (Time TBC)'
+);
+// monitoring_timing sub-block is read by formatLegTimezoneCue
+assert.equal(
+  formatLegTimezoneCue(
+    { monitoring_timing: { timezone: 'Europe/London' } },
+    '2026-07-24T09:30:00+01:00'
+  ),
+  'BST',
+  'monitoring_timing.timezone is read by formatLegTimezoneCue'
+);
+// time_basis containing ship
+assert.equal(
+  formatLegTimezoneCue({ time_basis: 'local ship time' }, '2026-07-24T09:30:00+00:00'),
+  'ship time',
+  'time_basis containing ship → ship time'
+);
+// timezoneLabel verbatim when non-generic
+assert.equal(
+  formatLegTimezoneCue({ timezoneLabel: 'BST' }, '2026-07-24T09:30:00+01:00'),
+  'BST',
+  'timezoneLabel is used verbatim when non-generic'
+);
+// Generic sentinels must not fabricate
+for (const sentinel of ['local', 'browser', 'utc', 'z', 'gmt', 'unknown', '']) {
+  assert.equal(
+    formatLegTimezoneCue({ timezone: sentinel }, '2026-07-24T09:30:00+01:00'),
+    null,
+    `timezone="${sentinel}" → null (no fabrication)`
+  );
+}
+
+// formatTimezoneCueFromOffset
+assert.equal(formatTimezoneCueFromOffset('+01:00'), 'BST', '+01:00 → BST');
+assert.equal(formatTimezoneCueFromOffset('+02:00'), 'CEST', '+02:00 → CEST');
+assert.equal(
+  formatTimezoneCueFromOffset('2026-07-24T09:30:00+01:00'),
+  'BST',
+  'ISO string with +01:00 offset → BST'
+);
+assert.equal(formatTimezoneCueFromOffset('Z'), 'GMT', 'Z → GMT');
+assert.equal(formatTimezoneCueFromOffset(null), null, 'null → null');
+assert.equal(
+  formatTimezoneCueFromOffset('2026-07-24T09:30:00'),
+  null,
+  'ISO with no offset → null (no fabrication)'
+);
+
+// formatTimezoneCueFromMetadata
+assert.equal(
+  formatTimezoneCueFromMetadata('Europe/London', '+01:00'),
+  'BST',
+  'Europe/London +01:00 → BST'
+);
+assert.equal(
+  formatTimezoneCueFromMetadata('Europe/Rome', '+02:00'),
+  'CEST',
+  'Europe/Rome +02:00 → CEST'
+);
+assert.equal(
+  formatTimezoneCueFromMetadata('Europe/London', '+00:00'),
+  'GMT',
+  'Europe/London +00:00 → GMT'
+);
+assert.equal(
+  formatTimezoneCueFromMetadata(null, null),
+  null,
+  'no zone + no offset → null'
+);
+assert.equal(
+  formatTimezoneCueFromMetadata('unknown-iana-zone', null),
+  null,
+  'unknown IANA zone with no offset → null'
 );
 
 // OSM embed bbox — TripMap now embeds an OpenStreetMap iframe whose
@@ -445,7 +576,7 @@ assert.match(dashboardSurface, /onClick=\{\(\) => setOpen\(value => !value\)\}/,
 assert.doesNotMatch(dashboardSurface, /className="status-pill status-pill--emoji"[\s\S]{0,300}?title=/, 'summary status badge must not also use a native title tooltip because it creates duplicate hover text');
 assert.match(dashboardSurface, /formatTripStartToken\(trip\.start\)/, 'summary header must expose a compact trip start time when trip.start includes a clock time');
 assert.match(dashboardSurface, /className="trip-start-token"/, 'summary header must render the compact trip start token alongside the date');
-assert.match(dashboardSurface, /formatLegStartToken\(leg\.start, trip\.start\)/, 'summary leg rows must derive compact start-time tokens from legs[].start');
+assert.match(dashboardSurface, /formatLegStartToken\(leg\.start, trip\.start, leg\)/, 'summary leg rows must derive compact start-time tokens from legs[].start and pass leg for timezone cue');
 assert.match(dashboardSurface, /return 'Time TBC'/, 'summary leg rows must show a neutral Time TBC token instead of fabricating missing start times');
 assert.match(dashboardSurface, /className="leg-start-token"/, 'summary leg rows must render compact start-time tokens inline');
 assert.doesNotMatch(dashboardSurface, /weather\?\.summary\?\.code|summary\.code/, 'summary weather must not render raw provider condition codes');
@@ -1272,26 +1403,27 @@ assert.match(
   /const effectiveEnd\s+=\s+leg\.end\s+\|\|\s+leg\.monitoring_timing\?\.end;/,
   'LegDetailBlock must compute effectiveEnd preferring leg.end with monitoring_timing fallback'
 );
-// LegDetailBlock renders Start and End fields via formatUtcWeekdayDateTime.
+// LegDetailBlock renders Start and End fields via formatUtcWeekdayDateTime,
+// appending timezone cues only when useful/source-backed.
 assert.match(
   tripDetailSurface,
-  /\{ key: 'start', label: 'Start', value: formatUtcWeekdayDateTime\(effectiveStart\) \}/,
-  'LegDetailBlock must render a Start field from effectiveStart via formatUtcWeekdayDateTime'
+  /const effectiveStartCue\s+=\s+formatLegTimezoneCue\(leg, effectiveStart\);[\s\S]*key: 'start',[\s\S]*formatUtcWeekdayDateTime\(effectiveStart\)[\s\S]*effectiveStartCue/s,
+  'LegDetailBlock must render a Start field from effectiveStart and append a timezone cue when available'
 );
 assert.match(
   tripDetailSurface,
-  /\{ key: 'end', label: 'End', value: formatUtcWeekdayDateTime\(effectiveEnd\) \}/,
-  'LegDetailBlock must render an End field from effectiveEnd via formatUtcWeekdayDateTime'
+  /const effectiveEndCue\s+=\s+formatLegTimezoneCue\(leg, effectiveEnd\);[\s\S]*key: 'end',[\s\S]*formatUtcWeekdayDateTime\(effectiveEnd\)[\s\S]*effectiveEndCue/s,
+  'LegDetailBlock must render an End field from effectiveEnd and append a timezone cue when available'
 );
 // LegDetailBlock Start/End are gated on truthiness — no fabrication when genuinely absent.
 assert.match(
   tripDetailSurface,
-  /if \(effectiveStart\) \{[\s\S]{0,30}fields\.push\(\{ key: 'start'/,
+  /if \(effectiveStart\) \{[\s\S]{0,120}fields\.push\(\{[\s\S]{0,80}key: 'start'/,
   'LegDetailBlock Start field must be gated on effectiveStart being truthy'
 );
 assert.match(
   tripDetailSurface,
-  /if \(effectiveEnd\) \{[\s\S]{0,30}fields\.push\(\{ key: 'end'/,
+  /if \(effectiveEnd\) \{[\s\S]{0,120}fields\.push\(\{[\s\S]{0,80}key: 'end'/,
   'LegDetailBlock End field must be gated on effectiveEnd being truthy'
 );
 
@@ -1308,13 +1440,18 @@ assert.match(
 );
 assert.match(
   tripDetailSurface,
-  /const stageStartLabel\s+=\s+stageStart \? formatUtcWeekdayDateTime\(stageStart\) : null;/,
-  'ItineraryStageCard must format the Start tile from stageStart via formatUtcWeekdayDateTime'
+  /const startCue\s+=\s+formatLegTimezoneCue\(leg, stageStart\);[\s\S]*const stageStartLabel[\s\S]*formatUtcWeekdayDateTime\(stageStart\)[\s\S]*startCue/s,
+  'ItineraryStageCard must format the Start tile from stageStart and append a timezone cue when available'
 );
 assert.match(
   tripDetailSurface,
-  /const stageEndLabel\s+=\s+stageEnd \? formatUtcWeekdayDateTime\(stageEnd\) : null;/,
-  'ItineraryStageCard must format the End tile from stageEnd via formatUtcWeekdayDateTime'
+  /const endCue\s+=\s+formatLegTimezoneCue\(leg, stageEnd\);[\s\S]*const stageEndLabel[\s\S]*formatUtcWeekdayDateTime\(stageEnd\)[\s\S]*endCue/s,
+  'ItineraryStageCard must format the End tile from stageEnd and append a timezone cue when available'
+);
+assert.match(
+  tripDetailSurface,
+  /const stageTimeRange\s+=\s+\[[\s\S]*formatStageTimeToken\(stageStart\)[\s\S]*startCue[\s\S]*formatStageTimeToken\(stageEnd\)[\s\S]*endCue/s,
+  'ItineraryStageCard summary bar must append timezone cues to compact start/end time tokens when available'
 );
 assert.match(
   tripDetailSurface,
