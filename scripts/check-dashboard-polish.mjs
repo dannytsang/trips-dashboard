@@ -15,6 +15,13 @@ import {
   formatMonitoringPhaseLabel,
   formatMonitoringPhaseTooltip,
 } from '../lib/monitoring-phase.mjs';
+import {
+  formatUtcDateShort,
+  formatUtcDateTime,
+  formatUtcTime,
+  formatUtcWeekdayDate,
+  formatUtcWeekdayDateTime,
+} from '../lib/format-utc.mjs';
 
 const dashboardSurface = readFileSync('components/dashboard-session-surface.jsx', 'utf8');
 const tripDetailSurface = readFileSync('components/trip-detail-surface.jsx', 'utf8');
@@ -1089,6 +1096,45 @@ assert.doesNotMatch(
   'display label helpers must avoid locale-sensitive formatting for build metadata'
 );
 
+// Trip itinerary date/time labels must preserve the local clock time encoded
+// by an ISO offset. Birmingham July rail legs are BST (+01:00); using
+// `new Date(...).getUTC*` would incorrectly render these one hour early as GMT.
+assert.equal(
+  formatUtcTime('2026-07-03T09:15:00+01:00'),
+  '09:15',
+  'time formatter must preserve the ISO offset local time for Birmingham BST legs'
+);
+assert.equal(
+  formatUtcWeekdayDateTime('2026-07-03T09:15:00+01:00'),
+  'Fri 3 Jul, 09:15',
+  'weekday datetime formatter must preserve Birmingham BST departure time'
+);
+assert.equal(
+  formatUtcWeekdayDateTime('2026-07-03T11:48:00+01:00'),
+  'Fri 3 Jul, 11:48',
+  'weekday datetime formatter must preserve Birmingham BST arrival time'
+);
+assert.equal(
+  formatUtcDateShort('2026-07-03'),
+  '3 Jul',
+  'date-only formatter must continue to handle date-only trip windows'
+);
+assert.equal(
+  formatUtcWeekdayDate('2026-07-03'),
+  'Fri 3 Jul',
+  'date-only weekday formatter must continue to handle date-only trip windows'
+);
+assert.equal(
+  formatUtcTime('2026-07-03'),
+  '',
+  'time-only formatter must not fabricate 00:00 for date-only strings'
+);
+assert.equal(
+  formatUtcDateTime('2026-06-28T10:00:00.000Z'),
+  '28 Jun, 10:00',
+  'UTC build/generated metadata should still render unchanged when the ISO offset is Z'
+);
+
 // Debug mode assertions — FR-006 / AS-005.
 assert.doesNotMatch(
   dashboardSurface,
@@ -1210,7 +1256,8 @@ assert.match(
 // ItineraryStageCard must surface Start and End for every leg that
 // carries projected timing. Source priority: leg.start/leg.end first,
 // then leg.monitoring_timing.start/end as fallback. No fabrication when
-// both are absent. Formatting uses formatUtcWeekdayDateTime.
+// both are absent. Formatting uses the deterministic formatUtcWeekdayDateTime
+// helper, which preserves the local clock time encoded by the ISO offset.
 // St Pancras → Euston transfer: leg.start 09:44, leg.end 10:16 → End
 // must be visible in the rendered detail fields.
 
