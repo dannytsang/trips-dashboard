@@ -25,6 +25,7 @@ import {
   formatStatusFlowReminder,
   CANONICAL_STATUS_FLOW,
   formatWeatherCondition,
+  formatReturnOptionsLabel,
   toDisplayLabel,
 } from '@/lib/display-labels.mjs';
 import { LegRouteMap } from '@/components/leg-route-map';
@@ -121,6 +122,36 @@ function SectionCollapsible({ title, emoji, children, defaultOpen = false }) {
       </button>
       {open && <div className="detail-section-body">{children}</div>}
     </section>
+  );
+}
+
+// FR-072: ReturnOptionsStageCard — collapsible stage listing all mutually
+// exclusive return options, derived from trip.returnOptions.
+// Appears between Notifications and Accommodation on the detail surface.
+function ReturnOptionsStageCard({ returnOptions }) {
+  if (!returnOptions?.strategy || !Array.isArray(returnOptions.options)) return null;
+
+  const strategyLabel = formatReturnOptionsLabel(returnOptions.strategy);
+  const options = returnOptions.options.filter(o => o && typeof o.label === 'string');
+
+  if (options.length === 0) return null;
+
+  return (
+    <SectionCollapsible title="Return options" emoji="↩️" defaultOpen={true}>
+      <p className="return-options-strategy-label">
+        <strong>Strategy:</strong> {strategyLabel}
+      </p>
+      <ol className="return-options-list">
+        {options.map((opt, i) => (
+          <li key={i} className="return-option-item">
+            <span className="return-option-label">{opt.label}</span>
+            {opt.description ? (
+              <span className="return-option-description">{opt.description}</span>
+            ) : null}
+          </li>
+        ))}
+      </ol>
+    </SectionCollapsible>
   );
 }
 
@@ -1848,6 +1879,9 @@ export function TripDetailSurface({
             legs={trip.legs}
           />
         ) : null}
+
+        {/* FR-072: Return options — mutually exclusive return strategy; listed after Notifications, before Accommodation */}
+        <ReturnOptionsStageCard returnOptions={trip.returnOptions} />
 
         {/* Accommodation (FR-013/064) — between Notifications and Notes.
             Starts open when booked (hasAccommodationContent), collapsed when absent. */}

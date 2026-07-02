@@ -878,6 +878,68 @@ p {
   text-transform: capitalize;
 }
 
+/* FR-041 + FR-072: Return-strategy cue on summary cards + return-options stage in detail */
+.return-strategy-cue {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+.return-strategy-chip {
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--accent-cyan), transparent 88%);
+  color: var(--accent-cyan);
+  border: 1px solid color-mix(in srgb, var(--accent-cyan), transparent 70%);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  white-space: nowrap;
+}
+
+.return-strategy-options {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* FR-072: ReturnOptionsStageCard — collapsible section in trip detail */
+.return-options-strategy-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0 0 0.625rem;
+}
+
+.return-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.return-option-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent-cyan);
+}
+
+.return-option-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.return-option-description {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
 .trip-card-leg-summary {
   display: flex;
   flex-direction: column;

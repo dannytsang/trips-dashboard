@@ -6,7 +6,10 @@ import {
   formatLegModeLabel,
   formatNextActionLabel,
   formatReadinessLabel,
+  formatReturnOptionsLabel,
   formatStatusLabel,
+  formatStatusEmoji,
+  formatStatusFlowReminder,
   formatWeatherCondition,
   toDisplayLabel,
 } from '../lib/display-labels.mjs';
@@ -70,6 +73,16 @@ assert.equal(formatLegModeEmoji('mystery_mode'), '🛣️');
 assert.equal(formatNextActionLabel('confirm_train_eta'), 'Confirm train ETA');
 assert.deepEqual(formatWeatherCondition('light_rain'), { label: 'Light rain', icon: '🌧️', accessibleLabel: 'Light rain forecast' });
 assert.deepEqual(formatWeatherCondition('unknown_provider_code'), { label: 'Unknown provider code', icon: '🌡️', accessibleLabel: 'Unknown provider code forecast' });
+
+// FR-041: return options strategy labels
+assert.equal(formatReturnOptionsLabel('mutually_exclusive_return'), 'Return TBD');
+assert.equal(formatReturnOptionsLabel('fixed_return'), 'Fixed return');
+assert.equal(formatReturnOptionsLabel('open_return'), 'Open return');
+// Unknown strategies fall through to raw value
+assert.equal(formatReturnOptionsLabel('future_strategy'), 'future_strategy');
+// Nullish/falsy → null
+assert.equal(formatReturnOptionsLabel(null), null);
+assert.equal(formatReturnOptionsLabel(''), null);
 
 const monitoringTrip = {
   id: 'monitoring-sample',
@@ -1547,6 +1560,119 @@ assert.match(
   globalCss,
   /\.stage-notification-rail-label--blocked[\s\S]*text-decoration:\s*line-through/,
   'Selected notification Mockup A must visually strike through blocked downstream stops'
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FR-041: ReturnStrategyCue — return-options summary on the dashboard card
+// ─────────────────────────────────────────────────────────────────────────────
+
+assert.match(
+  dashboardSurface,
+  /ReturnStrategyCue[\s\S]{0,40}returnOptions/,
+  'dashboard surface must render ReturnStrategyCue when trip.returnOptions is present'
+);
+assert.match(
+  dashboardSurface,
+  /formatReturnOptionsLabel/,
+  'ReturnStrategyCue must derive strategy chip label via formatReturnOptionsLabel'
+);
+assert.match(
+  dashboardSurface,
+  /return-strategy-chip/,
+  'ReturnStrategyCue must render a return-strategy-chip element'
+);
+assert.match(
+  dashboardSurface,
+  /return-strategy-cue/,
+  'ReturnStrategyCue must render a return-strategy-cue container'
+);
+assert.match(
+  dashboardSurface,
+  /aria-label="Return strategy"/,
+  'ReturnStrategyCue root must have an aria-label for accessibility'
+);
+// When there are multiple options, options labels are joined with " · " separator
+assert.match(
+  dashboardSurface,
+  /optionLabels\.join\(['"] · ['"]\)/,
+  'Multiple return options must be joined with a " · " separator'
+);
+// Single-option case: options row is hidden when there is only one option
+assert.match(
+  dashboardSurface,
+  /optionLabels\.length\s*>\s*1\s*\?/,
+  'Options summary line must only render when more than one option exists'
+);
+// Component is null-safe — no crash when returnOptions is absent.
+// Guards on !returnOptions?.strategy (optional chaining prevents TypeError).
+assert.match(
+  dashboardSurface,
+  /if\s*\(\s*!\s*returnOptions\s*\?\.\s*strategy\s*\)/,
+  'ReturnStrategyCue must guard against null/undefined returnOptions'
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FR-072: ReturnOptionsStageCard — collapsible return-options stage in trip detail
+// ─────────────────────────────────────────────────────────────────────────────
+
+assert.match(
+  tripDetailSurface,
+  /ReturnOptionsStageCard[^\n]*\{[^\n]*returnOptions[^\n]*\}/,
+  'trip detail surface must render ReturnOptionsStageCard with returnOptions prop'
+);
+assert.match(
+  tripDetailSurface,
+  /function ReturnOptionsStageCard/,
+  'trip detail must define ReturnOptionsStageCard function'
+);
+assert.match(
+  tripDetailSurface,
+  /<SectionCollapsible\s+title="Return options"/,
+  'ReturnOptionsStageCard must use SectionCollapsible with title "Return options"'
+);
+assert.match(
+  tripDetailSurface,
+  /formatReturnOptionsLabel/,
+  'ReturnOptionsStageCard must derive strategy label via formatReturnOptionsLabel'
+);
+assert.match(
+  tripDetailSurface,
+  /return-options-strategy-label/,
+  'ReturnOptionsStageCard must render a strategy-label element'
+);
+assert.match(
+  tripDetailSurface,
+  /return-options-list/,
+  'ReturnOptionsStageCard must render an options list element'
+);
+assert.match(
+  tripDetailSurface,
+  /return-option-item/,
+  'ReturnOptionsStageCard must render individual return-option-item elements'
+);
+assert.match(
+  tripDetailSurface,
+  /if\s*\(\s*!\s*returnOptions\s*\?\.\s*strategy\s*\|\|\s*!/,
+  'ReturnOptionsStageCard must guard against null/undefined/empty returnOptions'
+);
+// Guard: no crash when returnOptions is absent
+assert.match(
+  tripDetailSurface,
+  /ReturnOptionsStageCard[^\n]*returnOptions=\{\s*trip\.returnOptions\s*\}/,
+  'ReturnOptionsStageCard must receive trip.returnOptions'
+);
+// Return options stage appears between NotificationsSection and AccommodationSection in the surface
+// We verify both ordering constraints independently:
+assert.match(
+  tripDetailSurface,
+  /hasNotificationsSection[^\n]*\n[^\n]*<NotificationsSection/s,
+  'NotificationsSection check must precede ReturnOptionsStageCard'
+);
+const roIdx = tripDetailSurface.indexOf('<ReturnOptionsStageCard');
+const acIdx = tripDetailSurface.indexOf('<AccommodationSection');
+assert.ok(
+  roIdx !== -1 && acIdx !== -1 && roIdx < acIdx,
+  'ReturnOptionsStageCard must appear before AccommodationSection in the surface'
 );
 
 console.log('Dashboard polish checks passed.');

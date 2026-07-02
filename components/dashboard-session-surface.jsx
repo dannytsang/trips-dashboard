@@ -9,6 +9,7 @@ import {
   formatLegModeLabel,
   formatNextActionLabel,
   formatReadinessLabel,
+  formatReturnOptionsLabel,
   formatStatusLabel,
   formatStatusEmoji,
   formatStatusFlowReminder,
@@ -64,6 +65,27 @@ function monitoringLabel(trip) {
 
 function nextActionLabel(trip) {
   return formatNextActionLabel(trip.planning?.nextAction);
+}
+
+// FR-041: ReturnStrategyCue — renders the return-options summary on the
+// dashboard summary card. Shown when trip.returnOptions is present.
+// strategyChip is the short label (e.g. "Return TBD") derived from the strategy
+// key; optionsSummary is a one-liner listing all option labels.
+function ReturnStrategyCue({ returnOptions }) {
+  if (!returnOptions?.strategy) return null;
+  const strategyLabel = formatReturnOptionsLabel(returnOptions.strategy);
+  const optionLabels = (returnOptions.options || [])
+    .map(o => o.label)
+    .filter(Boolean);
+  const optionsSummary = optionLabels.join(' · ');
+  return (
+    <div className="return-strategy-cue" aria-label="Return strategy">
+      <span className="return-strategy-chip">{strategyLabel}</span>
+      {optionLabels.length > 1 ? (
+        <span className="return-strategy-options">{optionsSummary}</span>
+      ) : null}
+    </div>
+  );
 }
 
 function isoLocalParts(iso) {
@@ -744,6 +766,9 @@ export function DashboardSessionSurface({
                           </dd>
                         </div>
                       </dl>
+                      {trip.returnOptions ? (
+                        <ReturnStrategyCue returnOptions={trip.returnOptions} />
+                      ) : null}
                       {legCount ? (
                         <div className="trip-card-leg-summary">
                           <ul className="leg-list" aria-label={`${trip.title} legs`}>
