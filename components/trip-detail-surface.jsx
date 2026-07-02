@@ -125,9 +125,11 @@ function SectionCollapsible({ title, emoji, children, defaultOpen = false }) {
   );
 }
 
-// FR-072: ReturnOptionsStageCard — collapsible stage listing all mutually
-// exclusive return options, derived from trip.returnOptions.
-// Appears between Notifications and Accommodation on the detail surface.
+// FR-070/071: ReturnOptionsStageCard — dedicated itinerary-stage card for the
+// journey-board choice point, listing all mutually exclusive return strategies.
+// Uses itinerary-card grammar: compact summary bar with stage-index/mode/label,
+// rounded card border, compact Recommended/Alternative rows, and an explicit
+// mutual-exclusivity notice (.return-options-notice).
 function ReturnOptionsStageCard({ returnOptions }) {
   if (!returnOptions?.strategy || !Array.isArray(returnOptions.options)) return null;
 
@@ -137,21 +139,36 @@ function ReturnOptionsStageCard({ returnOptions }) {
   if (options.length === 0) return null;
 
   return (
-    <SectionCollapsible title="Return options" emoji="↩️" defaultOpen={true}>
-      <p className="return-options-strategy-label">
-        <strong>Strategy:</strong> {strategyLabel}
-      </p>
-      <ol className="return-options-list">
-        {options.map((opt, i) => (
-          <li key={i} className="return-option-item">
-            <span className="return-option-label">{opt.label}</span>
-            {opt.description ? (
-              <span className="return-option-description">{opt.description}</span>
-            ) : null}
-          </li>
-        ))}
-      </ol>
-    </SectionCollapsible>
+    <article className="itinerary-stage-card return-options-stage-card" aria-label="Return options">
+      {/* Card header — compact summary bar with stage index, mode emoji, label */}
+      <div className="itinerary-stage-summary-bar">
+        <span className="itinerary-stage-idx itinerary-stage-idx--summary">↩</span>
+        <span className="itinerary-stage-mode" aria-hidden="true">↩</span>
+        <div className="itinerary-stage-title">
+          <span className="itinerary-stage-leg-label">Return</span>
+          <span className="itinerary-stage-leg-sub">{strategyLabel}</span>
+        </div>
+      </div>
+
+      {/* Card body */}
+      <div className="itinerary-stage-body">
+        {/* FR-071: explicit mutual-exclusivity notice */}
+        <p className="return-options-notice">
+          Choice point — only one of these options happens.
+        </p>
+
+        <ol className="return-options-list">
+          {options.map((opt, i) => (
+            <li key={i} className="return-option-item">
+              <span className="return-option-label">{opt.label}</span>
+              {opt.description ? (
+                <span className="return-option-description">{opt.description}</span>
+              ) : null}
+            </li>
+          ))}
+        </ol>
+      </div>
+    </article>
   );
 }
 
@@ -1761,6 +1778,9 @@ export function TripDetailSurface({
                   monitoringPhase={computeMonitoringPhase(trip, browserNow)}
                 />
               ))}
+              {/* FR-070/071: Return options — dedicated itinerary stage at the journey-board
+                  choice point, listing all mutually exclusive return strategies. */}
+              <ReturnOptionsStageCard returnOptions={trip.returnOptions} />
             </div>
             {/* Right: sticky overview map */}
             <div className="detail-journey-map-col">
@@ -1879,9 +1899,6 @@ export function TripDetailSurface({
             legs={trip.legs}
           />
         ) : null}
-
-        {/* FR-072: Return options — mutually exclusive return strategy; listed after Notifications, before Accommodation */}
-        <ReturnOptionsStageCard returnOptions={trip.returnOptions} />
 
         {/* Accommodation (FR-013/064) — between Notifications and Notes.
             Starts open when booked (hasAccommodationContent), collapsed when absent. */}

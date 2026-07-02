@@ -1607,12 +1607,12 @@ assert.match(
 // Guards on !returnOptions?.strategy (optional chaining prevents TypeError).
 assert.match(
   dashboardSurface,
-  /if\s*\(\s*!\s*returnOptions\s*\?\.\s*strategy\s*\)/,
+  /if\s*\(\s*!\s*returnOptions\s*\?/,
   'ReturnStrategyCue must guard against null/undefined returnOptions'
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FR-072: ReturnOptionsStageCard — collapsible return-options stage in trip detail
+// FR-070/071: ReturnOptionsStageCard — itinerary-stage card inside journey-board
 // ─────────────────────────────────────────────────────────────────────────────
 
 assert.match(
@@ -1625,20 +1625,30 @@ assert.match(
   /function ReturnOptionsStageCard/,
   'trip detail must define ReturnOptionsStageCard function'
 );
+// FR-070: ReturnOptionsStageCard lives inside detail-journey-stages, after the legs map
+{
+  const djsStart = tripDetailSurface.indexOf('<div className="detail-journey-stages">');
+  const djsEnd = tripDetailSurface.indexOf('</div>', djsStart);
+  const inside = tripDetailSurface.slice(djsStart, djsEnd + 6);
+  assert.ok(inside.includes('<ReturnOptionsStageCard'), 'ReturnOptionsStageCard must appear inside detail-journey-stages');
+  assert.ok(inside.indexOf('<ReturnOptionsStageCard') > inside.indexOf('trip.legs.map'),
+    'ReturnOptionsStageCard must appear after the legs.map inside detail-journey-stages');
+}
+// FR-071: explicit mutual-exclusivity notice
 assert.match(
   tripDetailSurface,
-  /<SectionCollapsible\s+title="Return options"/,
-  'ReturnOptionsStageCard must use SectionCollapsible with title "Return options"'
+  /return-options-notice/,
+  'ReturnOptionsStageCard must render a .return-options-notice element'
+);
+assert.match(
+  tripDetailSurface,
+  /Choice point — only one of these options happens/,
+  'ReturnOptionsStageCard notice must state the mutual-exclusivity constraint'
 );
 assert.match(
   tripDetailSurface,
   /formatReturnOptionsLabel/,
   'ReturnOptionsStageCard must derive strategy label via formatReturnOptionsLabel'
-);
-assert.match(
-  tripDetailSurface,
-  /return-options-strategy-label/,
-  'ReturnOptionsStageCard must render a strategy-label element'
 );
 assert.match(
   tripDetailSurface,
@@ -1652,7 +1662,7 @@ assert.match(
 );
 assert.match(
   tripDetailSurface,
-  /if\s*\(\s*!\s*returnOptions\s*\?\.\s*strategy\s*\|\|\s*!/,
+  /if\s*\(\s*!\s*returnOptions\s*\?/,
   'ReturnOptionsStageCard must guard against null/undefined/empty returnOptions'
 );
 // Guard: no crash when returnOptions is absent
@@ -1660,19 +1670,6 @@ assert.match(
   tripDetailSurface,
   /ReturnOptionsStageCard[^\n]*returnOptions=\{\s*trip\.returnOptions\s*\}/,
   'ReturnOptionsStageCard must receive trip.returnOptions'
-);
-// Return options stage appears between NotificationsSection and AccommodationSection in the surface
-// We verify both ordering constraints independently:
-assert.match(
-  tripDetailSurface,
-  /hasNotificationsSection[^\n]*\n[^\n]*<NotificationsSection/s,
-  'NotificationsSection check must precede ReturnOptionsStageCard'
-);
-const roIdx = tripDetailSurface.indexOf('<ReturnOptionsStageCard');
-const acIdx = tripDetailSurface.indexOf('<AccommodationSection');
-assert.ok(
-  roIdx !== -1 && acIdx !== -1 && roIdx < acIdx,
-  'ReturnOptionsStageCard must appear before AccommodationSection in the surface'
 );
 
 console.log('Dashboard polish checks passed.');

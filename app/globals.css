@@ -940,6 +940,18 @@ p {
   color: var(--text-muted);
 }
 
+/* FR-071: explicit mutual-exclusivity notice — compact secondary styling */
+.return-options-notice {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0 0 0.625rem;
+  padding: 0.3rem 0.5rem;
+  background: color-mix(in srgb, var(--accent-cyan) 8%, transparent);
+  border-left: 2px solid var(--accent-cyan);
+  border-radius: 4px;
+}
+
 .trip-card-leg-summary {
   display: flex;
   flex-direction: column;
