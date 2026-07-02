@@ -1346,7 +1346,6 @@ p {
   font-weight: 800;
 }
 .stage-notification-recipient,
-.stage-notification-scope,
 .stage-notification-trigger {
   display: inline-flex;
   align-items: center;
@@ -1356,6 +1355,16 @@ p {
   font-size: 0.72rem;
   font-weight: 700;
   line-height: 1.25;
+}
+.stage-notification-scope {
+  display: block;
+  flex-basis: 100%;
+  width: 100%;
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.76rem;
+  font-weight: 650;
+  line-height: 1.35;
 }
 .stage-notification-recipient {
   background: #dcfce7;

@@ -1548,7 +1548,17 @@ assert.match(
 );
 assert.match(
   globalCss,
-  /\.stage-notification-rail[\s\S]*display:\s*flex/,
+  /\.stage-notification-scope\s*\{[\s\S]*display:\s*block[\s\S]*flex-basis:\s*100%[\s\S]*border-radius:\s*0\.5rem/,
+  'Notification scope description must render as a full-width rectangle, not a large pill'
+);
+assert.doesNotMatch(
+  globalCss,
+  /\.stage-notification-recipient,\s*\.stage-notification-scope,\s*\.stage-notification-trigger\s*\{[\s\S]*border-radius:\s*999px/,
+  'Notification scope description must not share pill styling with recipient/trigger chips'
+);
+assert.match(
+  globalCss,
+  /\.stage-notification-rail\s*\{[\s\S]*display:\s*flex/,
   'Selected notification Mockup A must style the route rail as a compact flex track'
 );
 assert.match(
