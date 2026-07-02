@@ -1682,4 +1682,67 @@ assert.match(
   'ReturnOptionsStageCard must receive trip.returnOptions'
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// FR-073: ReturnOptionsStageCard notification sub-strip — Birmingham pre-approval
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ReturnOptionsStageCard must read notification from returnOptions (destructured or direct access)
+assert.match(
+  tripDetailSurface,
+  /\bnotification\b[^\n]*returnOptions|returnOptions[^\n]*\bnotification\b|const\s+\{\s*notification\s*\}/,
+  'ReturnOptionsStageCard must read notification from returnOptions'
+);
+// When notification is present, it must render the ReturnOptionsNotificationCue sub-component
+assert.match(
+  tripDetailSurface,
+  /<ReturnOptionsNotificationCue\s+notification=\{notification\}\s*\/?>/,
+  'ReturnOptionsStageCard must render ReturnOptionsNotificationCue when notification prop is present'
+);
+// The cue sub-component must be defined in the file
+assert.match(
+  tripDetailSurface,
+  /function ReturnOptionsNotificationCue\(\{ notification \}\)/,
+  'trip detail surface must define ReturnOptionsNotificationCue({ notification })'
+);
+// Must render the pre-approved title
+assert.match(
+  tripDetailSurface,
+  /Pre-approved return update/,
+  'ReturnOptionsNotificationCue must label the strip as "Pre-approved return update"'
+);
+// Must show recipient label (recipientLabel computed from notification.recipient)
+assert.match(
+  tripDetailSurface,
+  /recipientLabel\s*=|notification.*recipient|recipient.*notification/,
+  'ReturnOptionsNotificationCue must display the recipient from notification.recipient'
+);
+// Must surface exclusions (arrival-exclusion chip)
+assert.match(
+  tripDetailSurface,
+  /return-options-notification-exclusion-chip/,
+  'ReturnOptionsNotificationCue must render an exclusion chip element when exclusions are present'
+);
+// Must not use raw chat_id, JID, or @s.whatsapp.net anywhere in the file
+assert.doesNotMatch(
+  tripDetailSurface,
+  /447872100031|chat_id\s*[:=]|@s\.whatsapp\.net/,
+  'trip-detail-surface.jsx must not contain raw chat_id, JID, or WhatsApp domain strings'
+);
+assert.doesNotMatch(
+  globalCss,
+  /447872100031|chat_id\s*[:=]|@s\.whatsapp\.net/,
+  'globals.css must not contain raw chat_id, JID, or WhatsApp domain strings'
+);
+// CSS must style the notification strip with a distinct background/border treatment
+assert.match(
+  globalCss,
+  /\.return-options-notification-strip\s*\{[\s\S]*background[\s\S]*\}/,
+  'CSS must style .return-options-notification-strip with a distinct background'
+);
+assert.match(
+  globalCss,
+  /\.return-options-notification-scope[\s\S]*max-width[\s\S]*\}/,
+  'CSS must cap .return-options-notification-scope width to prevent card blowout'
+);
+
 console.log('Dashboard polish checks passed.');

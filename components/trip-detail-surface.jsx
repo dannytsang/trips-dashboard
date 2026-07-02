@@ -130,11 +130,15 @@ function SectionCollapsible({ title, emoji, children, defaultOpen = false }) {
 // Uses itinerary-card grammar: compact summary bar with stage-index/mode/label,
 // rounded card border, compact Recommended/Alternative rows, and an explicit
 // mutual-exclusivity notice (.return-options-notice).
+// FR-073: When returnOptions.notification is present (Birmingham-style
+// return-leg pre-approval), render a compact notification-approval strip
+// below the options list so recipients and scope are visible at a glance.
 function ReturnOptionsStageCard({ returnOptions }) {
   if (!returnOptions?.strategy || !Array.isArray(returnOptions.options)) return null;
 
   const strategyLabel = formatReturnOptionsLabel(returnOptions.strategy);
   const options = returnOptions.options.filter(o => o && typeof o.label === 'string');
+  const { notification } = returnOptions || {};
 
   if (options.length === 0) return null;
 
@@ -167,8 +171,71 @@ function ReturnOptionsStageCard({ returnOptions }) {
             </li>
           ))}
         </ol>
+
+        {/* FR-073: Birmingham-style return-leg pre-approval strip */}
+        {notification ? (
+          <ReturnOptionsNotificationCue notification={notification} />
+        ) : null}
       </div>
     </article>
+  );
+}
+
+// FR-073: Compact notification-approval cue for return-options pre-approval.
+// Mirrors the visual language of StageNotificationTriggerStrip but is scoped
+// to the return-options card context and is read-only (no live fetch).
+// Exposes: recipient name, approved scope, arrival-exclusion note, and
+// non-arrival trigger chips. Never renders chat_id, JID, or raw message body.
+function ReturnOptionsNotificationCue({ notification }) {
+  const keep = notification?.keepInformed;
+  const recipient = notification?.recipient;
+  if (!keep || !recipient) return null;
+
+  const recipientLabel = recipient.displayName || (recipient.type ? recipient.type.replace(/_/g, ' ') : 'Approved recipient');
+  const scopeLabel = keep.approvalScope ? keep.approvalScope.replace(/_/g, ' ') : null;
+  const triggers = Array.isArray(keep.triggers) ? keep.triggers : [];
+  const exclusions = Array.isArray(keep.exclusions) ? keep.exclusions : [];
+  const displayedTriggers = triggers.slice(0, 3);
+  const displayedExclusions = exclusions.slice(0, 1);
+  const expiresAt = keep.expiresAt ? `Expires ${formatUtcDateTime(keep.expiresAt).replace(' at ', ' ')}` : null;
+  const decidedAt = keep.decidedAt ? `Approved ${formatUtcDateTime(keep.decidedAt).replace(' at ', ' ')}` : null;
+
+  return (
+    <aside className="return-options-notification-strip" aria-label="Pre-approved return notification">
+      <div className="return-options-notification-header">
+        <span className="return-options-notification-title">Pre-approved return update</span>
+        <span className="return-options-notification-recipient">{recipientLabel}</span>
+        {scopeLabel ? <span className="return-options-notification-scope">{scopeLabel}</span> : null}
+      </div>
+
+      {displayedExclusions.length > 0 ? (
+        <div className="return-options-notification-exclusions">
+          {displayedExclusions.map((exc) => (
+            <span key={exc} className="return-options-notification-exclusion-chip">
+              × {exc}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      {displayedTriggers.length > 0 ? (
+        <div className="return-options-notification-triggers">
+          {displayedTriggers.map((trigger) => (
+            <span key={trigger} className="return-options-notification-trigger">
+              ✓ {prettifyNotificationToken(trigger)}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      {(decidedAt || expiresAt || keep.messageStyle) ? (
+        <div className="return-options-notification-meta">
+          {decidedAt ? <span>{decidedAt}</span> : null}
+          {expiresAt ? <span>{expiresAt}</span> : null}
+          {keep.messageStyle ? <span className="return-options-notification-style">{keep.messageStyle}</span> : null}
+        </div>
+      ) : null}
+    </aside>
   );
 }
 
